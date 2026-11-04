@@ -944,8 +944,8 @@ window.PLANT = (() => {
       if (P.cb && P.cbL && !P.grid && P.seq === 'S6_ONLINE') { /* islanded */ }
     }
   }
-  function advance(sec) {
-    const n = Math.max(1, Math.ceil(sec / DT));
+  function advance(sec, dtMax = DT) {
+    const n = Math.max(1, Math.ceil(sec / dtMax));
     const h = sec / n;
     for (let i = 0; i < n; i++) step(h);
   }
@@ -965,9 +965,10 @@ window.PLANT = (() => {
     });
     quiet = true;
     P.qinTarget = 7.3 + Math.random() * 1.2;
-    advance(240);
+    advance(240, 0.01);               // coarse warm-up: plenty stable, 5x cheaper
     P.qin += 0.6; P.qinBase += 0.6;   // a little freshet so the chart shows some life
-    advance(420);
+    advance(410, 0.01);
+    advance(10);                      // final settle at full resolution
     quiet = false;
     const t0 = P.t; P.hist.forEach(h => { h[0] -= t0; }); P.t = 0;
     events.length = 0;
@@ -978,7 +979,7 @@ window.PLANT = (() => {
     const now = new Date();
     P.tod = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
     Object.assign(P, { hw: 214.58, qin: 7.4, qinBase: 7.4, qinTarget: 7.6, tTB: 14, tUGB: 14, tLGB: 14, tTGB: 12.5, tSt: [15, 15.5, 15] });
-    quiet = true; advance(300); quiet = false;
+    quiet = true; advance(300, 0.01); quiet = false;
     const t0 = P.t; P.hist.forEach(h => { h[0] -= t0; }); P.t = 0; events.length = 0;
     log('SYS', 'SIMULATOR READY - INITIAL CONDITION: UNIT STOPPED', 'seq');
   }

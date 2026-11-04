@@ -16,7 +16,7 @@
   const UPD = [];              // per-frame binders
   const METERS = [];
   const FLASH = { fast: false, slow: false };
-  let TIMEACC = 1;
+  let TIMEACC = 1, EFFACC = 1, AUTOFF = true;
 
   function el(tag, cls, parent, html) {
     const e = document.createElement(tag);
@@ -558,7 +558,7 @@
       METERS.push(this);
     }
     resize() { const k = this.k = kscale(); this.c.width = Math.round(this.o.w * k); this.c.height = Math.round(this.o.h * k); }
-    step(dt) { const kw = Math.max(0, this.o.kw()); this.disc += dt * kw * TIMEACC * (150 / 100) / 3600; }   // C=150 U/kWh secondary, CT ×100
+    step(dt) { const kw = Math.max(0, this.o.kw()); this.disc += dt * kw * EFFACC * (150 / 100) / 3600; }   // C=150 U/kWh secondary, CT ×100
     draw() {
       const o = this.o, g = this.ctx, k = this.k, W = o.w, H = o.h;
       g.setTransform(k, 0, 0, k, 0, 0); g.clearRect(0, 0, W, H);
@@ -1658,6 +1658,11 @@
     return b;
   });
   function setAccel(n) { TIMEACC = n; tBtns.forEach(b => b.classList.toggle('on', b.textContent === '×' + n)); document.querySelectorAll('[data-acc]').forEach(b => b.classList.toggle('on', +b.dataset.acc === n)); }
+  const ffBtn = el('button', 'on', tg, 'AUTO-FF'); ffBtn.type = 'button'; ffBtn.id = 'ff';
+  ffBtn.title = 'Fast-forward ×10 through automatic start/stop waits';
+  ffBtn.onclick = () => { AUTOFF = !AUTOFF; ffBtn.classList.toggle('on', AUTOFF); };
+  const ffInd = el('span', 'ffind', tg); ffInd.hidden = true;
+  const waiting = () => /^(S[1-4]|T[1-5])/.test(P.seq) || (P.seq === 'S5_SNL' && P.sw.sync === 'AUTO' && P.syncArmed && P.fcb);
   const snd = document.getElementById('snd');
   snd.onclick = () => { const on = AU.toggle(); snd.textContent = on ? 'SOUND ON' : 'SOUND OFF'; snd.classList.toggle('on', on); };
 
@@ -1751,7 +1756,7 @@
       </ol>
       <h3>B. NORMAL STOP</h3>
       Push STOP. The unit unloads, 52G opens, field breaker opens, gates close, brakes apply at 28 % speed.
-      Run-down from full speed takes about four minutes.
+      Run-down from full speed takes about four minutes (the trainer fast-forwards automatic waits ×10; AUTO-FF in the top bar turns that off).
       <h3>C. MANUAL SYNCHRONIZING</h3>
       <ol>
         <li>Unit at speed no load, excitation on. SYNCHRONIZING selector to MAN.</li>
@@ -1802,9 +1807,9 @@
     document.documentElement.style.setProperty('--noise', `url(${c.toDataURL()})`);
   })();
 
-  PL.initOnline();
-  resetUi();
+  // paint the (still dead) cabinets first, then warm the plant up
   layout();
+  METERS.forEach(m => { if (!m.samples) m.draw(); });
   window.addEventListener('resize', layout);
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(layout);
 
@@ -1812,14 +1817,17 @@
   const hint = document.getElementById('hint');
   hint.innerHTML = `<b>Unit 1 is on line</b>, holding the headwater in LEVEL mode.<br>
     Drag or scroll to walk along the six cabinets. Click the left/right half of a knob to turn it;
-    hold spring-return switches. Turn <b>SOUND</b> on for the machine hall.<br><button type="button" id="hintOk">GOT IT</button>`;
-  hint.hidden = false;
+    hold spring-return switches. Automatic start/stop waits fast-forward ×10. Turn <b>SOUND</b> on for the machine hall.<br><button type="button" id="hintOk">GOT IT</button>`;
   document.getElementById('hintOk').onclick = () => { hint.hidden = true; };
 
   let last = performance.now(), flashT = 0;
   function frame(now) {
     const dtReal = Math.min(0.1, (now - last) / 1000); last = now;
-    const simDt = dtReal * TIMEACC;
+    const ff = AUTOFF && TIMEACC < 10 && waiting() && !ANN.some(a => a.st === 'alarm' && a.c === 'red');
+    EFFACC = ff ? 10 : TIMEACC;
+    if (ff !== !ffInd.hidden) ffInd.hidden = !ff;
+    if (ff) ffInd.textContent = '▶▶ ×10  ' + (PL.SEQ_TEXT[P.seq] || '').replace(/^(START|STOP): /, '');
+    const simDt = dtReal * EFFACC;
     PL.advance(simDt);
     flashT += dtReal;
     FLASH.fast = (flashT % 0.6) < 0.32;
@@ -1833,6 +1841,12 @@
     insStat();
     requestAnimationFrame(frame);
   }
-  requestAnimationFrame(frame);
+  requestAnimationFrame(() => setTimeout(() => {
+    PL.initOnline();
+    resetUi();
+    hint.hidden = false;
+    last = performance.now();
+    requestAnimationFrame(frame);
+  }, 0));
   window.UNIT1 = { PL, P, AU, ANN, setAccel };
 })();

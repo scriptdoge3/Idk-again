@@ -7,7 +7,7 @@
 <meta name="description" content="Control-room simulator of a 1988 run-of-river station: 250 kW Kaplan turbine, direct-coupled 72-pole 3-phase generator, all-analog control cabinets.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700&family=Caveat:wght@500&family=Jost:wght@400;500&family=VT323&display=swap">
+<link rel="stylesheet" media="print" onload="this.media='all'" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700&family=Caveat:wght@500&family=Jost:wght@400;500&family=VT323&display=swap">
 <style>
 /* Layout: one long lineup of floor-standing cabinets, panned sideways inside the room;
    the page itself never scrolls horizontally. Single deliberate look: a 1988 control room. */
@@ -62,6 +62,9 @@ body {
 #bar button:focus-visible, .pb:focus-visible, .rot:focus-visible { outline: 2px solid #f0c040; outline-offset: 2px; }
 #bar .jump button { padding: 5px 6px; }
 #bar .spacer { flex: 1 1 auto; }
+#bar .ffind { color: #161512; background: #e0a526; font-weight: 700; padding: 5px 8px; border-radius: 2px; white-space: nowrap; animation: ffp 1s steps(2) infinite; }
+@keyframes ffp { 50% { background: #b98318; } }
+@media (prefers-reduced-motion: reduce) { #bar .ffind { animation: none; } }
 @media (max-width: 760px) {
   #bar { gap: 8px; }
   #bar .brand { white-space: normal; min-width: 0; }
