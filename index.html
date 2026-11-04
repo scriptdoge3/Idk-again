@@ -376,7 +376,7 @@ canvas.meter { display: block; }
 
 /* blanking plate over a spare cut-out */
 .blank { position: relative; flex: 1 1 auto; min-height: 60px; margin: 2px 30px 0; border-radius: 2px; display: flex; align-items: center; justify-content: center;
-  background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(0,0,0,.06)), var(--ral7032-hi);
+  background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(0,0,0,.10)), var(--noise), #b3ae9b;
   box-shadow: 0 0 0 1px rgba(0,0,0,.28), 0 2px 3px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.5); }
 .blank::before, .blank::after { content: ""; position: absolute; width: 7px; height: 7px; border-radius: 50%; top: 8px;
   background: radial-gradient(circle at 35% 35%, #e0ddd2, #8d8a80 60%, #55534c); box-shadow: 0 8px 0 -8px transparent; }
@@ -426,6 +426,161 @@ canvas.meter { display: block; }
 @media (prefers-reduced-motion: reduce) {
   .rot .knob, .dsw .bar, .lockout .lh .arm, .pb > b, .estop .mush { transition: none; }
 }
+
+/* =====================================================================
+   REALISM PASS: light, materials, wear
+   ===================================================================== */
+#bar { position: relative; }
+#lineup { padding: 100px 60px 0 60px; }
+#room {
+  background:
+    radial-gradient(ellipse 700px 420px at 30% -80px, rgba(255,248,226,.16), rgba(255,248,226,0) 70%),
+    radial-gradient(ellipse 700px 420px at 80% -80px, rgba(255,248,226,.14), rgba(255,248,226,0) 70%),
+    linear-gradient(180deg, rgba(255,252,235,.08), rgba(0,0,0,0) 26%, rgba(0,0,0,.14) 85%),
+    var(--noise),
+    linear-gradient(180deg, #67705f, #565e50);
+}
+.tray { position: absolute; left: 0; top: 0; pointer-events: none; z-index: 0; }
+.cab { z-index: 1; }
+
+#floor {
+  background:
+    linear-gradient(180deg, rgba(0,0,0,.65) 0, rgba(0,0,0,0) 14px),
+    linear-gradient(180deg, rgba(255,250,230,.10) 0, rgba(255,250,230,0) 50px),
+    repeating-linear-gradient(90deg, rgba(0,0,0,.18) 0 1px, transparent 1px 300px),
+    repeating-linear-gradient(180deg, rgba(0,0,0,.14) 0 1px, transparent 1px 60px),
+    var(--noise),
+    linear-gradient(180deg, #2c2722, #3b342c 30%, #241f1b);
+}
+#fx { position: fixed; inset: 0; pointer-events: none; z-index: 4;
+  background: radial-gradient(ellipse 85% 80% at 50% 55%, rgba(0,0,0,0) 55%, rgba(0,0,0,.38) 100%); }
+#fx::after { content: ""; position: absolute; inset: 0; background-image: var(--grain); opacity: .035; }
+@keyframes grain { 0%{transform:translate(0,0)} 15%{transform:translate(-23px,11px)} 30%{transform:translate(17px,-29px)}
+  45%{transform:translate(-9px,37px)} 60%{transform:translate(31px,4px)} 75%{transform:translate(-37px,-17px)} 90%{transform:translate(8px,26px)} }
+
+/* powder-coated steel with orange peel, lit from above */
+.door { isolation: isolate;
+  background-image: var(--noise), linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,0) 30%, rgba(0,0,0,.05) 80%, rgba(0,0,0,.10));
+  box-shadow: inset 1px 1px 0 rgba(255,255,255,.5), inset -1px -1px 0 rgba(0,0,0,.28), inset 0 16px 16px -14px rgba(0,0,0,.30),
+    0 0 0 1px rgba(0,0,0,.45), 0 0 0 2.5px rgba(30,28,24,.35), 0 3px 4px rgba(0,0,0,.35); }
+.door > .skin { position: absolute; left: 0; top: 0; z-index: -1; pointer-events: none; border-radius: 3px; }
+.plinth > .scuff { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.cab-top { background: var(--noise), linear-gradient(180deg, #d8d2bd 0, var(--ral7032-hi) 3px, var(--ral7032) 40%, var(--ral7032-lo)); }
+.cab-top::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 2px; background: rgba(205,195,170,.8); }
+.cab-top .louv { background: repeating-linear-gradient(180deg, #121210 0 1.2px, #3e3c37 1.2px 2px, #d6d0bc 2px 2.6px, var(--ral7032) 2.6px 4.5px); opacity: 1;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,.5), 0 1px 0 rgba(255,255,255,.4); }
+.door .lock { position: absolute; right: 1px; top: calc(47% - 22px); width: 11px; height: 11px; border-radius: 50%;
+  background: radial-gradient(circle at 40% 35%, #f0e6b8, #a88a35 55%, #5b4710); box-shadow: 0 1px 2px rgba(0,0,0,.6); }
+.door .lock::after { content: ""; position: absolute; left: 4.5px; top: 2px; width: 2px; height: 7px; background: #2b2410; border-radius: 1px; }
+.door .handle { background: linear-gradient(90deg, #070707 0, #2b2b29 30%, #565652 48%, #222 70%, #0b0b0b 100%);
+  box-shadow: 3px 4px 5px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.18); }
+
+/* screws with randomly clocked slots */
+.scr { position: absolute; width: 7px; height: 7px; border-radius: 50%; z-index: 1;
+  background: radial-gradient(circle at 35% 30%, #f2f0ea, #a4a198 55%, #5d5b55);
+  box-shadow: 0 1px 1px rgba(0,0,0,.55), inset 0 0 0 .5px rgba(0,0,0,.45); }
+.scr::after { content: ""; position: absolute; left: 50%; top: 50%; width: 5.6px; height: 1.1px; margin: -.55px 0 0 -2.8px;
+  background: rgba(35,33,30,.9); transform: rotate(var(--a, 30deg)); box-shadow: 0 .6px 0 rgba(255,255,255,.35); }
+.np .name { padding-left: 16px; }
+
+/* engraved traffolyte: white core shows in the V-cut letters */
+.tag, .np .name, .np .code { transform: translateX(var(--dx, 0)) rotate(var(--rot, 0deg)); }
+.sec > .st { transform: translateX(var(--dx, 0)) rotate(var(--rot, 0deg)); }
+.tag, .np .name, .np .code {
+  background: linear-gradient(180deg, #262624, #151514 60%, #111110);
+  text-shadow: 0 1px 0 rgba(0,0,0,.95), 0 -.5px 0 rgba(255,255,255,.22);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.12), inset 0 -1px 0 rgba(0,0,0,.6), 0 1px 1.5px rgba(0,0,0,.5), 0 0 0 .5px rgba(0,0,0,.8);
+}
+.tag { color: #ebe8dc; }
+.tag.w { background: linear-gradient(180deg, #f6f4ec, #e3e0d5); color: #1a1a18; text-shadow: 0 1px 0 rgba(255,255,255,.7), 0 -.5px 0 rgba(0,0,0,.25);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.8), inset 0 -1px 0 rgba(0,0,0,.15), 0 1px 1.5px rgba(0,0,0,.4), 0 0 0 .5px rgba(0,0,0,.45); }
+.plate-metal { transform: rotate(var(--rot, 0deg));
+  background: repeating-linear-gradient(90deg, rgba(255,255,255,.07) 0 1px, rgba(0,0,0,.05) 1px 2px), linear-gradient(135deg, #dcdcd6, #a5a59e 55%, #cfcfc8); }
+.blank { transform: rotate(var(--rot, 0deg)); }
+
+/* embossed label-maker tape */
+.dymo { transform: rotate(var(--rot, -.6deg)); color: #f4f4ff;
+  background: linear-gradient(180deg, rgba(255,255,255,.22), rgba(255,255,255,0) 45%, rgba(0,0,0,.12)), #1f3f86;
+  text-shadow: 0 1px 0 rgba(255,255,255,.35), 0 -1px 0 rgba(0,0,0,.45);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.3), 0 1px 2px rgba(0,0,0,.45), 0 0 0 .5px rgba(0,0,0,.35); }
+.dymo.red { background: linear-gradient(180deg, rgba(255,255,255,.22), rgba(255,255,255,0) 45%, rgba(0,0,0,.12)), #9b1d1a; }
+.dymo.blk { background: linear-gradient(180deg, rgba(255,255,255,.18), rgba(255,255,255,0) 45%, rgba(0,0,0,.12)), #1b1b1b; }
+
+/* meters sit on the door with a real contact shadow */
+.mwrap { filter: none; border-radius: 3px; box-shadow: 0 1.5px 1.5px rgba(0,0,0,.5), 1px 6px 9px rgba(0,0,0,.24); }
+.mwrap.rnd { border-radius: 50%; }
+
+/* indicator lamps: knurled chrome bezel, faceted lens, light spill when lit */
+.lamp { background:
+    radial-gradient(circle at 34% 28%, rgba(255,255,255,.75), rgba(255,255,255,0) 38%),
+    radial-gradient(circle, rgba(0,0,0,0) 55%, rgba(0,0,0,.55) 100%),
+    repeating-conic-gradient(#d4d3cd 0 5deg, #7d7c76 5deg 10deg);
+  box-shadow: 0 2px 2px rgba(0,0,0,.55), 1px 4px 6px rgba(0,0,0,.2), inset 0 0 0 1px rgba(0,0,0,.6); }
+.lamp i { position: relative; }
+.lamp i::before { content: ""; position: absolute; left: 22%; top: 16%; width: 34%; height: 22%; border-radius: 50%; z-index: 1;
+  background: rgba(255,255,255,.55); transform: rotate(-28deg); filter: blur(.3px); }
+.lamp i::after { inset: 0; border-radius: 50%; position: absolute;
+  background: repeating-radial-gradient(circle at 50% 50%, rgba(255,255,255,.12) 0 .8px, transparent .8px 2.4px), repeating-conic-gradient(rgba(0,0,0,.08) 0 15deg, transparent 15deg 30deg); }
+.lamp.red   { --g2: rgba(255,60,30,.22); } .lamp.green { --g2: rgba(60,255,90,.16); } .lamp.amber { --g2: rgba(255,170,30,.22); }
+.lamp.white { --g2: rgba(255,240,200,.22); } .lamp.blue { --g2: rgba(80,140,255,.2); }
+.lamp.on { box-shadow: 0 2px 2px rgba(0,0,0,.55), 0 0 26px 10px var(--g2), inset 0 0 0 1px rgba(0,0,0,.6); }
+
+/* pushbuttons: knurled ring, glossy moulded cap */
+.pb { background:
+    radial-gradient(circle at 34% 28%, rgba(255,255,255,.7), rgba(255,255,255,0) 42%),
+    radial-gradient(circle, rgba(0,0,0,0) 60%, rgba(0,0,0,.55) 100%),
+    repeating-conic-gradient(#dcdad2 0 6deg, #85837b 6deg 12deg);
+  box-shadow: 0 2px 3px rgba(0,0,0,.6), 2px 6px 8px rgba(0,0,0,.22), inset 0 0 0 1px rgba(0,0,0,.6); }
+.pb > b { position: relative; }
+.pb > b::after { content: ""; position: absolute; left: 18%; top: 12%; width: 46%; height: 30%; border-radius: 50%;
+  background: linear-gradient(180deg, rgba(255,255,255,.55), rgba(255,255,255,0)); transform: rotate(-20deg); }
+.pb.sq > b::after { border-radius: 3px; left: 10%; top: 8%; width: 80%; height: 34%; transform: none; }
+
+/* cam switches: brushed aluminium escutcheon, bakelite knob, shadow fixed to the room light */
+.rot .plate { background:
+    repeating-linear-gradient(90deg, rgba(255,255,255,.08) 0 1px, rgba(0,0,0,.05) 1px 2px, rgba(255,255,255,.03) 2px 3px),
+    linear-gradient(135deg, #eeede8 0, #c3c2bc 40%, #a9a8a2 62%, #dcdbd5 100%);
+  box-shadow: 0 0 0 1px rgba(0,0,0,.4), 0 1.5px 2px rgba(0,0,0,.45), 1px 5px 7px rgba(0,0,0,.18), inset 0 1px 0 rgba(255,255,255,.75), inset 0 -1px 0 rgba(0,0,0,.18); }
+.rot .plate .pl { color: #111; text-shadow: 0 .6px 0 rgba(255,255,255,.65); }
+.rot .knobw { position: absolute; inset: 0; pointer-events: none; filter: drop-shadow(1.5px 3px 1.5px rgba(0,0,0,.55)) drop-shadow(2px 7px 6px rgba(0,0,0,.25)); }
+.rot .knob.round { box-shadow: inset 0 0 0 1px #000, 0 0 0 3px #232321, 0 0 0 3.5px rgba(255,255,255,.12);
+  background: radial-gradient(circle at 36% 28%, rgba(255,255,255,.35), rgba(255,255,255,0) 30%),
+    repeating-conic-gradient(#1b1b1a 0 8deg, #2a2a28 8deg 16deg); }
+.rot .knob.pistol { box-shadow: inset 0 0 0 1px #000, inset 1px 0 0 rgba(255,255,255,.12);
+  background: linear-gradient(90deg, #060606 0, #262624 28%, #5a5a56 46%, #2b2b29 62%, #080808 100%); }
+.rot .knob.pistol::before { content: ""; position: absolute; left: -3px; top: 16px; width: 22px; height: 22px; border-radius: 50%;
+  background: radial-gradient(circle at 38% 30%, #5e5e5a, #151514 62%, #050505); box-shadow: inset 0 0 0 1px #000; }
+.rot .knob.pistol.red { background: linear-gradient(90deg, #3e0703 0, #8e1a0f 28%, #e2503d 46%, #9c2014 62%, #430804 100%); }
+.rot .knob.pistol.red::before { background: radial-gradient(circle at 38% 30%, #e05a46, #7a140a 62%, #3a0603); }
+.rot .knob.pistol::after { z-index: 1; }
+.rot .knob.key { box-shadow: 0 0 0 3px #2a2a28, 0 0 0 3.5px rgba(255,255,255,.15); }
+
+/* emergency stop: printed ring, glossy mushroom */
+.estop { background: radial-gradient(circle at 35% 28%, rgba(255,255,255,.45), rgba(255,255,255,0) 40%), radial-gradient(circle at 50% 50%, #f7d43d, #e1b10c 60%, #a07c03);
+  box-shadow: 0 2px 4px rgba(0,0,0,.5), 2px 8px 10px rgba(0,0,0,.2), inset 0 0 0 1px rgba(0,0,0,.45); }
+.estop svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.estop text { font: 700 6.4px var(--f-label); letter-spacing: .14em; fill: #1f1800; }
+.estop .mush { background: radial-gradient(ellipse 40% 26% at 40% 26%, rgba(255,255,255,.65), rgba(255,255,255,0) 100%), radial-gradient(circle at 42% 35%, #ff7a63, #d0200e 55%, #6d0a03); }
+
+/* annunciator: milky windows, two bulbs behind each */
+.aw { background: linear-gradient(180deg, rgba(255,255,255,.38), rgba(255,255,255,0) 38%), linear-gradient(180deg, #d9d6c9, #b8b5a8); position: relative; }
+.aw.lit.red { background: radial-gradient(circle at 28% 55%, #fff6ee 0, rgba(255,246,238,0) 34%), radial-gradient(circle at 72% 55%, #fff6ee 0, rgba(255,246,238,0) 34%), radial-gradient(ellipse at center, #ffb39b 0, #ff6a47 55%, #d92f17); }
+.aw.lit.amb { background: radial-gradient(circle at 28% 55%, #fffdf0 0, rgba(255,253,240,0) 34%), radial-gradient(circle at 72% 55%, #fffdf0 0, rgba(255,253,240,0) 34%), radial-gradient(ellipse at center, #ffe2a0 0, #ffc45c 55%, #ec9a18); }
+.aw.lit.wht { background: radial-gradient(circle at 28% 55%, #ffffff 0, rgba(255,255,255,0) 34%), radial-gradient(circle at 72% 55%, #ffffff 0, rgba(255,255,255,0) 34%), radial-gradient(ellipse at center, #fffaf0 0, #fff0cc 60%, #ecd9a2); }
+.ann { box-shadow: inset 0 0 0 1px #000, 0 1px 0 rgba(255,255,255,.35), 0 3px 6px rgba(0,0,0,.35); }
+
+/* relays: glass with tube reflections */
+.relay .glass { background: linear-gradient(118deg, rgba(255,255,255,0) 18%, rgba(255,255,255,.20) 22%, rgba(255,255,255,0) 30%, rgba(255,255,255,0) 52%, rgba(255,255,255,.10) 55%, rgba(255,255,255,0) 60%),
+  linear-gradient(125deg, rgba(255,255,255,.12), rgba(255,255,255,0) 40%); }
+.relay .face { background: var(--noise), #e5dfcb; }
+
+/* recorder & printer */
+.rec { box-shadow: 0 2px 4px rgba(0,0,0,.5), 2px 8px 12px rgba(0,0,0,.25), inset 0 0 0 1px #000, inset 0 1px 0 rgba(255,255,255,.15); }
+.printer { background: var(--noise), linear-gradient(180deg, #ddd5bf, #bdb39a); }
+.printer .paper { background: var(--noise), #f6f5ef; }
+.printer .ln { text-shadow: 0 0 .6px rgba(40,40,80,.7); }
+.clip { box-shadow: 0 8px 14px rgba(0,0,0,.4), inset 0 0 0 1px rgba(0,0,0,.3); }
+@media (prefers-reduced-motion: reduce) { #fx::after { animation: none; } }
 </style>
 
 <div id="app">
@@ -439,9 +594,11 @@ canvas.meter { display: block; }
   </div>
   <div id="room"><div id="stage"><div id="floor"></div><div id="lineup"></div></div></div>
 </div>
+<div id="fx" aria-hidden="true"></div>
 <div id="hint" hidden></div>
 <div class="ovl" id="insOvl" hidden></div>
 <div class="ovl" id="manOvl" hidden></div>
 
 <script src="sim.js"></script>
+<script src="look.js"></script>
 <script src="ui.js"></script>

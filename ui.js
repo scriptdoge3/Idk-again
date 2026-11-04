@@ -148,15 +148,17 @@
         marks: null, sub: null, redline: null, skirt: true, value: () => 0, rest: null, live: () => true,
         face: '#f4f1e6', symbol: 'mc',
       }, o);
-      const wrap = el('div', 'mwrap', parent);
+      const wrap = el('div', 'mwrap' + (this.o.kind === 'round' || this.o.kind === 'sync' ? ' rnd' : ''), parent);
       this.c = el('canvas', 'meter', wrap);
       this.c.style.width = this.o.w + 'px'; this.c.style.height = this.o.h + 'px';
       this.ctx = this.c.getContext('2d');
+      this.light = { glow: 0, shade: 0 };
       this.face = document.createElement('canvas');
       this.glass = document.createElement('canvas');
       this.pos = this.o.rest !== null ? this.o.rest : 0; this.vel = 0;
       this.pos2 = this.pos; this.vel2 = 0;
       this.wrap = wrap;
+      this.rseed = METERS.length * 7 + 3;
       METERS.push(this);
     }
     frac(v) {
@@ -193,6 +195,17 @@
       gr.addColorStop(0, '#3d3d3a'); gr.addColorStop(0.08, '#1c1c1b'); gr.addColorStop(1, '#0b0b0b');
       g.fillStyle = gr; roundRect(g, 0, 0, W, H, 2.5); g.fill();
       g.strokeStyle = 'rgba(255,255,255,.12)'; g.lineWidth = 1; roundRect(g, 0.5, 0.5, W - 1, H - 1, 2.5); g.stroke();
+      // moulded bezel: lit from above, worn corners
+      let tg = g.createLinearGradient(0, 0, 0, b);
+      tg.addColorStop(0, 'rgba(255,255,255,.22)'); tg.addColorStop(1, 'rgba(255,255,255,0)');
+      g.fillStyle = tg; g.fillRect(2, 1, W - 4, b);
+      tg = g.createLinearGradient(0, H - b, 0, H);
+      tg.addColorStop(0, 'rgba(0,0,0,0)'); tg.addColorStop(1, 'rgba(0,0,0,.45)');
+      g.fillStyle = tg; g.fillRect(0, H - b, W, b);
+      for (const [cx, cy] of [[2, 2], [W - 2, 2], [2, H - 2], [W - 2, H - 2]]) {
+        const cg = g.createRadialGradient(cx, cy, 0, cx, cy, 5); cg.addColorStop(0, 'rgba(160,155,140,.35)'); cg.addColorStop(1, 'rgba(160,155,140,0)');
+        g.fillStyle = cg; g.fillRect(cx - 5, cy - 5, 10, 10);
+      }
       g.fillStyle = '#090909'; g.fillRect(b - 1.5, b - 1.5, W - 2 * b + 3, H - 2 * b + 3);
       g.fillStyle = o.face; g.fillRect(b, b, W - 2 * b, H - 2 * b);
       return { x: b, y: b, w: W - 2 * b, h: H - 2 * b };
@@ -208,8 +221,18 @@
       g.clip();
       // aged face: faint vignette
       const vg = g.createRadialGradient(o.w * 0.5, o.h * 0.45, o.w * 0.1, o.w * 0.5, o.h * 0.5, o.w * 0.75);
-      vg.addColorStop(0, 'rgba(255,255,255,0)'); vg.addColorStop(1, 'rgba(120,100,60,.10)');
+      vg.addColorStop(0, 'rgba(255,255,255,0)'); vg.addColorStop(1, 'rgba(120,100,60,.13)');
       g.fillStyle = vg; g.fillRect(0, 0, o.w, o.h);
+      { // 35 years behind glass: uneven yellowing and a few foxing spots
+        const R = window.LOOK.rng(this.rseed);
+        const yg = g.createLinearGradient(0, 0, o.w * (0.3 + R() * 0.6), o.h);
+        yg.addColorStop(0, `rgba(190,160,90,${(0.03 + R() * 0.05).toFixed(3)})`); yg.addColorStop(1, 'rgba(190,160,90,0)');
+        g.fillStyle = yg; g.fillRect(0, 0, o.w, o.h);
+        for (let i = 0; i < 5; i++) {
+          const x = R() * o.w, y = R() * o.h, r = 0.6 + R() * 2.2;
+          g.fillStyle = `rgba(150,120,70,${(0.05 + R() * 0.08).toFixed(3)})`; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill();
+        }
+      }
       if (o.kind === 'edge') this.faceEdge(g, fr);
       else if (o.kind === 'sync') this.faceSync(g);
       else this.faceArc(g, fr);
@@ -380,7 +403,54 @@
       const sh = g.createLinearGradient(0, fr.y, 0, fr.y + 10);
       sh.addColorStop(0, 'rgba(0,0,0,.35)'); sh.addColorStop(1, 'rgba(0,0,0,0)');
       g.fillStyle = sh; g.fillRect(0, fr.y, o.w, 10);
+      // reflections of the ceiling's fluorescent tubes in the glass
+      const R = window.LOOK.rng(this.rseed + 1);
+      g.save(); g.translate(o.w / 2, o.h / 2); g.rotate(-0.30 + (R() - 0.5) * 0.08);
+      for (const [off, wd, a] of [[-0.30, 0.10, 0.17], [-0.12, 0.05, 0.10]]) {
+        const y = off * o.h, bw = wd * o.h;
+        const bg = g.createLinearGradient(0, y - bw, 0, y + bw);
+        bg.addColorStop(0, 'rgba(255,255,250,0)'); bg.addColorStop(0.5, `rgba(255,255,250,${a})`); bg.addColorStop(1, 'rgba(255,255,250,0)');
+        g.fillStyle = bg; g.fillRect(-o.w, y - bw, o.w * 2, bw * 2);
+      }
       g.restore();
+      // dust specks and the odd fibre on the glass
+      for (let i = 0; i < 22; i++) {
+        const x = fr.x + R() * fr.w, y = fr.y + R() * fr.h;
+        g.fillStyle = `rgba(${R() < 0.5 ? '255,255,255' : '60,55,45'},${(0.10 + R() * 0.22).toFixed(2)})`;
+        g.beginPath(); g.arc(x, y, 0.25 + R() * 0.55, 0, 7); g.fill();
+      }
+      if (R() < 0.6) {
+        const x = fr.x + R() * fr.w, y = fr.y + R() * fr.h, a = R() * 6;
+        g.strokeStyle = 'rgba(240,240,235,.22)'; g.lineWidth = 0.35;
+        g.beginPath(); g.moveTo(x, y); g.quadraticCurveTo(x + Math.cos(a) * 4, y + Math.sin(a) * 4 + 2, x + Math.cos(a) * 8, y + Math.sin(a) * 8); g.stroke();
+      }
+      if (R() < 0.35) {   // a thumb smear from someone tapping a sticky needle
+        const x = fr.x + fr.w * (0.25 + R() * 0.5), y = fr.y + fr.h * (0.25 + R() * 0.5);
+        const sg = g.createRadialGradient(x, y, 0, x, y, fr.w * 0.18);
+        sg.addColorStop(0, 'rgba(255,255,255,.08)'); sg.addColorStop(1, 'rgba(255,255,255,0)');
+        g.fillStyle = sg; g.beginPath(); g.ellipse(x, y, fr.w * 0.18, fr.w * 0.13, R() * 3, 0, 7); g.fill();
+      }
+      g.restore();
+      // the room light where this meter hangs (same pools and falloff as the steel around it)
+      if (this.light.shade > 0 || this.light.glow > 0) {
+        g.save(); g.beginPath();
+        if (o.kind === 'round' || o.kind === 'sync') g.arc(o.w / 2, o.h / 2, o.w / 2, 0, 7); else roundRect(g, 0, 0, o.w, o.h, 2.5);
+        g.clip();
+        g.fillStyle = `rgba(28,22,12,${(this.light.shade * 0.85).toFixed(3)})`; g.fillRect(0, 0, o.w, o.h);
+        g.fillStyle = `rgba(255,248,226,${(this.light.glow * 0.30).toFixed(3)})`; g.fillRect(0, 0, o.w, o.h);
+        g.restore();
+      }
+      // zero adjuster in the bezel
+      if (o.kind === 'din' || o.kind === 'edge') {
+        const zb = Math.max(5, Math.round(o.w * 0.075)), zx = o.w / 2, zy = o.h - zb / 2 - 0.5, zr = zb * 0.30;
+        const zg = g.createRadialGradient(zx - zr * 0.3, zy - zr * 0.3, 0, zx, zy, zr);
+        zg.addColorStop(0, '#4a4a47'); zg.addColorStop(1, '#0a0a0a');
+        g.fillStyle = zg; g.beginPath(); g.arc(zx, zy, zr, 0, 7); g.fill();
+        g.save(); g.translate(zx, zy); g.rotate(R() * Math.PI);
+        g.fillStyle = 'rgba(0,0,0,.9)'; g.fillRect(-zr * 0.9, -0.45, zr * 1.8, 0.9);
+        g.fillStyle = 'rgba(255,255,255,.18)'; g.fillRect(-zr * 0.9, 0.45, zr * 1.8, 0.4);
+        g.restore();
+      }
     }
     step(dt, jitter) {
       const o = this.o;
@@ -801,7 +871,10 @@
       s.style.left = (half + Math.sin(a) * rr) + 'px'; s.style.top = (half - Math.cos(a) * rr) + 'px';
       return s;
     });
-    const knob = el('div', 'knob ' + o.knob + (o.red ? ' red' : ''), r);
+    el('span', 'scr', plate).style.cssText = 'left:3px;bottom:3px';
+    el('span', 'scr', plate).style.cssText = 'right:3px;bottom:3px';
+    const kw = el('div', 'knobw', r);
+    const knob = el('div', 'knob ' + o.knob + (o.red ? ' red' : ''), kw);
     const hl = el('div', 'hit l', r), hr = el('div', 'hit r', r);
     let idx = Math.max(0, o.pos.findIndex(p => p.v === o.get()));
     const show = () => {
@@ -922,7 +995,10 @@
     el('div', 'handle', door);
     const np = el('div', 'np', door);
     el('div', 'code', np, code);
-    el('div', 'name screw', np, `${name}<small>${sub}</small>`);
+    const nm = el('div', 'name', np, `${name}<small>${sub}</small>`);
+    el('span', 'scr', nm).style.cssText = 'left:4px;top:50%;margin-top:-3.5px';
+    el('span', 'scr', nm).style.cssText = 'right:4px;top:50%;margin-top:-3.5px';
+    el('span', 'lock', door);
     el('div', 'plinth', cab);
     CABS.push({ code, name, el: cab });
     return door;
@@ -997,7 +1073,8 @@
     const estop = el('div', 'estop', es);
     estop.id = 'estop'; estop.setAttribute('role', 'button'); estop.tabIndex = 0; estop.setAttribute('aria-label', 'Emergency stop');
     el('div', 'mush', estop);
-    const ring = el('div', 'ring', estop, ''); void ring;
+    estop.insertAdjacentHTML('beforeend', `<svg viewBox="0 0 84 84" aria-hidden="true"><defs><path id="eRing" d="M42,42 m-35.5,0 a35.5,35.5 0 1,1 71,0 a35.5,35.5 0 1,1 -71,0"/></defs>
+      <text><textPath href="#eRing" startOffset="2%">EMERGENCY STOP · NOT-AUS · EMERGENCY STOP · NOT-AUS ·</textPath></text></svg>`);
     const toggleE = () => { const on = !P.estop; PL.cmdEstop(on); AU.clunk(); };
     estop.addEventListener('pointerdown', e => { e.preventDefault(); toggleE(); });
     estop.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleE(); } });
@@ -1450,6 +1527,8 @@
       const rst = el('button', 'rst', fr); rst.type = 'button'; rst.setAttribute('aria-label', 'Reset flag ' + r.id);
       rst.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); AU.click(); PL.resetRelay(r.id); });
       el('div', 'glass', box);
+      el('span', 'scr', box).style.cssText = 'left:50%;top:-1px;margin-left:-3.5px';
+      el('span', 'scr', box).style.cssText = 'left:50%;bottom:-1px;margin-left:-3.5px';
       let lastFlag = false;
       UPD.push(() => {
         box.classList.toggle('op', r.flag);
@@ -1796,18 +1875,14 @@
   /* ===================================================================
      NOISE TEXTURE + BOOT + MAIN LOOP
      =================================================================== */
-  (() => {
-    const c = document.createElement('canvas'); c.width = c.height = 160;
-    const g = c.getContext('2d'); const id = g.createImageData(160, 160);
-    for (let i = 0; i < id.data.length; i += 4) {
-      const v = 128 + (Math.random() - 0.5) * 38;
-      id.data[i] = id.data[i + 1] = id.data[i + 2] = v; id.data[i + 3] = 22;
-    }
-    g.putImageData(id, 0, 0);
-    document.documentElement.style.setProperty('--noise', `url(${c.toDataURL()})`);
-  })();
-
   // paint the (still dead) cabinets first, then warm the plant up
+  layout();
+  window.LOOK.apply(lineup);
+  METERS.forEach(m => {
+    if (!m.light) return;
+    const p = window.LOOK.relPos(m.c, lineup), cab = m.c.closest('.cab');
+    m.light = window.LOOK.lightAt(p.x + p.w / 2, p.y + p.h / 2, cab.offsetTop, cab.offsetHeight);
+  });
   layout();
   METERS.forEach(m => { if (!m.samples) m.draw(); });
   window.addEventListener('resize', layout);

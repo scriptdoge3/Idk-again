@@ -11,6 +11,10 @@ dot-matrix event printer.
 Open `index.html` in a browser. No build step and no dependencies (fonts come from Google Fonts and
 fall back gracefully when offline).
 
+`sim.js` is the plant model, `ui.js` the panel hardware, and `look.js` the surface realism: it bakes
+powder-coat texture, grime, fingerprints, scratches, worn edges and the ceiling-light falloff into one
+static canvas per door, so the look costs nothing per frame.
+
 ## Cabinets
 
 | | Cabinet | What's on it |
