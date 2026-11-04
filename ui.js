@@ -1691,18 +1691,40 @@
      =================================================================== */
   const room = document.getElementById('room'), stage = document.getElementById('stage'), floor = document.getElementById('floor');
   let fitMode = true;
+  // camera: fixed eye height, distance CAM_P (lineup px) from the cabinet fronts
+  const CAM_P = window.LOOK.CAM_P;
+  let camY = 500, viewPending = false, depthTimer = 0;
+  void floor;
+  const bg = document.createElement('canvas'); bg.id = 'bg'; stage.prepend(bg);
   function layout() {
     const natW = lineup.offsetWidth, natH = lineup.offsetHeight;
     const avail = room.clientHeight - 6;
-    if (fitMode) ZOOM = clamp(avail / natH, 0.35, 1.25);
+    if (fitMode) ZOOM = clamp(avail * 0.88 / natH, 0.32, 1.25);   // leave room for the floor
     lineup.style.transform = `scale(${ZOOM})`;
     stage.style.width = natW * ZOOM + 'px';
-    const h = Math.max(natH * ZOOM, room.clientHeight);
+    const h = Math.max(natH * ZOOM + avail * 0.12, room.clientHeight);
     stage.style.height = h + 'px';
-    floor.style.top = (natH * ZOOM - 64 * ZOOM - 2) + 'px';
-    floor.style.height = (h - natH * ZOOM + 64 * ZOOM + 2) + 'px';
+    const c0 = lineup.querySelector('.cab');
+    if (c0) camY = c0.offsetTop + c0.offsetHeight * 0.40;
+    view(true);
     METERS.forEach(m => m.resize());
   }
+  function view(now) {
+    const cw = room.clientWidth, ch = stage.offsetHeight;
+    const vxS = room.scrollLeft + cw / 2;
+    bg.style.left = room.scrollLeft + 'px';
+    bg.style.width = cw + 'px'; bg.style.height = ch + 'px';
+    window.LOOK.drawRoom(bg, { Z: ZOOM, sl: room.scrollLeft, cw, ch, vx: vxS / ZOOM, vy: camY, dpr: Math.min(2, window.devicePixelRatio || 1) });
+    // hardware thickness follows the camera once panning settles (repainting every part per frame is costly)
+    const setDepth = () => { lineup.style.setProperty('--vpx', (vxS / ZOOM).toFixed(1)); lineup.style.setProperty('--vpy', camY.toFixed(1)); };
+    clearTimeout(depthTimer);
+    if (now) setDepth(); else depthTimer = setTimeout(setDepth, 140);
+  }
+  room.addEventListener('scroll', () => {
+    if (viewPending) return;
+    viewPending = true;
+    requestAnimationFrame(() => { viewPending = false; view(false); });
+  }, { passive: true });
   let drag = null;
   room.addEventListener('pointerdown', e => {
     if (e.button !== 0) return;
@@ -1886,6 +1908,7 @@
   layout();
   METERS.forEach(m => { if (!m.samples) m.draw(); });
   window.addEventListener('resize', layout);
+  if (window.ResizeObserver) { let lastH = 0; new ResizeObserver(() => { if (room.clientHeight !== lastH) { lastH = room.clientHeight; layout(); } }).observe(room); }
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(layout);
 
   // first-visit hint

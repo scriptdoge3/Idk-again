@@ -15,6 +15,12 @@ fall back gracefully when offline).
 powder-coat texture, grime, fingerprints, scratches, worn edges and the ceiling-light falloff into one
 static canvas per door, so the look costs nothing per frame.
 
+The view is 2.5D: a fixed eye-level camera. The cabinet fronts are the picture plane; the wall,
+the cable ladder tray above the cabinets, the cable drops and the linoleum floor sit at real depth
+and are projected onto one background canvas, so walking along the lineup gives parallax and a
+receding floor. Meters, knobs, lamps, buttons, relays and handles have thickness, and their sides
+face the camera.
+
 ## Cabinets
 
 | | Cabinet | What's on it |

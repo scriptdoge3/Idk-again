@@ -172,70 +172,170 @@ window.LOOK = (() => {
     pl.appendChild(c);
   }
 
-  /* ---------- cable ladder tray with drops into the cabinet roofs ---------- */
-  function cableTray(lineup, seed) {
+  /* ---------- 2.5D room, drawn by hand on one canvas behind the cabinets ----------
+     The cabinet fronts are the z = 0 plane. Wall, ladder tray, cable drops and
+     floor sit at real depth and are projected for the current camera position,
+     so panning gives parallax and a floor that recedes. One redraw per pan frame. */
+  const DEPTH = 300;                         // cabinet depth ≈ 600 mm, lineup px
+  const TRAY_Y = -17, TRAY_W = 130, TRAY_GAP = 6, CAM_P = 1800;
+  const ROOM = { drops: [], W: 0, H: 0, cabTop: 110, ready: false };
+  function initRoom(lineup, seed) {
     const R = rng(seed);
-    const W = lineup.scrollWidth, H = 100;
-    const c = cv(W * 2, H * 2); c.style.width = W + 'px'; c.style.height = H + 'px';
-    c.className = 'tray';
-    const g = c.getContext('2d'); g.scale(2, 2);
     const cabs = [...lineup.querySelectorAll('.cab')];
-    const yR1 = 14, yR2 = 40;
-    // drops first (behind the tray rail)
-    const drops = [];
+    ROOM.W = lineup.offsetWidth; ROOM.H = lineup.offsetHeight;
+    ROOM.cabTop = cabs.length ? cabs[0].offsetTop : 110;
+    ROOM.drops = [];
     cabs.forEach(cb => {
-      const n = 2 + Math.floor(R() * 3);
-      for (let i = 0; i < n; i++) drops.push(cb.offsetLeft + 40 + R() * (cb.offsetWidth - 80));
+      const n = 3 + Math.floor(R() * 3);
+      for (let i = 0; i < n; i++) ROOM.drops.push({
+        x: cb.offsetLeft + 40 + R() * (cb.offsetWidth - 80), t: 4 + R() * 7, bend: (R() - 0.5) * 34,
+        col: R() < 0.7 ? '#1d1d1c' : (R() < 0.5 ? '#3b3b39' : '#55554f'),
+      });
     });
-    for (const x of drops) {
-      const thick = 4 + R() * 7, col = R() < 0.7 ? '#1d1d1c' : (R() < 0.5 ? '#3b3b39' : '#55554f');
-      const bend = (R() - 0.5) * 30;
-      g.strokeStyle = col; g.lineWidth = thick; g.lineCap = 'butt';
-      g.beginPath(); g.moveTo(x + bend, yR1 + 10); g.bezierCurveTo(x + bend, 60, x, 62, x, H); g.stroke();
-      g.strokeStyle = 'rgba(255,255,255,.10)'; g.lineWidth = 1;
-      g.beginPath(); g.moveTo(x + bend - thick * 0.25, yR1 + 10); g.bezierCurveTo(x + bend - thick * 0.25, 60, x - thick * 0.25, 62, x - thick * 0.25, H); g.stroke();
-      // gland on the roof
-      const gl = g.createLinearGradient(x - thick, 0, x + thick, 0);
-      gl.addColorStop(0, '#5d5d58'); gl.addColorStop(0.45, '#c9c8c0'); gl.addColorStop(1, '#4c4c48');
-      g.fillStyle = gl; g.fillRect(x - thick * 0.9, H - 9, thick * 1.8, 9);
-      g.fillStyle = '#2a2a28'; g.fillRect(x - thick * 0.9, H - 9, thick * 1.8, 1.2);
+    ROOM.cables = Array.from({ length: 7 }, () => ({ f: 0.12 + R() * 0.76, t: 6 + R() * 9, c: R() < 0.75 ? '#151514' : '#3a3a37' }));
+    ROOM.ready = true;
+  }
+  function drawRoom(c, cam) {
+    if (!ROOM.ready) return;
+    const { Z, sl, cw, ch, vx, vy, dpr } = cam;
+    const W = ROOM.W, H = ROOM.H, D = DEPTH;
+    if (c.width !== Math.round(cw * dpr) || c.height !== Math.round(ch * dpr)) { c.width = Math.round(cw * dpr); c.height = Math.round(ch * dpr); }
+    const g = c.getContext('2d');
+    const sc = z => CAM_P / (CAM_P - z);
+    const P3 = (x, y, z) => { const s = sc(z); return [(vx + (x - vx) * s) * Z - sl, (vy + (y - vy) * s) * Z]; };
+    const plane = z => { const s = sc(z); g.setTransform(dpr * Z * s, 0, 0, dpr * Z * s, dpr * ((vx * (1 - s)) * Z - sl), dpr * (vy * (1 - s)) * Z); };
+    const xl = (sl / Z) - 3000, xr = (sl + cw) / Z + 3000;
+
+    // --- back wall (z = -D), painted in its own coordinates
+    plane(-D);
+    let gr = g.createLinearGradient(0, -900, 0, H);
+    gr.addColorStop(0, '#5c6555'); gr.addColorStop(0.45, '#6c7563'); gr.addColorStop(0.75, '#5a6252'); gr.addColorStop(1, '#4a5143');
+    g.fillStyle = gr; g.fillRect(xl, -2500, xr - xl, H + 2500);
+    if (PEEL) { g.fillStyle = g.createPattern(PEEL, 'repeat'); g.fillRect(xl, -2500, xr - xl, H + 2500); }
+    for (const px of POOLX) {
+      g.save(); g.translate(px, -40); g.scale(1, 1.25);
+      const pg = g.createRadialGradient(0, 0, 0, 0, 0, 420);
+      pg.addColorStop(0, 'rgba(255,248,226,.16)'); pg.addColorStop(1, 'rgba(255,248,226,0)');
+      g.fillStyle = pg; g.fillRect(-420, -420, 840, 840); g.restore();
     }
-    // cables lying in the tray
-    for (let k = 0; k < 9; k++) {
-      const y = yR1 + 6 + R() * (yR2 - yR1 - 10), thick = 3 + R() * 6;
-      g.strokeStyle = R() < 0.75 ? '#1b1b1a' : '#4a4a46'; g.lineWidth = thick;
-      g.beginPath(); g.moveTo(0, y);
-      for (let x = 0; x <= W; x += 120) g.lineTo(x, y + Math.sin(x / 170 + k) * 1.6);
-      g.stroke();
+    gr = g.createLinearGradient(0, H - 36, 0, H);            // skirting
+    gr.addColorStop(0, '#3d3630'); gr.addColorStop(0.85, '#2c2723'); gr.addColorStop(1, '#151311');
+    g.fillStyle = gr; g.fillRect(xl, H - 36, xr - xl, 36);
+    for (let x = 140; x < W + 1600; x += 900) {               // tray bracket wall plates
+      gr = g.createLinearGradient(x - 8, 0, x + 8, 0);
+      gr.addColorStop(0, '#8b8c86'); gr.addColorStop(0.45, '#c5c6c0'); gr.addColorStop(1, '#6e6f6a');
+      g.fillStyle = 'rgba(0,0,0,.30)'; g.fillRect(x - 6, TRAY_Y - 21, 18, 36);
+      g.fillStyle = gr; g.fillRect(x - 8, TRAY_Y - 24, 16, 34);
     }
-    // ladder: rungs + side rails (hot-dip galvanized)
-    for (let x = 6; x < W; x += 34) {
-      const rg = g.createLinearGradient(0, yR1, 0, yR2);
-      rg.addColorStop(0, '#9a9b96'); rg.addColorStop(0.5, '#c8c9c3'); rg.addColorStop(1, '#7f807b');
-      g.fillStyle = rg; g.fillRect(x, yR1, 5, yR2 - yR1);
+    const shTop = TRAY_Y + 2, shg = g.createLinearGradient(0, shTop, 0, shTop + 70);   // tray shadow on the wall
+    shg.addColorStop(0, 'rgba(0,0,0,.35)'); shg.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = shg; g.fillRect(xl, shTop, xr - xl, 70);
+
+    // --- cable drops (vertical plane in the middle of the tray)
+    const zd = -D + TRAY_GAP + TRAY_W * 0.5, dh = ROOM.cabTop - TRAY_Y + 90;
+    plane(zd);
+    for (const d of ROOM.drops) {
+      const y0 = TRAY_Y + 2;
+      g.strokeStyle = d.col; g.lineWidth = d.t;
+      g.beginPath(); g.moveTo(d.x + d.bend, y0); g.bezierCurveTo(d.x + d.bend, y0 + dh * 0.45, d.x, y0 + dh * 0.4, d.x, y0 + dh); g.stroke();
+      g.strokeStyle = 'rgba(255,255,255,.12)'; g.lineWidth = 1;
+      const o = d.t * 0.25;
+      g.beginPath(); g.moveTo(d.x + d.bend - o, y0); g.bezierCurveTo(d.x + d.bend - o, y0 + dh * 0.45, d.x - o, y0 + dh * 0.4, d.x - o, y0 + dh); g.stroke();
     }
-    for (const y of [yR1 - 6, yR2]) {
-      const rg = g.createLinearGradient(0, y, 0, y + 8);
-      rg.addColorStop(0, '#d8d9d3'); rg.addColorStop(0.35, '#a7a8a2'); rg.addColorStop(1, '#6f706b');
-      g.fillStyle = rg; g.fillRect(0, y, W, 8);
-      for (let i = 0; i < W / 3; i++) { g.fillStyle = `rgba(${R() < 0.5 ? '255,255,255' : '0,0,0'},${(R() * 0.07).toFixed(3)})`; g.fillRect(R() * W, y + R() * 8, 2 + R() * 6, 1 + R() * 2); }
+
+    // --- ladder tray seen from below (horizontal plane y = TRAY_Y between zb and zf)
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const zb = -D + TRAY_GAP, zf = zb + TRAY_W;
+    const quad = (a, b, c2, d2) => { g.beginPath(); g.moveTo(...a); g.lineTo(...b); g.lineTo(...c2); g.lineTo(...d2); g.closePath(); };
+    quad(P3(xl, TRAY_Y, zb), P3(xr, TRAY_Y, zb), P3(xr, TRAY_Y, zf), P3(xl, TRAY_Y, zf));
+    g.fillStyle = '#121211'; g.fill();
+    for (const cb of ROOM.cables) {                           // cables lying in the tray, seen between rungs
+      const z = zb + cb.f * TRAY_W, s = sc(z);
+      const a = P3(xl, TRAY_Y, z), b = P3(xr, TRAY_Y, z);
+      g.strokeStyle = cb.c; g.lineWidth = Math.max(1, cb.t * Z * s * 0.35);
+      g.beginPath(); g.moveTo(...a); g.lineTo(...b); g.stroke();
     }
-    // wall brackets
-    for (let x = 140; x < W; x += 900) {
-      g.fillStyle = '#6c6d68'; g.fillRect(x, 0, 10, yR2 + 10);
-      g.fillStyle = 'rgba(0,0,0,.25)'; g.fillRect(x + 10, 0, 3, yR2 + 10);
+    const firstRung = Math.floor(xl / 38) * 38;
+    for (let x = firstRung; x < xr; x += 38) {                // rungs converge on the vanishing point
+      const a = P3(x, TRAY_Y, zb), b = P3(x, TRAY_Y, zf);
+      if (Math.max(a[0], b[0]) < -20 || Math.min(a[0], b[0]) > cw + 20) continue;
+      const bracket = ((x - 140) % 900 + 900) % 900 < 38;
+      g.strokeStyle = bracket ? '#4f504b' : '#7c7d78'; g.lineWidth = (bracket ? 12 : 5) * Z * sc((zb + zf) / 2);
+      g.beginPath(); g.moveTo(...a); g.lineTo(...b); g.stroke();
+      g.strokeStyle = 'rgba(255,255,255,.18)'; g.lineWidth = 1;
+      g.beginPath(); g.moveTo(a[0] + 1, a[1]); g.lineTo(b[0] + 1, b[1]); g.stroke();
     }
-    // shadow cast on the wall below the tray
-    const sh = g.createLinearGradient(0, yR2 + 8, 0, yR2 + 30);
-    sh.addColorStop(0, 'rgba(0,0,0,.28)'); sh.addColorStop(1, 'rgba(0,0,0,0)');
-    g.fillStyle = sh; g.fillRect(0, yR2 + 8, W, 22);
-    lineup.prepend(c);
+    for (const [z, col] of [[zb + 3, '#62635e'], [zf - 3, '#8a8b86']]) {   // bottom flanges of the side rails
+      const a = P3(xl, TRAY_Y, z), b = P3(xr, TRAY_Y, z);
+      g.strokeStyle = col; g.lineWidth = 7 * Z * sc(z); g.beginPath(); g.moveTo(...a); g.lineTo(...b); g.stroke();
+    }
+    // front side rail (vertical face toward the camera)
+    const r1 = P3(xl, TRAY_Y - 14, zf + 1), r2 = P3(xr, TRAY_Y, zf + 1);
+    gr = g.createLinearGradient(0, r1[1], 0, r2[1]);
+    gr.addColorStop(0, '#e2e3dd'); gr.addColorStop(0.3, '#b4b5af'); gr.addColorStop(0.7, '#8e8f8a'); gr.addColorStop(1, '#63645f');
+    g.fillStyle = gr; g.fillRect(r1[0], r1[1], r2[0] - r1[0], r2[1] - r1[1]);
+
+    // --- floor (y = H) from the wall to the camera
+    const yw = P3(0, H, -D)[1], yb = ch;
+    if (yw < yb) {
+      gr = g.createLinearGradient(0, yw, 0, yb);
+      gr.addColorStop(0, '#27231e'); gr.addColorStop(0.35, '#3a332b'); gr.addColorStop(1, '#2c2721');
+      g.fillStyle = gr; g.fillRect(0, yw, cw, yb - yw);
+      if (PEEL) { g.globalAlpha = 0.8; g.fillStyle = g.createPattern(PEEL, 'repeat'); g.fillRect(0, yw, cw, yb - yw); g.globalAlpha = 1; }
+      const sB = (yb / Z - vy) / (H - vy), zEnd = sB > 1 ? Math.min(CAM_P * 0.97, CAM_P - CAM_P / sB) : 0;
+      g.strokeStyle = 'rgba(0,0,0,.30)'; g.lineWidth = 1.2;
+      for (let x = Math.floor(xl / 300) * 300; x < xr; x += 300) {          // tile joints running toward you
+        const a = P3(x, H, -D), b = P3(x, H, zEnd);
+        if (Math.max(a[0], b[0]) < -50 || Math.min(a[0], b[0]) > cw + 50) continue;
+        g.beginPath(); g.moveTo(...a); g.lineTo(...b); g.stroke();
+      }
+      for (let z = -D; z < zEnd; z += 300) {                                 // tile joints across
+        const y = P3(0, H, z)[1];
+        g.lineWidth = Math.max(1, 1.2 * sc(z)); g.beginPath(); g.moveTo(0, y); g.lineTo(cw, y); g.stroke();
+      }
+      for (const px of POOLX) {                                              // tube reflections in the lino
+        const z = 380, [x, y] = P3(px, H, z), s = sc(z);
+        if (x < -300 || x > cw + 300) continue;
+        g.save(); g.translate(x, y); g.scale(1, 0.18);
+        const rg = g.createRadialGradient(0, 0, 0, 0, 0, 260 * Z * s);
+        rg.addColorStop(0, 'rgba(255,248,226,.10)'); rg.addColorStop(1, 'rgba(255,248,226,0)');
+        g.fillStyle = rg; g.fillRect(-300 * Z * s, -300 * Z * s, 600 * Z * s, 600 * Z * s); g.restore();
+      }
+      const y0 = P3(0, H, 0)[1], y1 = P3(0, H, 60)[1];                       // contact shadow under the cabinets
+      gr = g.createLinearGradient(0, y0 - 2, 0, y1);
+      gr.addColorStop(0, 'rgba(0,0,0,.75)'); gr.addColorStop(0.25, 'rgba(0,0,0,.4)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+      const cx0 = P3(0, H, 0)[0], cx1 = P3(W, H, 0)[0];
+      g.fillStyle = gr; g.fillRect(cx0 + 40 * Z, y0 - 2, cx1 - cx0 - 80 * Z, y1 - y0 + 2);
+    }
+  }
+
+  /* ---------- depth for the hardware on the doors ----------
+     Each part gets a depth and a side colour; CSS draws its sides toward the
+     camera from the part's position and the live vanishing point. */
+  const DEPTHS = [
+    ['.mwrap', 8, '#0d0d0c'], ['.clockbox', 12, '#121211'], ['.ctr', 4, '#0b0b0b'], ['.lamp', 6, '#3b3b38'],
+    ['.pb', 9, '#3e3d39'], ['.rot', 15, '#0b0b0b'], ['.estop', 3, '#7d6005'], ['.estop .mush', 18, '#5a0902'],
+    ['.dsw', 10, '#0c0c0c'], ['.relay', 12, '#141412'], ['.lockout', 5, '#1a1a17'], ['.lockout .lh', 11, '#3c3b36'],
+    ['.rec', 10, '#141412'], ['.printer', 16, '#7a725f'], ['.ann', 8, '#121211'], ['.door .handle', 16, '#060606'],
+    ['.blank', 2, '#7a7565'], ['.plate-metal', 2, '#6f6f68'], ['.clip', 4, '#3f2a14'], ['.np .name', 2, '#050505'], ['.np .code', 2, '#050505'],
+  ];
+  function depths(lineup) {
+    for (const [sel, d, sc] of DEPTHS) {
+      lineup.querySelectorAll(sel).forEach(e => {
+        e.classList.add('x3');
+        e.style.setProperty('--d', d + 'px');
+        e.style.setProperty('--sc', sc);
+        const p = relPos(e, lineup);
+        e.style.setProperty('--x', (p.x + p.w / 2).toFixed(0));
+        e.style.setProperty('--y', (p.y + p.h / 2).toFixed(0));
+      });
+    }
   }
 
   /* ---------- ceiling light pools + falloff, baked to match the lineup ---------- */
   function lighting(lineup) {
     POOLX.length = 0;
-    for (let x = 260; x < lineup.scrollWidth + STEP; x += STEP) POOLX.push(x);
+    for (let x = 260; x < lineup.offsetWidth + STEP; x += STEP) POOLX.push(x);
   }
 
   /* ---------- small imperfections: crooked labels, uneven dymo letters ---------- */
@@ -301,9 +401,10 @@ window.LOOK = (() => {
     lighting(lineup);
     lineup.querySelectorAll('.door').forEach(d => { if (!d.querySelector('.skin')) doorSkin(d, seed++ * 31, lineup); });
     lineup.querySelectorAll('.plinth').forEach(p => { if (!p.querySelector('.scuff')) plinthScuffs(p, seed++ * 17); });
-    if (!lineup.querySelector('.tray')) cableTray(lineup, 4);
     imperfections(lineup, 3);
+    initRoom(lineup, 4);
+    depths(lineup);
   }
   peel(); grain();
-  return { apply, rng, lightAt, relPos };
+  return { apply, rng, lightAt, relPos, drawRoom, CAM_P };
 })();
