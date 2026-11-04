@@ -12,7 +12,8 @@
   const FL = '"Barlow Condensed", "Arial Narrow", Arial, sans-serif';
   let ZOOM = 1;
   const DPR = Math.min(2, window.devicePixelRatio || 1);
-  const kscale = () => Math.min(3.2, Math.max(1, DPR * ZOOM));
+  let TEXK = 0, TRUE3D = false;      // TEXK: fixed canvas resolution when meters feed WebGL textures
+  const kscale = () => TEXK || Math.min(3.2, Math.max(1, DPR * ZOOM));
   const UPD = [];              // per-frame binders
   const METERS = [];
   const FLASH = { fast: false, slow: false };
@@ -1698,6 +1699,7 @@
   void floor;
   const bg = document.createElement('canvas'); bg.id = 'bg'; stage.prepend(bg);
   function layout() {
+    if (TRUE3D) { lineup.style.transform = 'none'; METERS.forEach(m => m.resize()); return; }
     const natW = lineup.offsetWidth, natH = lineup.offsetHeight;
     const avail = room.clientHeight - 6;
     if (fitMode) ZOOM = clamp(avail * 0.80 / natH, 0.30, 1.25);
@@ -1709,6 +1711,7 @@
     METERS.forEach(m => m.resize());
   }
   function view() {
+    if (TRUE3D) return;
     const cw = room.clientWidth, ch = stage.offsetHeight;
     const Ox = room.scrollLeft + cw / 2, Oy = camY * ZOOM;
     if (CAM3D) {
@@ -1761,13 +1764,16 @@
     }
   }, { passive: false });
   const setZoom = z => { fitMode = false; ZOOM = clamp(z, 0.35, 1.6); layout(); };
-  document.getElementById('zFit').onclick = () => { fitMode = true; layout(); };
-  document.getElementById('zIn').onclick = () => setZoom(ZOOM * 1.15);
-  document.getElementById('zOut').onclick = () => setZoom(ZOOM / 1.15);
+  document.getElementById('zFit').onclick = () => { if (TRUE3D) { window.VIEW3D.home(); return; } fitMode = true; layout(); };
+  document.getElementById('zIn').onclick = () => { if (TRUE3D) window.VIEW3D.dolly(0.35); else setZoom(ZOOM * 1.15); };
+  document.getElementById('zOut').onclick = () => { if (TRUE3D) window.VIEW3D.dolly(-0.35); else setZoom(ZOOM / 1.15); };
   const jump = document.getElementById('jump');
   CABS.forEach(c => {
     const b = el('button', '', jump, c.code); b.type = 'button'; b.title = c.name;
-    b.onclick = () => room.scrollTo({ left: Math.max(0, (c.el.offsetLeft + c.el.offsetWidth / 2) * ZOOM - room.clientWidth / 2), behavior: 'smooth' });
+    b.onclick = () => {
+      if (TRUE3D) { window.VIEW3D.walkToCab(CABS.indexOf(c)); return; }
+      room.scrollTo({ left: Math.max(0, (c.el.offsetLeft + c.el.offsetWidth / 2) * ZOOM - room.clientWidth / 2), behavior: 'smooth' });
+    };
   });
   const tg = document.getElementById('tgrp');
   const tBtns = [1, 2, 5, 10, 20].map(n => {
@@ -1870,6 +1876,9 @@
       Headwater is held by the electro-hydraulic governor in LEVEL mode; weir crest 214.60 m.
       <h3>HOW TO USE THE PANELS</h3>
       <ul>
+        <li>3D room: drag to look around, scroll or W A S D to walk, right-drag to step sideways,
+            double-click a panel to step up to it (double-click the floor to step back).
+            SIMULATOR → WALK TO takes you to a cabinet. Add #flat to the address for the 2D panel view.</li>
         <li>Selector switches: click the LEFT or RIGHT half of the knob to turn it.</li>
         <li>RAISE/LOWER switches spring back: hold the mouse on the half you want.</li>
         <li>Breakers 52G / 52L (+A4 mimic): click once to TURN (lamp flashes), click again within 5 s to PUSH.</li>
@@ -1966,7 +1975,7 @@
     const jit = P.w > 0.05 ? 0.0016 * Math.min(1.2, P.w) * (1 + 6 * P.shock) : 0;
     for (const m of METERS) { m.step(dtReal, jit); m.draw(); }
     PRINTER.pump(dtReal);
-    camStep(dtReal);
+    if (TRUE3D) { if (window.VIEW3D.active) window.VIEW3D.frame(dtReal); } else camStep(dtReal);
     AU.update(hornOn);
     insStat();
     requestAnimationFrame(frame);
@@ -1979,9 +1988,10 @@
   requestAnimationFrame(() => setTimeout(() => {
     PL.initOnline();
     resetUi();
-    hint.hidden = false;
     last = performance.now();
     requestAnimationFrame(frame);
+    if (location.hash !== '#flat' && window.VIEW3D && window.VIEW3D.available()) { enter3D(true); return; }
+    hint.hidden = false;
     // watchdog: without GPU compositing the turned camera is too heavy, so fall back to the flat view
     setTimeout(() => {
       let n = 0; const t0 = performance.now();
@@ -1993,5 +2003,33 @@
       requestAnimationFrame(count);
     }, 1200);
   }, 0));
+  /* ---------- true 3D (WebGL) mode ---------- */
+  const t3Btn = el('button', '', document.getElementById('look').parentNode, 'TRUE 3D'); t3Btn.type = 'button';
+  const loading = el('div', 'loading', document.body, '<b>MÜHLBACH HYDRO · UNIT 1</b><span>Building the control room…</span>'); loading.hidden = true;
+  let started3D = false;
+  function show2DButtons(on) { [cam3dBtn, document.getElementById('look')].forEach(b => { b.hidden = !on; }); }
+  function enter3D(first) {
+    TRUE3D = true; TEXK = 2.5; t3Btn.classList.add('on'); show2DButtons(false);
+    room.style.visibility = 'hidden';
+    layout();
+    if (started3D) { window.VIEW3D.resume(); return; }
+    loading.hidden = false;
+    window.VIEW3D.start({ lineup, METERS }).then(() => {
+      started3D = true; loading.hidden = true;
+      hint.innerHTML = `<b>Unit 1 is on line</b>, holding the headwater in LEVEL mode.<br>
+        <b>Drag</b> to look around · <b>scroll</b> or <b>W A S D</b> to walk · <b>right-drag</b> to step sideways ·
+        <b>double-click</b> a panel to step up to it · <b>click</b> a control to operate it.
+        Sound, sim time and the instructor station are under <b>SIMULATOR</b>.<br><button type="button" id="hintOk">GOT IT</button>`;
+      document.getElementById('hintOk').onclick = () => { hint.hidden = true; };
+      if (first) hint.hidden = false;
+    }).catch(err => { console.error(err); loading.hidden = true; leave3D(); hint.hidden = false; });
+  }
+  function leave3D() {
+    TRUE3D = false; TEXK = 0; t3Btn.classList.remove('on'); show2DButtons(true);
+    if (window.VIEW3D) window.VIEW3D.stop();
+    room.style.visibility = '';
+    layout();
+  }
+  t3Btn.onclick = () => { if (TRUE3D) leave3D(); else if (window.VIEW3D && window.VIEW3D.available()) enter3D(false); };
   window.UNIT1 = { PL, P, AU, ANN, setAccel, METERS, UPD };
 })();

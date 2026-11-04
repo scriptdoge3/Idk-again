@@ -15,13 +15,17 @@ fall back gracefully when offline).
 powder-coat texture, grime, fingerprints, scratches, worn edges and the ceiling-light falloff into one
 static canvas per door, so the look costs nothing per frame.
 
-The view is 2.5D. The camera stands at eye height a little to the left of the row and looks
-along it, so the cabinets recede in true perspective; the mouse turns it slightly. The cabinet
-fronts stay flat panels (everything on them is drawn and clicked as normal) while the wall, the
-tiled floor and the exposed end of the first cabinet are projected onto one background canvas with
-the same camera. Meters, knobs, lamps, buttons, relays and handles have visible thickness on the
-side facing the camera. On a machine without graphics acceleration the page measures its own frame
-rate after start-up and drops to a straight-on view; SIMULATOR → 3D CAMERA turns it back on.
+The control room is real 3D (WebGL via three.js r149 from jsDelivr). The cabinets are solid boxes
+with roofs, sides and recessed plinths; meters, lamps, knobs, pushbuttons, the E-stop, breaker
+control switches, lockout handles, relays, annunciator, recorder, counters and printer are 3D
+objects on the doors, lit by fluorescent fittings with shadows and reflections. The room has a lino
+floor, chequer-plate cable trench covers and a rubber safety mat. `view3d.js` builds the scene from
+the (hidden) DOM cabinets: flat artwork is painted from the DOM into one texture per cabinet front,
+live instruments use their canvases as textures, and clicks are ray-cast back onto the DOM controls,
+so the simulator logic is untouched.
+
+Drag to look around, scroll or W A S D to walk, right-drag to step sideways, double-click a panel to
+step up to it. Without WebGL (or with `#flat` in the address) the 2D panel view is used instead.
 
 Simulator controls (sound, sim time, instructor station, manual, walking to a cabinet) are behind
 the SIMULATOR button in the top-right corner, so the room itself has no toolbar.
