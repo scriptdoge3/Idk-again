@@ -1691,44 +1691,61 @@
      =================================================================== */
   const room = document.getElementById('room'), stage = document.getElementById('stage'), floor = document.getElementById('floor');
   let fitMode = true;
-  // camera: fixed eye height, distance CAM_P (lineup px) from the cabinet fronts
-  const CAM_P = window.LOOK.CAM_P;
-  let camY = 500, viewPending = false, depthTimer = 0;
+  // camera: stands left of the row at eye height and looks along it; the mouse turns it a little
+  const CAM_P = window.LOOK.CAM_P, YAW0 = 17 * D2R;
+  let camY = 500, viewPending = false, LOOKON = true, CAM3D = true;
+  const camState = { yaw: YAW0, pitch: 0, tYaw: YAW0, tPitch: 0 };
   void floor;
   const bg = document.createElement('canvas'); bg.id = 'bg'; stage.prepend(bg);
   function layout() {
     const natW = lineup.offsetWidth, natH = lineup.offsetHeight;
     const avail = room.clientHeight - 6;
-    if (fitMode) ZOOM = clamp(avail * 0.88 / natH, 0.32, 1.25);   // leave room for the floor
-    lineup.style.transform = `scale(${ZOOM})`;
+    if (fitMode) ZOOM = clamp(avail * 0.80 / natH, 0.30, 1.25);
     stage.style.width = natW * ZOOM + 'px';
-    const h = Math.max(natH * ZOOM + avail * 0.12, room.clientHeight);
-    stage.style.height = h + 'px';
+    stage.style.height = Math.max(natH * ZOOM + avail * 0.2, room.clientHeight) + 'px';
     const c0 = lineup.querySelector('.cab');
-    if (c0) camY = c0.offsetTop + c0.offsetHeight * 0.40;
-    view(true);
+    if (c0) camY = c0.offsetTop + c0.offsetHeight * 0.42;
+    view();
     METERS.forEach(m => m.resize());
   }
-  function view(now) {
+  function view() {
     const cw = room.clientWidth, ch = stage.offsetHeight;
-    const vxS = room.scrollLeft + cw / 2;
+    const Ox = room.scrollLeft + cw / 2, Oy = camY * ZOOM;
+    if (CAM3D) {
+      stage.style.perspective = (CAM_P * ZOOM).toFixed(1) + 'px';
+      stage.style.perspectiveOrigin = `${Ox.toFixed(1)}px ${Oy.toFixed(1)}px`;
+      lineup.style.transform = `translate(${Ox.toFixed(1)}px, ${Oy.toFixed(1)}px) rotateX(${camState.pitch.toFixed(4)}rad) rotateY(${camState.yaw.toFixed(4)}rad) translate(${(-Ox).toFixed(1)}px, ${(-Oy).toFixed(1)}px) scale(${ZOOM})`;
+    } else {
+      stage.style.perspective = 'none';
+      lineup.style.transform = `scale(${ZOOM})`;
+    }
     bg.style.left = room.scrollLeft + 'px';
     bg.style.width = cw + 'px'; bg.style.height = ch + 'px';
-    window.LOOK.drawRoom(bg, { Z: ZOOM, sl: room.scrollLeft, cw, ch, vx: vxS / ZOOM, vy: camY, dpr: Math.min(2, window.devicePixelRatio || 1) });
-    // hardware thickness follows the camera once panning settles (repainting every part per frame is costly)
-    const setDepth = () => { lineup.style.setProperty('--vpx', (vxS / ZOOM).toFixed(1)); lineup.style.setProperty('--vpy', camY.toFixed(1)); };
-    clearTimeout(depthTimer);
-    if (now) setDepth(); else depthTimer = setTimeout(setDepth, 140);
+    window.LOOK.drawRoom(bg, { Z: ZOOM, sl: room.scrollLeft, cw, ch, Ox, Oy, yaw: CAM3D ? camState.yaw : 0, pitch: CAM3D ? camState.pitch : 0, dpr: Math.min(2, window.devicePixelRatio || 1) });
   }
+  function camStep(dt) {   // ease the camera toward where the mouse is looking
+    const k = 1 - Math.exp(-dt * 4);
+    const dy = camState.tYaw - camState.yaw, dp = camState.tPitch - camState.pitch;
+    if (Math.abs(dy) < 1e-4 && Math.abs(dp) < 1e-4) return;
+    camState.yaw += dy * k; camState.pitch += dp * k;
+    view();
+  }
+  room.addEventListener('pointermove', e => {
+    if (!LOOKON || !CAM3D || drag || e.pointerType === 'touch') return;
+    const r = room.getBoundingClientRect();
+    const mx = (e.clientX - r.left) / r.width - 0.5, my = (e.clientY - r.top) / r.height - 0.5;
+    camState.tYaw = YAW0 + mx * 7 * D2R;
+    camState.tPitch = -my * 3.5 * D2R;
+  });
   room.addEventListener('scroll', () => {
     if (viewPending) return;
     viewPending = true;
-    requestAnimationFrame(() => { viewPending = false; view(false); });
+    requestAnimationFrame(() => { viewPending = false; view(); });
   }, { passive: true });
   let drag = null;
   room.addEventListener('pointerdown', e => {
     if (e.button !== 0) return;
-    if (e.target.closest('.pb,.rot,.dsw,.estop,.lh,.rst,.card,button')) return;
+    if (e.target.closest('.pb,.rot,.dsw,.estop,.lh,.rst,.card,button,#bar')) return;
     drag = { x: e.clientX, y: e.clientY, sl: room.scrollLeft, st: room.scrollTop, moved: false };
     room.classList.add('drag');
   });
@@ -1750,7 +1767,7 @@
   const jump = document.getElementById('jump');
   CABS.forEach(c => {
     const b = el('button', '', jump, c.code); b.type = 'button'; b.title = c.name;
-    b.onclick = () => room.scrollTo({ left: Math.max(0, (c.el.offsetLeft) * ZOOM - 20), behavior: 'smooth' });
+    b.onclick = () => room.scrollTo({ left: Math.max(0, (c.el.offsetLeft + c.el.offsetWidth / 2) * ZOOM - room.clientWidth / 2), behavior: 'smooth' });
   });
   const tg = document.getElementById('tgrp');
   const tBtns = [1, 2, 5, 10, 20].map(n => {
@@ -1762,7 +1779,21 @@
   const ffBtn = el('button', 'on', tg, 'AUTO-FF'); ffBtn.type = 'button'; ffBtn.id = 'ff';
   ffBtn.title = 'Fast-forward ×10 through automatic start/stop waits';
   ffBtn.onclick = () => { AUTOFF = !AUTOFF; ffBtn.classList.toggle('on', AUTOFF); };
-  const ffInd = el('span', 'ffind', tg); ffInd.hidden = true;
+  const ffInd = el('span', 'ffind', document.body); ffInd.hidden = true;
+  // simulator menu (the room itself has no toolbar)
+  const menuBtn = document.getElementById('menuBtn'), menuPanel = document.getElementById('menuPanel');
+  const setMenu = open => { menuPanel.hidden = !open; menuBtn.setAttribute('aria-expanded', String(open)); };
+  menuBtn.onclick = () => setMenu(menuPanel.hidden);
+  document.addEventListener('pointerdown', e => { if (!menuPanel.hidden && !e.target.closest('#bar')) setMenu(false); });
+  const cam3dBtn = el('button', 'on', document.getElementById('look').parentNode, '3D CAMERA'); cam3dBtn.type = 'button';
+  const setCam3d = on => {
+    CAM3D = on; cam3dBtn.classList.toggle('on', on);
+    lineup.style.setProperty('--kx', on ? '-0.30' : '-0.10');
+    view();
+  };
+  cam3dBtn.onclick = () => setCam3d(!CAM3D);
+  const lookBtn = document.getElementById('look');
+  lookBtn.onclick = () => { LOOKON = !LOOKON; lookBtn.classList.toggle('on', LOOKON); if (!LOOKON) { camState.tYaw = YAW0; camState.tPitch = 0; } };
   const waiting = () => /^(S[1-4]|T[1-5])/.test(P.seq) || (P.seq === 'S5_SNL' && P.sw.sync === 'AUTO' && P.syncArmed && P.fcb);
   const snd = document.getElementById('snd');
   snd.onclick = () => { const on = AU.toggle(); snd.textContent = on ? 'SOUND ON' : 'SOUND OFF'; snd.classList.toggle('on', on); };
@@ -1915,7 +1946,7 @@
   const hint = document.getElementById('hint');
   hint.innerHTML = `<b>Unit 1 is on line</b>, holding the headwater in LEVEL mode.<br>
     Drag or scroll to walk along the six cabinets. Click the left/right half of a knob to turn it;
-    hold spring-return switches. Automatic start/stop waits fast-forward ×10. Turn <b>SOUND</b> on for the machine hall.<br><button type="button" id="hintOk">GOT IT</button>`;
+    hold spring-return switches. Move the mouse to look around. Sound, sim time and the instructor station are under <b>SIMULATOR</b> (top right).<br><button type="button" id="hintOk">GOT IT</button>`;
   document.getElementById('hintOk').onclick = () => { hint.hidden = true; };
 
   let last = performance.now(), flashT = 0;
@@ -1935,9 +1966,15 @@
     const jit = P.w > 0.05 ? 0.0016 * Math.min(1.2, P.w) * (1 + 6 * P.shock) : 0;
     for (const m of METERS) { m.step(dtReal, jit); m.draw(); }
     PRINTER.pump(dtReal);
+    camStep(dtReal);
     AU.update(hornOn);
     insStat();
     requestAnimationFrame(frame);
+  }
+  { // open the view standing at the first two cabinets
+    const c0 = lineup.querySelector('.cab');
+    if (c0) room.scrollLeft = Math.max(0, (c0.offsetLeft + c0.offsetWidth * 0.62) * ZOOM - room.clientWidth / 2);
+    view();
   }
   requestAnimationFrame(() => setTimeout(() => {
     PL.initOnline();
@@ -1945,6 +1982,16 @@
     hint.hidden = false;
     last = performance.now();
     requestAnimationFrame(frame);
+    // watchdog: without GPU compositing the turned camera is too heavy, so fall back to the flat view
+    setTimeout(() => {
+      let n = 0; const t0 = performance.now();
+      const count = () => { n++; if (performance.now() - t0 < 2500) requestAnimationFrame(count); else if (CAM3D && n / 2.5 < 24) {
+        setCam3d(false);
+        const t = el('div', 'toast', document.body, 'This computer is drawing without graphics acceleration, so the view switched to flat for speed. SIMULATOR → 3D CAMERA turns it back on.');
+        setTimeout(() => t.remove(), 9000);
+      } };
+      requestAnimationFrame(count);
+    }, 1200);
   }, 0));
-  window.UNIT1 = { PL, P, AU, ANN, setAccel };
+  window.UNIT1 = { PL, P, AU, ANN, setAccel, METERS, UPD };
 })();

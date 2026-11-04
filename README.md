@@ -15,11 +15,16 @@ fall back gracefully when offline).
 powder-coat texture, grime, fingerprints, scratches, worn edges and the ceiling-light falloff into one
 static canvas per door, so the look costs nothing per frame.
 
-The view is 2.5D: a fixed eye-level camera. The cabinet fronts are the picture plane; the wall,
-the cable ladder tray above the cabinets, the cable drops and the linoleum floor sit at real depth
-and are projected onto one background canvas, so walking along the lineup gives parallax and a
-receding floor. Meters, knobs, lamps, buttons, relays and handles have thickness, and their sides
-face the camera.
+The view is 2.5D. The camera stands at eye height a little to the left of the row and looks
+along it, so the cabinets recede in true perspective; the mouse turns it slightly. The cabinet
+fronts stay flat panels (everything on them is drawn and clicked as normal) while the wall, the
+tiled floor and the exposed end of the first cabinet are projected onto one background canvas with
+the same camera. Meters, knobs, lamps, buttons, relays and handles have visible thickness on the
+side facing the camera. On a machine without graphics acceleration the page measures its own frame
+rate after start-up and drops to a straight-on view; SIMULATOR → 3D CAMERA turns it back on.
+
+Simulator controls (sound, sim time, instructor station, manual, walking to a cabinet) are behind
+the SIMULATOR button in the top-right corner, so the room itself has no toolbar.
 
 ## Cabinets
 

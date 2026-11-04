@@ -586,7 +586,7 @@ canvas.meter { display: block; }
    2.5D: perspective camera, room planes, hardware with real thickness
    ===================================================================== */
 #stage { overflow: hidden; }
-#lineup { z-index: 1; --P: 1800; --vpx: 800; --vpy: 500; padding-top: 110px; }
+#lineup { z-index: 1; --P: 1800; --vpx: 800; --vpy: 500; padding-top: 70px; }
 #floor { display: none; }
 #bg { position: absolute; top: 0; left: 0; z-index: 0; pointer-events: none; }
 
@@ -623,16 +623,45 @@ canvas.meter { display: block; }
 .blank.x3, .plate-metal.x3 { box-shadow: 0 0 0 .5px rgba(0,0,0,.3), var(--xs), 0 2px 3px rgba(0,0,0,.3); }
 .clip.x3 { box-shadow: var(--xs), calc(var(--ex) + 3px) calc(var(--ey) + 10px) 14px rgba(0,0,0,.4), inset 0 0 0 1px rgba(0,0,0,.3); }
 .np .name.x3, .np .code.x3 { box-shadow: inset 0 1px 0 rgba(255,255,255,.12), inset 0 -1px 0 rgba(0,0,0,.6), var(--xs), 0 2px 2px rgba(0,0,0,.4); }
+
+/* =====================================================================
+   No toolbar in the room: simulator controls live behind one corner button
+   ===================================================================== */
+#app { display: block; }
+#room { position: absolute; inset: 0; }
+#bar { position: fixed; z-index: 12; top: calc(10px + env(safe-area-inset-top, 0px)); right: max(12px, env(safe-area-inset-right, 0px));
+  left: auto; padding: 0; background: none; border: 0; box-shadow: none; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex-wrap: nowrap; }
+#menuBtn { font: 700 11px/1 var(--f-label); letter-spacing: .14em; color: #d7dccf; background: rgba(18,20,18,.72); border: 1px solid rgba(255,255,255,.14);
+  padding: 7px 10px; border-radius: 3px; cursor: pointer; backdrop-filter: blur(3px); }
+#menuBtn:hover, #menuBtn[aria-expanded="true"] { background: rgba(30,33,30,.92); }
+#bar .menu { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; padding: 12px 14px; background: rgba(18,20,18,.94);
+  border: 1px solid rgba(255,255,255,.12); border-radius: 4px; box-shadow: 0 8px 24px rgba(0,0,0,.5); max-width: min(560px, calc(100vw - 24px)); }
+#bar .menu .grp { flex-wrap: wrap; }
+#bar .brand { white-space: normal; }
+#bar .brand small { display: block; margin: 3px 0 0; }
+.ffind { position: fixed; z-index: 11; top: calc(10px + env(safe-area-inset-top, 0px)); left: max(12px, env(safe-area-inset-left, 0px));
+  color: #161512; background: #e0a526; font: 700 12px/1 var(--f-label); letter-spacing: .08em; padding: 6px 9px; border-radius: 3px; white-space: nowrap;
+  animation: ffp 1s steps(2) infinite; }
+@media (prefers-reduced-motion: reduce) { .ffind { animation: none; } }
+@media (max-width: 760px) { #bar .jump { display: flex; } #bar .grp > span { display: inline; } }
+
+/* hardware sides face the camera, which stands to the left of the row */
+.toast { position: fixed; z-index: 13; left: max(16px, env(safe-area-inset-left, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); max-width: 380px;
+  background: rgba(20,22,20,.92); color: #d8dccf; font: 500 13px/1.35 var(--f-label); letter-spacing: .03em; padding: 9px 12px; border-radius: 3px; box-shadow: 0 4px 14px rgba(0,0,0,.5); }
+.x3 { --ex: calc(var(--d) * var(--kx, -0.30)); }
+#lineup { padding-left: 1100px; padding-right: 800px; }
 </style>
 
 <div id="app">
   <div id="bar">
-    <div class="brand">MÜHLBACH HYDRO · UNIT 1<small>250 kW KAPLAN · 72-POLE 3~ 400 V 50 Hz · BUILT 1988</small></div>
-    <div class="grp jump" id="jump"><span>CABINET</span></div>
-    <div class="spacer"></div>
-    <div class="grp" id="tgrp"><span>SIM TIME</span></div>
-    <div class="grp"><span>VIEW</span><button id="zOut" aria-label="Zoom out">−</button><button id="zFit">FIT</button><button id="zIn" aria-label="Zoom in">+</button></div>
-    <div class="grp"><button id="snd">SOUND OFF</button><button id="ins">INSTRUCTOR</button><button id="man">MANUAL</button></div>
+    <button id="menuBtn" type="button" aria-expanded="false" aria-controls="menuPanel">SIMULATOR</button>
+    <div id="menuPanel" class="menu" hidden>
+      <div class="brand">MÜHLBACH HYDRO · UNIT 1<small>250 kW KAPLAN · 72-POLE 3~ 400 V 50 Hz · BUILT 1988</small></div>
+      <div class="grp jump" id="jump"><span>WALK TO</span></div>
+      <div class="grp" id="tgrp"><span>SIM TIME</span></div>
+      <div class="grp"><span>VIEW</span><button id="zOut" type="button" aria-label="Zoom out">−</button><button id="zFit" type="button">FIT</button><button id="zIn" type="button" aria-label="Zoom in">+</button><button id="look" type="button" class="on">MOUSE LOOK</button></div>
+      <div class="grp"><button id="snd" type="button">SOUND OFF</button><button id="ins" type="button">INSTRUCTOR</button><button id="man" type="button">MANUAL</button></div>
+    </div>
   </div>
   <div id="room"><div id="stage"><div id="floor"></div><div id="lineup"></div></div></div>
 </div>
