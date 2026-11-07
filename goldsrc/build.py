@@ -647,9 +647,8 @@ def build_panels(dev):
     gauge(0, 8, 18, 'LUBE OIL', [(0, 60, 20, 10, 2, None)], 'PSI', ptr='p_lube', red=(0, 20), xr=5)
     gauge(0, 18, 18, 'COOLING WATER', [(0, 100, 20, 20, 5, None)], 'GPM', ptr='p_cw', red=(0, 35), xl=5, xr=5)
     gauge(0, 28, 18, 'BEARING TEMP', [(20, 120, 20, 20, 5, None)], 'DEG C', ptr='p_bt', red=(100, 120), xl=5)
-    D.tape(45, 18, 15, 6.2, 'ONE LUBE PUMP AND|ONE WATER PUMP|BEFORE ROLLING')
-    for u, nm in ((8, 'r_lp1'), (21, 'r_lp2'), (34, 'r_wp1'), (47, 'r_wp2')):
-        cs_switch(0, u, 37, nm)
+    cs_switch(0, 8, 37, 'r_lp'); cs_switch(0, 18, 37, 'r_wp')        # each pump under its own gauge
+    D.tape(42, 28, 18, 6.2, 'RUN LUBE OIL AND|COOLING WATER|BEFORE ROLLING')
     D.section(1.5, 50, 53, 43, 'GATE SERVO OIL - BRAKE AIR')
     gauge(0, 8, 62, 'SERVO OIL', [(0, 400, 100, 100, 20, None)], 'PSI', ptr='p_opu', red=(0, 220), xr=5)
     gauge(0, 18, 62, 'BRAKE AIR', [(0, 150, 50, 50, 10, None)], 'PSI', ptr='p_air', red=(0, 50), xl=5)

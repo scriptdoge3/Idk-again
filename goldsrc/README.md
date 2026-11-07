@@ -2,14 +2,14 @@
 
 The same plant as the web simulator, as a map for plain Half-Life: no mod, no DLL,
 no scripting. The physics is faked with stock `hl.dll` entities used as variables.
-The unit is run by hand from 15 controls, with round gauges and pistol-grip control switches.
+The unit is run by hand from 13 controls, with round gauges and pistol-grip control switches.
 
 ## Controls
 
 | Panel | Control | What it does |
 |---|---|---|
-| 1 | LUBE OIL PUMP 1, 2 | Bearing lube oil. Turning the unit with neither running wipes the bearings in seconds (trip). |
-| 1 | COOLING WATER PUMP 1, 2 | Bearing and generator cooling. Without either, the bearings heat up in about a minute (trip). |
+| 1 | LUBE OIL PUMP | Bearing lube oil. Turning the unit without it wipes the bearings in seconds (trip). |
+| 1 | COOLING WATER PUMP | Bearing and generator cooling. Without it the bearings heat up in about a minute (trip). |
 | 1 | SERVO OIL PUMP | Charges the gate servo accumulator. Every gate movement uses oil; below 220 psi the gate trips. |
 | 1 | AIR COMPRESSOR | Brake air. The brakes are spring-applied and need 50 psi to stay released. |
 | 2 | WICKET GATE handwheel | Opens or closes the gate (hold USE; each grab turns the other way, see the NEXT TURN lamps). |
@@ -26,7 +26,7 @@ The spillway gate runs by itself (it opens above 513.5 ft).
 
 ### Starting by hand
 
-1. Panel 1: start a lube oil pump, a cooling water pump, the servo oil pump and the air compressor.
+1. Panel 1: start the lube oil pump, the cooling water pump, the servo oil pump and the air compressor.
    Wait for servo oil and brake air to come up (the SERVO OIL and BRAKE AIR windows go dark).
 2. Panel 2: BRAKES to RELEASE.
 3. Open the wicket gate to about 30 %. As speed passes 80 %, bring the gate back to 10 %
@@ -74,7 +74,7 @@ discharge in cfs, field volts).
 `plant.py` is the whole model; `hlogic.py` compiles it into entities and contains a simulator that
 reproduces how those entities behave in `hl.dll`; `test_plant.py` runs it by hand through the simulator:
 a manual start and synchronization, loading, the emergency stop, an out-of-phase close, a start with the
-PLC and AVR, the PLC holding the pond, a lube oil failure and a brake air failure.
+PLC and AVR, the PLC holding the pond, the lube oil pump stopping on line and a brake air failure.
 
 Speed, gate, voltage, field, servo oil, brake air, bearing temperature, headwater, spill gate and water
 hammer are integer variables. Four difference variables carry only their sign:
@@ -113,7 +113,7 @@ texture lights) on its own. Light levels can be changed with
 
 Press USE (E) on switches; hold it on the handwheel and the firing-angle knob.
 
-The map has 1,158 entities (1,151 once the lights are compiled in), so it needs the 25th-anniversary
+The map has 1,112 entities (1,105 once the lights are compiled in), so it needs the 25th-anniversary
 engine: its limit is 1,200, the old limit was 900. The variables only get counters for values something
 listens for, and needles step coarsely away from their normal readings, to stay under it.
 

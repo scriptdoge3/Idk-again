@@ -1,9 +1,8 @@
 """
 Sable Creek Unit 1 for plain Half-Life: the plant as entity logic.
 
-The unit is run by hand from 15 controls:
-  panel 1 (aux)        lube oil pumps 1 and 2, cooling water pumps 1 and 2, gate servo oil pump,
-                       brake air compressor
+The unit is run by hand from 13 controls:
+  panel 1 (aux)        lube oil pump, cooling water pump, gate servo oil pump, brake air compressor
   panel 2 (unit)       52G sync breaker, synchroscope switch, brake release, wicket gate trip (the emergency
                        stop), wicket gate handwheel
   panel 3 (exc / ann)  41 exciter field breaker, firing-angle knob, PLC and AVR selectors
@@ -42,7 +41,7 @@ RIVER0 = 15
 INIT = dict(n=0, g=0, v=0, x=0, o=0, a=0, bt=2, l=12, sg=5, h=0)
 VARS = dict(n=(0, 28), g=(0, 20), v=(0, 24), x=(0, 24), o=(0, 10), a=(0, 10), bt=(0, 10), l=(0, 16), sg=(0, 8), h=(0, 6))
 ANN = ['OVERSPEED|TRIP', 'WICKET GATE|TRIPPED', 'OUT OF PHASE|CLOSE', 'GEN BREAKER|PROT TRIP',
-       'SERVO OIL|PRESS LOW', 'LUBE OIL|PUMPS OFF', 'BEARING|TEMP HIGH', 'COOLING WATER|PUMPS OFF',
+       'SERVO OIL|PRESS LOW', 'LUBE OIL|PUMP OFF', 'BEARING|TEMP HIGH', 'COOLING WATER|PUMP OFF',
        'BRAKE AIR|PRESS LOW', 'BRAKES|APPLIED', 'DRAFT TUBE|PULSATION', 'HEADWATER|HIGH',
        'HEADWATER|LOW', 'SPILLWAY|GATE OPEN', 'PLC OFF|GATE MANUAL', 'AVR OFF|FIELD MANUAL']
 TRIP_WINDOWS = (0, 1, 2, 3, 4, 5, 6, 7, 8)   # red windows: trips and things that will cause one
@@ -81,11 +80,11 @@ def _build(L):
         L.setf(vname(k, 1), f'{k}_pos', 1); L.setf(vname(k, 0), f'{k}_pos', 0)
         L.setf(vname(k, -1), f'{k}_neg', 1); L.setf(vname(k, 0), f'{k}_neg', 0)
 
-    for name, init in [('cb', 0), ('exc', 0), ('tr', 0), ('brake', 1), ('lube', 0), ('cool', 0), ('scr', 0),
+    for name, init in [('cb', 0), ('exc', 0), ('tr', 0), ('brake', 1), ('scr', 0),
                        ('inph', 1), ('rz', 0)]:
         state(name, init)
     flag('gdir', 1)
-    for nm in ('hlp1', 'hlp2', 'hwp1', 'hwp2', 'plc', 'avr'):
+    for nm in ('lube', 'cool', 'plc', 'avr'):
         flag(nm, 0)
     thr('n', 1, 'n_gt0'); thr('n', 10); thr('n', 18); thr('n', 20); thr('n', 21); thr('n', 28, 'n_max')
     thr('g', 1, 'g_gt0'); thr('g', 2); thr('g', 3); thr('g', 4); thr('g', 6); thr('g', 7); thr('g', 20, 'g_max')
@@ -230,10 +229,9 @@ def _build(L):
     display('l', ptr('p_hw'), lambda x: (1 + 0.25 * x) / 6)
     display('sg', ptr('p_spill'), lambda x: x / 8)
     display('h', ptr('p_scase'), lambda x: (14.5 + x) / 30)
-    for p, a_, b_, two, one in (('p_lube', 'hlp1', 'hlp2', 0.72, 0.6), ('p_cw', 'hwp1', 'hwp2', 0.75, 0.62)):
+    for p, flg, ev, val in (('p_lube', 'lube', 'r_lp_ev', 0.6), ('p_cw', 'cool', 'r_wp_ev', 0.62)):
         ptr(p)
-        L.display('T2', p, two, [a_, b_]); L.display('T2', p, one, [a_, f'!{b_}'])
-        L.display('T2', p, one, [f'!{a_}', b_]); L.display('T2', p, 0.0, [f'!{a_}', f'!{b_}'])
+        L.display(ev, p, val, [flg]); L.display(ev, p, 0.0, [f'!{flg}'])
 
     dev['sounds'] += [
         {'name': 's_turb', 'wav': 'sablecreek/turbine.wav', 'vol': 8, 'loop': True},
@@ -251,15 +249,11 @@ def _build(L):
     L.relay(vname('v', 1), 's_hum', USE_ON); L.relay(vname('v', 0), 's_hum', USE_OFF)
 
     # ---------------------------------------------- panel 1: auxiliaries
-    for nm, flg, label in (('r_lp1', 'hlp1', 'LUBE OIL PUMP 1'), ('r_lp2', 'hlp2', 'LUBE OIL PUMP 2'),
-                           ('r_wp1', 'hwp1', 'COOLING WATER PUMP 1'), ('r_wp2', 'hwp2', 'COOLING WATER PUMP 2'),
+    for nm, flg, label in (('r_lp', 'lube', 'LUBE OIL PUMP'), ('r_wp', 'cool', 'COOLING WATER PUMP'),
                            ('r_hp', 'hhp', 'SERVO OIL PUMP'), ('r_ac', 'hac', 'AIR COMPRESSOR')):
         cs(nm, flg, label, ('STOP', 'RUN'))          # a maintained pump switch: the handle shows the state
     L.relay('r_hp_ev', 's_pump', USE_TOGGLE)
-    # either pump of a pair is enough
-    for both, a_, b_ in (('lube', 'hlp1', 'hlp2'), ('cool', 'hwp1', 'hwp2')):
-        L.rule('T1', [a_, f'!{both}'], f'{both}=1'); L.rule('T1', [b_, f'!{both}'], f'{both}=1')
-        L.rule('T1', [f'!{a_}', f'!{b_}', both], f'{both}=0')
+    L.relay('r_lp_ev', W[5], USE_TOGGLE); L.relay('r_wp_ev', W[7], USE_TOGGLE)    # PUMP OFF windows
     # bearings: no lube oil wipes them in seconds, no cooling water cooks them in about a minute
     L.rule('T2', ['n_gt0', '!lube', '!bt_max'], 'bt_up')
     L.rule('T8', ['n_ge10', '!cool', '!bt_max'], 'bt_up')
@@ -399,12 +393,13 @@ def _build(L):
     lamp('LP_brake', 'brake', ('red', 'green'))
     lamp('LP_exc', 'exc', ('red', 'green'))
     lamp('LP_sg', 'sg_gt0', ('red', 'green'))
-    for i, flg, lit_when in [(1, 'tr', 1), (4, 'o_ge4', 0), (5, 'lube', 0), (6, 'bt_ge8', 1), (7, 'cool', 0),
+    for i, flg, lit_when in [(1, 'tr', 1), (4, 'o_ge4', 0), (6, 'bt_ge8', 1),
                              (8, 'a_ge4', 0), (9, 'brake', 1), (10, 'rz', 1), (11, 'l_ge14', 1), (12, 'l_ok', 0),
                              (13, 'sg_gt0', 1)]:
         dev.setdefault('ann_init', {})[i] = int(fi[flg] == lit_when)
         L.follow(flg, W[i], 1 - fi[flg])
-    dev['ann_init'][14] = 1 - fi['plc']; dev['ann_init'][15] = 1 - fi['avr']
+    for i, flg in ((5, 'lube'), (7, 'cool'), (14, 'plc'), (15, 'avr')):
+        dev['ann_init'][i] = 1 - fi[flg]
 
     # --------------------------------------------------------------- init
     L.display('init', 'p_kvar', 0.5); L.display('init', 'p_vib', 0.02)

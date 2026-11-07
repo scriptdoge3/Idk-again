@@ -1041,40 +1041,16 @@
 ( -78.7528 -0.5 68.5166 ) ( -79.4834 -0.5 69.2472 ) ( -80.5166 -0.5 69.2472 ) sc_metal [ 1 0 0 0 ] [ 0 0 -1 0 ] 0 1 1
 }
 {
-( -66.4834 -0.5 69.2472 ) ( -65.7528 -0.5 68.5166 ) ( -65.7528 -1.3 68.5166 ) sc_metal [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( -67.5166 -0.5 69.2472 ) ( -66.4834 -0.5 69.2472 ) ( -66.4834 -1.3 69.2472 ) sc_metal [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
-( -68.2472 -0.5 68.5166 ) ( -67.5166 -0.5 69.2472 ) ( -67.5166 -1.3 69.2472 ) sc_metal [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( -68.2472 -0.5 67.4834 ) ( -68.2472 -0.5 68.5166 ) ( -68.2472 -1.3 68.5166 ) sc_metal [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( -67.5166 -0.5 66.7528 ) ( -68.2472 -0.5 67.4834 ) ( -68.2472 -1.3 67.4834 ) sc_metal [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( -66.4834 -0.5 66.7528 ) ( -67.5166 -0.5 66.7528 ) ( -67.5166 -1.3 66.7528 ) sc_metal [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
-( -65.7528 -0.5 67.4834 ) ( -66.4834 -0.5 66.7528 ) ( -66.4834 -1.3 66.7528 ) sc_metal [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( -65.7528 -0.5 68.5166 ) ( -65.7528 -0.5 67.4834 ) ( -65.7528 -1.3 67.4834 ) sc_metal [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( -67.5166 -1.3 69.2472 ) ( -66.4834 -1.3 69.2472 ) ( -65.7528 -1.3 68.5166 ) sc_metal [ 1 0 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( -65.7528 -0.5 68.5166 ) ( -66.4834 -0.5 69.2472 ) ( -67.5166 -0.5 69.2472 ) sc_metal [ 1 0 0 0 ] [ 0 0 -1 0 ] 0 1 1
-}
-{
-( -53.4834 -0.5 69.2472 ) ( -52.7528 -0.5 68.5166 ) ( -52.7528 -1.3 68.5166 ) sc_metal [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
-( -54.5166 -0.5 69.2472 ) ( -53.4834 -0.5 69.2472 ) ( -53.4834 -1.3 69.2472 ) sc_metal [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
-( -55.2472 -0.5 68.5166 ) ( -54.5166 -0.5 69.2472 ) ( -54.5166 -1.3 69.2472 ) sc_metal [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
-( -55.2472 -0.5 67.4834 ) ( -55.2472 -0.5 68.5166 ) ( -55.2472 -1.3 68.5166 ) sc_metal [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( -54.5166 -0.5 66.7528 ) ( -55.2472 -0.5 67.4834 ) ( -55.2472 -1.3 67.4834 ) sc_metal [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
-( -53.4834 -0.5 66.7528 ) ( -54.5166 -0.5 66.7528 ) ( -54.5166 -1.3 66.7528 ) sc_metal [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
-( -52.7528 -0.5 67.4834 ) ( -53.4834 -0.5 66.7528 ) ( -53.4834 -1.3 66.7528 ) sc_metal [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
-( -52.7528 -0.5 68.5166 ) ( -52.7528 -0.5 67.4834 ) ( -52.7528 -1.3 67.4834 ) sc_metal [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( -54.5166 -1.3 69.2472 ) ( -53.4834 -1.3 69.2472 ) ( -52.7528 -1.3 68.5166 ) sc_metal [ 1 0 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( -52.7528 -0.5 68.5166 ) ( -53.4834 -0.5 69.2472 ) ( -54.5166 -0.5 69.2472 ) sc_metal [ 1 0 0 0 ] [ 0 0 -1 0 ] 0 1 1
-}
-{
-( -40.4834 -0.5 69.2472 ) ( -39.7528 -0.5 68.5166 ) ( -39.7528 -1.3 68.5166 ) sc_metal [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
-( -41.5166 -0.5 69.2472 ) ( -40.4834 -0.5 69.2472 ) ( -40.4834 -1.3 69.2472 ) sc_metal [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
-( -42.2472 -0.5 68.5166 ) ( -41.5166 -0.5 69.2472 ) ( -41.5166 -1.3 69.2472 ) sc_metal [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
-( -42.2472 -0.5 67.4834 ) ( -42.2472 -0.5 68.5166 ) ( -42.2472 -1.3 68.5166 ) sc_metal [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( -41.5166 -0.5 66.7528 ) ( -42.2472 -0.5 67.4834 ) ( -42.2472 -1.3 67.4834 ) sc_metal [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
-( -40.4834 -0.5 66.7528 ) ( -41.5166 -0.5 66.7528 ) ( -41.5166 -1.3 66.7528 ) sc_metal [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
-( -39.7528 -0.5 67.4834 ) ( -40.4834 -0.5 66.7528 ) ( -40.4834 -1.3 66.7528 ) sc_metal [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
-( -39.7528 -0.5 68.5166 ) ( -39.7528 -0.5 67.4834 ) ( -39.7528 -1.3 67.4834 ) sc_metal [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( -41.5166 -1.3 69.2472 ) ( -40.4834 -1.3 69.2472 ) ( -39.7528 -1.3 68.5166 ) sc_metal [ 1 0 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( -39.7528 -0.5 68.5166 ) ( -40.4834 -0.5 69.2472 ) ( -41.5166 -0.5 69.2472 ) sc_metal [ 1 0 0 0 ] [ 0 0 -1 0 ] 0 1 1
+( -69.4834 -0.5 69.2472 ) ( -68.7528 -0.5 68.5166 ) ( -68.7528 -1.3 68.5166 ) sc_metal [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
+( -70.5166 -0.5 69.2472 ) ( -69.4834 -0.5 69.2472 ) ( -69.4834 -1.3 69.2472 ) sc_metal [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
+( -71.2472 -0.5 68.5166 ) ( -70.5166 -0.5 69.2472 ) ( -70.5166 -1.3 69.2472 ) sc_metal [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
+( -71.2472 -0.5 67.4834 ) ( -71.2472 -0.5 68.5166 ) ( -71.2472 -1.3 68.5166 ) sc_metal [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
+( -70.5166 -0.5 66.7528 ) ( -71.2472 -0.5 67.4834 ) ( -71.2472 -1.3 67.4834 ) sc_metal [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
+( -69.4834 -0.5 66.7528 ) ( -70.5166 -0.5 66.7528 ) ( -70.5166 -1.3 66.7528 ) sc_metal [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
+( -68.7528 -0.5 67.4834 ) ( -69.4834 -0.5 66.7528 ) ( -69.4834 -1.3 66.7528 ) sc_metal [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
+( -68.7528 -0.5 68.5166 ) ( -68.7528 -0.5 67.4834 ) ( -68.7528 -1.3 67.4834 ) sc_metal [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
+( -70.5166 -1.3 69.2472 ) ( -69.4834 -1.3 69.2472 ) ( -68.7528 -1.3 68.5166 ) sc_metal [ 1 0 0 0 ] [ 0 0 -1 0 ] 0 1 1
+( -68.7528 -0.5 68.5166 ) ( -69.4834 -0.5 69.2472 ) ( -70.5166 -0.5 69.2472 ) sc_metal [ 1 0 0 0 ] [ 0 0 -1 0 ] 0 1 1
 }
 {
 ( -75 -0.5 43.9946 ) ( -76.0769 -0.5 43.7804 ) ( -76.0769 -1.7 43.7804 ) sc_bezel [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
@@ -3426,8 +3402,8 @@
 }
 {
 "classname" "func_rot_button"
-"targetname" "r_lp1"
-"target" "r_lp1_ev"
+"targetname" "r_lp"
+"target" "r_lp_ev"
 "spawnflags" "160"
 "distance" "90"
 "speed" "240"
@@ -3457,95 +3433,33 @@
 }
 {
 "classname" "func_rot_button"
-"targetname" "r_lp2"
-"target" "r_lp2_ev"
+"targetname" "r_wp"
+"target" "r_wp_ev"
 "spawnflags" "160"
 "distance" "90"
 "speed" "240"
 "wait" "-1"
 "sounds" "21"
 {
-( -69.3335 -2.9 70.3335 ) ( -69.3335 -1.3 70.3335 ) ( -68.096 -1.3 69.8738 ) sc_knob [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
-( -68.096 -2.9 69.8738 ) ( -68.096 -1.3 69.8738 ) ( -66.5404 -1.3 68.8839 ) sc_knob [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
-( -66.5404 -2.9 68.8839 ) ( -66.5404 -1.3 68.8839 ) ( -65.6211 -1.3 67.8232 ) sc_knob [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( -65.6211 -2.9 67.8232 ) ( -65.6211 -1.3 67.8232 ) ( -65.4797 -1.3 67.1161 ) sc_knob [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( -65.4797 -2.9 67.1161 ) ( -65.4797 -1.3 67.1161 ) ( -66.1161 -1.3 66.4797 ) sc_knob [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( -66.1161 -2.9 66.4797 ) ( -66.1161 -1.3 66.4797 ) ( -66.8232 -1.3 66.6211 ) sc_knob [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
-( -66.8232 -2.9 66.6211 ) ( -66.8232 -1.3 66.6211 ) ( -67.8839 -1.3 67.5404 ) sc_knob [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
-( -67.8839 -2.9 67.5404 ) ( -67.8839 -1.3 67.5404 ) ( -68.8738 -1.3 69.096 ) sc_knob [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( -68.8738 -2.9 69.096 ) ( -68.8738 -1.3 69.096 ) ( -69.3335 -1.3 70.3335 ) sc_knob [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( -69.3335 -2.9 70.3335 ) ( -68.096 -2.9 69.8738 ) ( -66.5404 -2.9 68.8839 ) sc_knob [ 1 0 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( -66.5404 -1.3 68.8839 ) ( -68.096 -1.3 69.8738 ) ( -69.3335 -1.3 70.3335 ) sc_knob [ 1 0 0 0 ] [ 0 0 -1 0 ] 0 1 1
+( -72.3335 -2.9 70.3335 ) ( -72.3335 -1.3 70.3335 ) ( -71.096 -1.3 69.8738 ) sc_knob [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
+( -71.096 -2.9 69.8738 ) ( -71.096 -1.3 69.8738 ) ( -69.5404 -1.3 68.8839 ) sc_knob [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
+( -69.5404 -2.9 68.8839 ) ( -69.5404 -1.3 68.8839 ) ( -68.6211 -1.3 67.8232 ) sc_knob [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
+( -68.6211 -2.9 67.8232 ) ( -68.6211 -1.3 67.8232 ) ( -68.4797 -1.3 67.1161 ) sc_knob [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
+( -68.4797 -2.9 67.1161 ) ( -68.4797 -1.3 67.1161 ) ( -69.1161 -1.3 66.4797 ) sc_knob [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
+( -69.1161 -2.9 66.4797 ) ( -69.1161 -1.3 66.4797 ) ( -69.8232 -1.3 66.6211 ) sc_knob [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
+( -69.8232 -2.9 66.6211 ) ( -69.8232 -1.3 66.6211 ) ( -70.8839 -1.3 67.5404 ) sc_knob [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
+( -70.8839 -2.9 67.5404 ) ( -70.8839 -1.3 67.5404 ) ( -71.8738 -1.3 69.096 ) sc_knob [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
+( -71.8738 -2.9 69.096 ) ( -71.8738 -1.3 69.096 ) ( -72.3335 -1.3 70.3335 ) sc_knob [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
+( -72.3335 -2.9 70.3335 ) ( -71.096 -2.9 69.8738 ) ( -69.5404 -2.9 68.8839 ) sc_knob [ 1 0 0 0 ] [ 0 0 -1 0 ] 0 1 1
+( -69.5404 -1.3 68.8839 ) ( -71.096 -1.3 69.8738 ) ( -72.3335 -1.3 70.3335 ) sc_knob [ 1 0 0 0 ] [ 0 0 -1 0 ] 0 1 1
 }
 {
-( -66.5 -1.6 68.5 ) ( -66.5 -2.6 68.5 ) ( -67.5 -2.6 68.5 ) ORIGIN [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
-( -67.5 -2.6 67.5 ) ( -66.5 -2.6 67.5 ) ( -66.5 -1.6 67.5 ) ORIGIN [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
-( -66.5 -1.6 68.5 ) ( -66.5 -1.6 67.5 ) ( -66.5 -2.6 67.5 ) ORIGIN [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( -67.5 -2.6 67.5 ) ( -67.5 -1.6 67.5 ) ( -67.5 -1.6 68.5 ) ORIGIN [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( -67.5 -1.6 67.5 ) ( -66.5 -1.6 67.5 ) ( -66.5 -1.6 68.5 ) ORIGIN [ 1 0 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( -66.5 -2.6 68.5 ) ( -66.5 -2.6 67.5 ) ( -67.5 -2.6 67.5 ) ORIGIN [ 1 0 0 0 ] [ 0 0 -1 0 ] 0 1 1
-}
-}
-{
-"classname" "func_rot_button"
-"targetname" "r_wp1"
-"target" "r_wp1_ev"
-"spawnflags" "160"
-"distance" "90"
-"speed" "240"
-"wait" "-1"
-"sounds" "21"
-{
-( -56.3335 -2.9 70.3335 ) ( -56.3335 -1.3 70.3335 ) ( -55.096 -1.3 69.8738 ) sc_knob [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
-( -55.096 -2.9 69.8738 ) ( -55.096 -1.3 69.8738 ) ( -53.5404 -1.3 68.8839 ) sc_knob [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
-( -53.5404 -2.9 68.8839 ) ( -53.5404 -1.3 68.8839 ) ( -52.6211 -1.3 67.8232 ) sc_knob [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( -52.6211 -2.9 67.8232 ) ( -52.6211 -1.3 67.8232 ) ( -52.4797 -1.3 67.1161 ) sc_knob [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( -52.4797 -2.9 67.1161 ) ( -52.4797 -1.3 67.1161 ) ( -53.1161 -1.3 66.4797 ) sc_knob [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
-( -53.1161 -2.9 66.4797 ) ( -53.1161 -1.3 66.4797 ) ( -53.8232 -1.3 66.6211 ) sc_knob [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
-( -53.8232 -2.9 66.6211 ) ( -53.8232 -1.3 66.6211 ) ( -54.8839 -1.3 67.5404 ) sc_knob [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
-( -54.8839 -2.9 67.5404 ) ( -54.8839 -1.3 67.5404 ) ( -55.8738 -1.3 69.096 ) sc_knob [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( -55.8738 -2.9 69.096 ) ( -55.8738 -1.3 69.096 ) ( -56.3335 -1.3 70.3335 ) sc_knob [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( -56.3335 -2.9 70.3335 ) ( -55.096 -2.9 69.8738 ) ( -53.5404 -2.9 68.8839 ) sc_knob [ 1 0 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( -53.5404 -1.3 68.8839 ) ( -55.096 -1.3 69.8738 ) ( -56.3335 -1.3 70.3335 ) sc_knob [ 1 0 0 0 ] [ 0 0 -1 0 ] 0 1 1
-}
-{
-( -53.5 -1.6 68.5 ) ( -53.5 -2.6 68.5 ) ( -54.5 -2.6 68.5 ) ORIGIN [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
-( -54.5 -2.6 67.5 ) ( -53.5 -2.6 67.5 ) ( -53.5 -1.6 67.5 ) ORIGIN [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
-( -53.5 -1.6 68.5 ) ( -53.5 -1.6 67.5 ) ( -53.5 -2.6 67.5 ) ORIGIN [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( -54.5 -2.6 67.5 ) ( -54.5 -1.6 67.5 ) ( -54.5 -1.6 68.5 ) ORIGIN [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( -54.5 -1.6 67.5 ) ( -53.5 -1.6 67.5 ) ( -53.5 -1.6 68.5 ) ORIGIN [ 1 0 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( -53.5 -2.6 68.5 ) ( -53.5 -2.6 67.5 ) ( -54.5 -2.6 67.5 ) ORIGIN [ 1 0 0 0 ] [ 0 0 -1 0 ] 0 1 1
-}
-}
-{
-"classname" "func_rot_button"
-"targetname" "r_wp2"
-"target" "r_wp2_ev"
-"spawnflags" "160"
-"distance" "90"
-"speed" "240"
-"wait" "-1"
-"sounds" "21"
-{
-( -43.3335 -2.9 70.3335 ) ( -43.3335 -1.3 70.3335 ) ( -42.096 -1.3 69.8738 ) sc_knob [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
-( -42.096 -2.9 69.8738 ) ( -42.096 -1.3 69.8738 ) ( -40.5404 -1.3 68.8839 ) sc_knob [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
-( -40.5404 -2.9 68.8839 ) ( -40.5404 -1.3 68.8839 ) ( -39.6211 -1.3 67.8232 ) sc_knob [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( -39.6211 -2.9 67.8232 ) ( -39.6211 -1.3 67.8232 ) ( -39.4797 -1.3 67.1161 ) sc_knob [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( -39.4797 -2.9 67.1161 ) ( -39.4797 -1.3 67.1161 ) ( -40.1161 -1.3 66.4797 ) sc_knob [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
-( -40.1161 -2.9 66.4797 ) ( -40.1161 -1.3 66.4797 ) ( -40.8232 -1.3 66.6211 ) sc_knob [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
-( -40.8232 -2.9 66.6211 ) ( -40.8232 -1.3 66.6211 ) ( -41.8839 -1.3 67.5404 ) sc_knob [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
-( -41.8839 -2.9 67.5404 ) ( -41.8839 -1.3 67.5404 ) ( -42.8738 -1.3 69.096 ) sc_knob [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( -42.8738 -2.9 69.096 ) ( -42.8738 -1.3 69.096 ) ( -43.3335 -1.3 70.3335 ) sc_knob [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( -43.3335 -2.9 70.3335 ) ( -42.096 -2.9 69.8738 ) ( -40.5404 -2.9 68.8839 ) sc_knob [ 1 0 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( -40.5404 -1.3 68.8839 ) ( -42.096 -1.3 69.8738 ) ( -43.3335 -1.3 70.3335 ) sc_knob [ 1 0 0 0 ] [ 0 0 -1 0 ] 0 1 1
-}
-{
-( -40.5 -1.6 68.5 ) ( -40.5 -2.6 68.5 ) ( -41.5 -2.6 68.5 ) ORIGIN [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
-( -41.5 -2.6 67.5 ) ( -40.5 -2.6 67.5 ) ( -40.5 -1.6 67.5 ) ORIGIN [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
-( -40.5 -1.6 68.5 ) ( -40.5 -1.6 67.5 ) ( -40.5 -2.6 67.5 ) ORIGIN [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( -41.5 -2.6 67.5 ) ( -41.5 -1.6 67.5 ) ( -41.5 -1.6 68.5 ) ORIGIN [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( -41.5 -1.6 67.5 ) ( -40.5 -1.6 67.5 ) ( -40.5 -1.6 68.5 ) ORIGIN [ 1 0 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( -40.5 -2.6 68.5 ) ( -40.5 -2.6 67.5 ) ( -41.5 -2.6 67.5 ) ORIGIN [ 1 0 0 0 ] [ 0 0 -1 0 ] 0 1 1
+( -69.5 -1.6 68.5 ) ( -69.5 -2.6 68.5 ) ( -70.5 -2.6 68.5 ) ORIGIN [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
+( -70.5 -2.6 67.5 ) ( -69.5 -2.6 67.5 ) ( -69.5 -1.6 67.5 ) ORIGIN [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
+( -69.5 -1.6 68.5 ) ( -69.5 -1.6 67.5 ) ( -69.5 -2.6 67.5 ) ORIGIN [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
+( -70.5 -2.6 67.5 ) ( -70.5 -1.6 67.5 ) ( -70.5 -1.6 68.5 ) ORIGIN [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
+( -70.5 -1.6 67.5 ) ( -69.5 -1.6 67.5 ) ( -69.5 -1.6 68.5 ) ORIGIN [ 1 0 0 0 ] [ 0 0 -1 0 ] 0 1 1
+( -69.5 -2.6 68.5 ) ( -69.5 -2.6 67.5 ) ( -70.5 -2.6 67.5 ) ORIGIN [ 1 0 0 0 ] [ 0 0 -1 0 ] 0 1 1
 }
 }
 {
@@ -6320,62 +6234,6 @@
 }
 {
 "classname" "env_global"
-"targetname" "lube=1"
-"globalstate" "lube"
-"triggermode" "1"
-"spawnflags" "1"
-"initialstate" "0"
-}
-{
-"classname" "env_global"
-"targetname" "lube=1"
-"globalstate" "nlube"
-"triggermode" "0"
-"spawnflags" "1"
-"initialstate" "1"
-}
-{
-"classname" "env_global"
-"targetname" "lube=0"
-"globalstate" "lube"
-"triggermode" "0"
-}
-{
-"classname" "env_global"
-"targetname" "lube=0"
-"globalstate" "nlube"
-"triggermode" "1"
-}
-{
-"classname" "env_global"
-"targetname" "cool=1"
-"globalstate" "cool"
-"triggermode" "1"
-"spawnflags" "1"
-"initialstate" "0"
-}
-{
-"classname" "env_global"
-"targetname" "cool=1"
-"globalstate" "ncool"
-"triggermode" "0"
-"spawnflags" "1"
-"initialstate" "1"
-}
-{
-"classname" "env_global"
-"targetname" "cool=0"
-"globalstate" "cool"
-"triggermode" "0"
-}
-{
-"classname" "env_global"
-"targetname" "cool=0"
-"globalstate" "ncool"
-"triggermode" "1"
-}
-{
-"classname" "env_global"
 "targetname" "scr=1"
 "globalstate" "scr"
 "triggermode" "1"
@@ -7533,64 +7391,32 @@
 }
 {
 "classname" "env_global"
-"targetname" "r_lp1_ev"
-"globalstate" "hlp1"
+"targetname" "r_lp_ev"
+"globalstate" "lube"
 "triggermode" "3"
 "spawnflags" "1"
 "initialstate" "0"
 }
 {
 "classname" "env_global"
-"targetname" "r_lp1_ev"
-"globalstate" "nhlp1"
+"targetname" "r_lp_ev"
+"globalstate" "nlube"
 "triggermode" "3"
 "spawnflags" "1"
 "initialstate" "1"
 }
 {
 "classname" "env_global"
-"targetname" "r_lp2_ev"
-"globalstate" "hlp2"
+"targetname" "r_wp_ev"
+"globalstate" "cool"
 "triggermode" "3"
 "spawnflags" "1"
 "initialstate" "0"
 }
 {
 "classname" "env_global"
-"targetname" "r_lp2_ev"
-"globalstate" "nhlp2"
-"triggermode" "3"
-"spawnflags" "1"
-"initialstate" "1"
-}
-{
-"classname" "env_global"
-"targetname" "r_wp1_ev"
-"globalstate" "hwp1"
-"triggermode" "3"
-"spawnflags" "1"
-"initialstate" "0"
-}
-{
-"classname" "env_global"
-"targetname" "r_wp1_ev"
-"globalstate" "nhwp1"
-"triggermode" "3"
-"spawnflags" "1"
-"initialstate" "1"
-}
-{
-"classname" "env_global"
-"targetname" "r_wp2_ev"
-"globalstate" "hwp2"
-"triggermode" "3"
-"spawnflags" "1"
-"initialstate" "0"
-}
-{
-"classname" "env_global"
-"targetname" "r_wp2_ev"
-"globalstate" "nhwp2"
+"targetname" "r_wp_ev"
+"globalstate" "ncool"
 "triggermode" "3"
 "spawnflags" "1"
 "initialstate" "1"
@@ -7615,6 +7441,18 @@
 "classname" "trigger_relay"
 "targetname" "r_hp_ev"
 "target" "s_pump"
+"triggerstate" "2"
+}
+{
+"classname" "trigger_relay"
+"targetname" "r_lp_ev"
+"target" "A05"
+"triggerstate" "2"
+}
+{
+"classname" "trigger_relay"
+"targetname" "r_wp_ev"
+"target" "A07"
 "triggerstate" "2"
 }
 {
@@ -8115,30 +7953,6 @@
 }
 {
 "classname" "trigger_relay"
-"targetname" "lube=1"
-"target" "A05"
-"triggerstate" "1"
-}
-{
-"classname" "trigger_relay"
-"targetname" "lube=0"
-"target" "A05"
-"triggerstate" "0"
-}
-{
-"classname" "trigger_relay"
-"targetname" "cool=1"
-"target" "A07"
-"triggerstate" "1"
-}
-{
-"classname" "trigger_relay"
-"targetname" "cool=0"
-"target" "A07"
-"triggerstate" "0"
-}
-{
-"classname" "trigger_relay"
 "targetname" "rz=1"
 "target" "A10"
 "triggerstate" "1"
@@ -8356,28 +8170,8 @@
 }
 {
 "classname" "multisource"
-"targetname" "ms_nhlp1"
-"globalstate" "nhlp1"
-}
-{
-"classname" "multisource"
-"targetname" "ms_nhlp2"
-"globalstate" "nhlp2"
-}
-{
-"classname" "multisource"
 "targetname" "ms_nhss"
 "globalstate" "nhss"
-}
-{
-"classname" "multisource"
-"targetname" "ms_nhwp1"
-"globalstate" "nhwp1"
-}
-{
-"classname" "multisource"
-"targetname" "ms_nhwp2"
-"globalstate" "nhwp2"
 }
 {
 "classname" "multisource"
@@ -8666,28 +8460,8 @@
 }
 {
 "classname" "multisource"
-"targetname" "ms_hlp1"
-"globalstate" "hlp1"
-}
-{
-"classname" "multisource"
-"targetname" "ms_hlp2"
-"globalstate" "hlp2"
-}
-{
-"classname" "multisource"
 "targetname" "ms_hss"
 "globalstate" "hss"
-}
-{
-"classname" "multisource"
-"targetname" "ms_hwp1"
-"globalstate" "hwp1"
-}
-{
-"classname" "multisource"
-"targetname" "ms_hwp2"
-"globalstate" "hwp2"
 }
 {
 "classname" "multisource"
@@ -10075,195 +9849,29 @@
 }
 {
 "classname" "game_counter_set"
-"targetname" "T2"
-"master" "ms_hlp1"
-"target" "q3"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q3"
-"target" "p_lube"
-"frags" "0.6691"
-"master" "ms_hlp2"
-}
-{
-"classname" "game_counter_set"
-"targetname" "T2"
-"master" "ms_nhlp2"
-"target" "q4"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q4"
+"targetname" "r_lp_ev"
 "target" "p_lube"
 "frags" "0.5738"
-"master" "ms_hlp1"
+"master" "ms_lube"
 }
 {
 "classname" "game_counter_set"
-"targetname" "T2"
-"master" "ms_nhlp1"
-"target" "q5"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q5"
+"targetname" "r_lp_ev"
 "target" "p_lube"
-"frags" "0.5738"
-"master" "ms_hlp2"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q5"
-"target" "p_lube"
-"master" "ms_nhlp2"
-}
-{
-"classname" "game_counter_set"
-"targetname" "T2"
-"master" "ms_hwp1"
-"target" "q6"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q6"
-"target" "p_cw"
-"frags" "0.6952"
-"master" "ms_hwp2"
-}
-{
-"classname" "game_counter_set"
-"targetname" "T2"
-"master" "ms_nhwp2"
-"target" "q7"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q7"
-"target" "p_cw"
-"frags" "0.5889"
-"master" "ms_hwp1"
-}
-{
-"classname" "game_counter_set"
-"targetname" "T2"
-"master" "ms_nhwp1"
-"target" "q8"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q8"
-"target" "p_cw"
-"frags" "0.5889"
-"master" "ms_hwp2"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q8"
-"target" "p_cw"
-"master" "ms_nhwp2"
-}
-{
-"classname" "game_counter_set"
-"targetname" "T2"
-"master" "ms_n_gt0"
-"target" "q9"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q9"
 "master" "ms_nlube"
-"target" "q10"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q10"
-"target" "bt_up"
-"master" "ms_nbt_max"
+"targetname" "r_wp_ev"
+"target" "p_cw"
+"frags" "0.5889"
+"master" "ms_cool"
 }
 {
 "classname" "game_counter_set"
-"targetname" "T2"
-"master" "ms_ncb"
-"target" "q11"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q11"
-"master" "ms_g_gt0"
-"target" "q12"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q12"
-"master" "ms_n_gt0"
-"target" "q13"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q13"
-"target" "n_dn"
-"master" "ms_en_neg"
-}
-{
-"classname" "game_counter_set"
-"targetname" "T2"
-"master" "ms_cb"
-"target" "q14"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q14"
-"master" "ms_ntr"
-"target" "q15"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q15"
-"master" "ms_plc"
-"target" "q16"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q16"
-"master" "ms_o_ge3"
-"target" "q17"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q17"
-"master" "ms_ng_max"
-"target" "q18"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q18"
-"master" "ms_el_pos"
-"target" "q19"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q19"
-"target" "g_up"
-"master" "ms_l_ge13"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q17"
-"master" "ms_el_neg"
-"target" "q20"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q20"
-"master" "ms_g_ge4"
-"target" "q21"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q21"
-"target" "g_dn"
-"master" "ms_nl_ge12"
+"targetname" "r_wp_ev"
+"target" "p_cw"
+"master" "ms_ncool"
 }
 {
 "classname" "game_counter_set"
@@ -10285,85 +9893,319 @@
 }
 {
 "classname" "game_counter_set"
-"targetname" "T1"
+"targetname" "T2"
+"master" "ms_n_gt0"
+"target" "q3"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q3"
+"master" "ms_nbt_max"
+"target" "q4"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q4"
+"target" "bt_up"
 "master" "ms_nlube"
+}
+{
+"classname" "game_counter_set"
+"targetname" "T2"
+"master" "ms_ncb"
+"target" "q5"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q5"
+"master" "ms_g_gt0"
+"target" "q6"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q6"
+"master" "ms_n_gt0"
+"target" "q7"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q7"
+"target" "n_dn"
+"master" "ms_en_neg"
+}
+{
+"classname" "game_counter_set"
+"targetname" "T2"
+"master" "ms_cb"
+"target" "q8"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q8"
+"master" "ms_ntr"
+"target" "q9"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q9"
+"master" "ms_plc"
+"target" "q10"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q10"
+"master" "ms_o_ge3"
+"target" "q11"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q11"
+"master" "ms_ng_max"
+"target" "q12"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q12"
+"master" "ms_el_pos"
+"target" "q13"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q13"
+"target" "g_up"
+"master" "ms_l_ge13"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q11"
+"master" "ms_el_neg"
+"target" "q14"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q14"
+"master" "ms_g_ge4"
+"target" "q15"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q15"
+"target" "g_dn"
+"master" "ms_nl_ge12"
+}
+{
+"classname" "game_counter_set"
+"targetname" "T8"
+"master" "ms_nbt_max"
+"target" "q16"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q16"
+"master" "ms_ncool"
+"target" "q17"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q17"
+"target" "bt_up"
+"master" "ms_n_ge10"
+}
+{
+"classname" "game_counter_set"
+"targetname" "T8"
+"master" "ms_n_ge10"
+"target" "q18"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q18"
+"target" "bt_up"
+"master" "ms_nbt_ge5"
+}
+{
+"classname" "game_counter_set"
+"targetname" "T8"
+"master" "ms_cool"
+"target" "q19"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q19"
+"target" "bt_dn"
+"master" "ms_bt_ge6"
+}
+{
+"classname" "game_counter_set"
+"targetname" "T8"
+"master" "ms_nn_ge10"
+"target" "q20"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q20"
+"target" "bt_dn"
+"master" "ms_bt_ge3"
+}
+{
+"classname" "game_counter_set"
+"targetname" "T8"
+"master" "ms_nbrake"
+"target" "q21"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q21"
+"target" "a_dn"
+"master" "ms_a_gt0"
+}
+{
+"classname" "game_counter_set"
+"targetname" "T8"
+"master" "ms_ncb"
 "target" "q22"
 }
 {
 "classname" "game_counter_set"
 "targetname" "q22"
-"target" "lube=1"
-"master" "ms_hlp1"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q22"
-"target" "lube=1"
-"master" "ms_hlp2"
-}
-{
-"classname" "game_counter_set"
-"targetname" "T1"
-"master" "ms_nhlp1"
+"master" "ms_n_gt0"
 "target" "q23"
 }
 {
 "classname" "game_counter_set"
 "targetname" "q23"
-"master" "ms_nhlp2"
+"master" "ms_en_neg"
 "target" "q24"
 }
 {
 "classname" "game_counter_set"
 "targetname" "q24"
-"target" "lube=0"
-"master" "ms_lube"
+"target" "n_dn"
+"master" "ms_ng_gt0"
 }
 {
 "classname" "game_counter_set"
-"targetname" "T1"
-"master" "ms_ncool"
+"targetname" "T8"
+"master" "ms_cb"
 "target" "q25"
 }
 {
 "classname" "game_counter_set"
 "targetname" "q25"
-"target" "cool=1"
-"master" "ms_hwp1"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q25"
-"target" "cool=1"
-"master" "ms_hwp2"
-}
-{
-"classname" "game_counter_set"
-"targetname" "T1"
-"master" "ms_nhwp1"
+"master" "ms_ntr"
 "target" "q26"
 }
 {
 "classname" "game_counter_set"
 "targetname" "q26"
-"master" "ms_nhwp2"
+"master" "ms_plc"
 "target" "q27"
 }
 {
 "classname" "game_counter_set"
 "targetname" "q27"
-"target" "cool=0"
-"master" "ms_cool"
-}
-{
-"classname" "game_counter_set"
-"targetname" "T1"
-"master" "ms_no_full"
+"master" "ms_o_ge3"
 "target" "q28"
 }
 {
 "classname" "game_counter_set"
 "targetname" "q28"
+"master" "ms_ng_max"
+"target" "q29"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q29"
+"target" "g_up"
+"master" "ms_l_ge14"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q28"
+"master" "ms_g_ge4"
+"target" "q30"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q30"
+"target" "g_dn"
+"master" "ms_nl_ge11"
+}
+{
+"classname" "game_counter_set"
+"targetname" "T8"
+"master" "ms_el_pos"
+"target" "q31"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q31"
+"master" "ms_nsg_max"
+"target" "q32"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q32"
+"target" "sg_up"
+"master" "ms_l_ge14"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q31"
+"target" "l_up"
+"master" "ms_nl_max"
+}
+{
+"classname" "game_counter_set"
+"targetname" "T8"
+"master" "ms_el_neg"
+"target" "q33"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q33"
+"master" "ms_sg_gt0"
+"target" "q34"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q34"
+"target" "sg_dn"
+"master" "ms_nl_ge13"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q33"
+"target" "l_dn"
+"master" "ms_l_gt0"
+}
+{
+"classname" "game_counter_set"
+"targetname" "T8"
+"master" "ms_nsg_max"
+"target" "q35"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q35"
+"master" "ms_nel_pos"
+"target" "q36"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q36"
+"target" "sg_up"
+"master" "ms_l_max"
+}
+{
+"classname" "game_counter_set"
+"targetname" "T1"
+"master" "ms_no_full"
+"target" "q37"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q37"
 "target" "o_up"
 "master" "ms_hhp"
 }
@@ -10371,11 +10213,11 @@
 "classname" "game_counter_set"
 "targetname" "T1"
 "master" "ms_na_max"
-"target" "q29"
+"target" "q38"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q29"
+"targetname" "q38"
 "target" "a_up"
 "master" "ms_hac"
 }
@@ -10383,23 +10225,23 @@
 "classname" "game_counter_set"
 "targetname" "T1"
 "master" "ms_ntr"
-"target" "q30"
+"target" "q39"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q30"
+"targetname" "q39"
 "master" "ms_g_gt0"
-"target" "q31"
+"target" "q40"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q31"
+"targetname" "q40"
 "target" "prot"
 "master" "ms_no_ge2"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q30"
+"targetname" "q39"
 "target" "prot"
 "master" "ms_bt_max"
 }
@@ -10407,11 +10249,11 @@
 "classname" "game_counter_set"
 "targetname" "T1"
 "master" "ms_nhgt"
-"target" "q32"
+"target" "q41"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q32"
+"targetname" "q41"
 "target" "r_gt"
 "master" "ms_tr"
 }
@@ -10419,17 +10261,17 @@
 "classname" "game_counter_set"
 "targetname" "T1"
 "master" "ms_brake"
-"target" "q33"
+"target" "q42"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q33"
+"targetname" "q42"
 "master" "ms_a_ge4"
-"target" "q34"
+"target" "q43"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q34"
+"targetname" "q43"
 "target" "brake=0"
 "master" "ms_hbr"
 }
@@ -10437,17 +10279,17 @@
 "classname" "game_counter_set"
 "targetname" "T1"
 "master" "ms_nbrake"
-"target" "q35"
+"target" "q44"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q35"
+"targetname" "q44"
 "target" "brake=1"
 "master" "ms_nhbr"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q35"
+"targetname" "q44"
 "target" "brake=1"
 "master" "ms_na_ge4"
 }
@@ -10455,203 +10297,203 @@
 "classname" "game_counter_set"
 "targetname" "T1"
 "master" "ms_ncb"
-"target" "q36"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q36"
-"master" "ms_nbrake"
-"target" "q37"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q37"
-"master" "ms_nn_max"
-"target" "q38"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q38"
-"target" "n_up"
-"master" "ms_en_pos"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q36"
-"master" "ms_n_gt0"
-"target" "q39"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q39"
-"target" "n_dn"
-"master" "ms_brake"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q36"
-"master" "ms_ntr"
-"target" "q40"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q40"
-"master" "ms_plc"
-"target" "q41"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q41"
-"master" "ms_o_ge3"
-"target" "q42"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q42"
-"master" "ms_nbrake"
-"target" "q43"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q43"
-"master" "ms_nn_ge18"
-"target" "q44"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q44"
-"target" "g_up"
-"master" "ms_ng_ge6"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q44"
-"target" "g_dn"
-"master" "ms_g_ge7"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q43"
-"master" "ms_n_ge18"
 "target" "q45"
 }
 {
 "classname" "game_counter_set"
 "targetname" "q45"
-"target" "g_dn"
-"master" "ms_g_ge3"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q43"
-"master" "ms_ng_ge2"
+"master" "ms_nbrake"
 "target" "q46"
 }
 {
 "classname" "game_counter_set"
 "targetname" "q46"
-"target" "g_up"
-"master" "ms_n_ge18"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q36"
-"master" "ms_plc"
+"master" "ms_nn_max"
 "target" "q47"
 }
 {
 "classname" "game_counter_set"
 "targetname" "q47"
-"master" "ms_g_gt0"
+"target" "n_up"
+"master" "ms_en_pos"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q45"
+"master" "ms_n_gt0"
 "target" "q48"
 }
 {
 "classname" "game_counter_set"
 "targetname" "q48"
-"master" "ms_o_gt0"
+"target" "n_dn"
+"master" "ms_brake"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q45"
+"master" "ms_ntr"
 "target" "q49"
 }
 {
 "classname" "game_counter_set"
 "targetname" "q49"
-"target" "g_dn"
-"master" "ms_brake"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q36"
-"master" "ms_nv_max"
+"master" "ms_plc"
 "target" "q50"
 }
 {
 "classname" "game_counter_set"
 "targetname" "q50"
-"master" "ms_dvn_pos"
+"master" "ms_o_ge3"
 "target" "q51"
 }
 {
 "classname" "game_counter_set"
 "targetname" "q51"
-"target" "v_up"
-"master" "ms_dvx_pos"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q36"
-"master" "ms_v_gt0"
+"master" "ms_nbrake"
 "target" "q52"
 }
 {
 "classname" "game_counter_set"
 "targetname" "q52"
-"master" "ms_ndvn_neg"
+"master" "ms_nn_ge18"
 "target" "q53"
 }
 {
 "classname" "game_counter_set"
 "targetname" "q53"
-"target" "v_dn"
-"master" "ms_dvx_neg"
+"target" "g_up"
+"master" "ms_ng_ge6"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q53"
+"target" "g_dn"
+"master" "ms_g_ge7"
 }
 {
 "classname" "game_counter_set"
 "targetname" "q52"
-"target" "v_dn"
-"master" "ms_dvn_neg"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q36"
-"master" "ms_exc"
+"master" "ms_n_ge18"
 "target" "q54"
 }
 {
 "classname" "game_counter_set"
 "targetname" "q54"
-"master" "ms_hss"
+"target" "g_dn"
+"master" "ms_g_ge3"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q52"
+"master" "ms_ng_ge2"
 "target" "q55"
 }
 {
 "classname" "game_counter_set"
 "targetname" "q55"
-"master" "ms_nscr"
+"target" "g_up"
+"master" "ms_n_ge18"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q45"
+"master" "ms_plc"
 "target" "q56"
 }
 {
 "classname" "game_counter_set"
 "targetname" "q56"
-"master" "ms_nn_ge21"
+"master" "ms_g_gt0"
 "target" "q57"
 }
 {
 "classname" "game_counter_set"
 "targetname" "q57"
+"master" "ms_o_gt0"
+"target" "q58"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q58"
+"target" "g_dn"
+"master" "ms_brake"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q45"
+"master" "ms_nv_max"
+"target" "q59"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q59"
+"master" "ms_dvn_pos"
+"target" "q60"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q60"
+"target" "v_up"
+"master" "ms_dvx_pos"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q45"
+"master" "ms_v_gt0"
+"target" "q61"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q61"
+"master" "ms_ndvn_neg"
+"target" "q62"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q62"
+"target" "v_dn"
+"master" "ms_dvx_neg"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q61"
+"target" "v_dn"
+"master" "ms_dvn_neg"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q45"
+"master" "ms_exc"
+"target" "q63"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q63"
+"master" "ms_hss"
+"target" "q64"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q64"
+"master" "ms_nscr"
+"target" "q65"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q65"
+"master" "ms_nn_ge21"
+"target" "q66"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q66"
 "target" "scope_on"
 "master" "ms_n_ge20"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q36"
+"targetname" "q45"
 "target" "r_52"
 "master" "ms_h52"
 }
@@ -10659,11 +10501,11 @@
 "classname" "game_counter_set"
 "targetname" "T1"
 "master" "ms_nexc"
-"target" "q58"
+"target" "q67"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q58"
+"targetname" "q67"
 "target" "r_exc"
 "master" "ms_hexc"
 }
@@ -10671,29 +10513,29 @@
 "classname" "game_counter_set"
 "targetname" "T1"
 "master" "ms_scr"
-"target" "q59"
+"target" "q68"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q59"
+"targetname" "q68"
 "target" "scope_off"
 "master" "ms_nhss"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q59"
+"targetname" "q68"
 "target" "scope_off"
 "master" "ms_nexc"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q59"
+"targetname" "q68"
 "target" "scope_off"
 "master" "ms_nn_ge20"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q59"
+"targetname" "q68"
 "target" "scope_off"
 "master" "ms_n_ge21"
 }
@@ -10701,23 +10543,23 @@
 "classname" "game_counter_set"
 "targetname" "T1"
 "master" "ms_cb"
-"target" "q60"
+"target" "q69"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q60"
+"targetname" "q69"
 "target" "scope_off"
 "master" "ms_scr"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q60"
+"targetname" "q69"
 "target" "cb_prot"
 "master" "ms_ng_ge2"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q60"
+"targetname" "q69"
 "target" "cb_prot"
 "master" "ms_nx_ge12"
 }
@@ -10729,235 +10571,31 @@
 }
 {
 "classname" "game_counter_set"
-"targetname" "T8"
-"master" "ms_ncool"
-"target" "q61"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q61"
-"master" "ms_nbt_max"
-"target" "q62"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q62"
-"target" "bt_up"
-"master" "ms_n_ge10"
-}
-{
-"classname" "game_counter_set"
-"targetname" "T8"
-"master" "ms_n_ge10"
-"target" "q63"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q63"
-"target" "bt_up"
-"master" "ms_nbt_ge5"
-}
-{
-"classname" "game_counter_set"
-"targetname" "T8"
-"master" "ms_cool"
-"target" "q64"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q64"
-"target" "bt_dn"
-"master" "ms_bt_ge6"
-}
-{
-"classname" "game_counter_set"
-"targetname" "T8"
-"master" "ms_nn_ge10"
-"target" "q65"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q65"
-"target" "bt_dn"
-"master" "ms_bt_ge3"
-}
-{
-"classname" "game_counter_set"
-"targetname" "T8"
-"master" "ms_nbrake"
-"target" "q66"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q66"
-"target" "a_dn"
-"master" "ms_a_gt0"
-}
-{
-"classname" "game_counter_set"
-"targetname" "T8"
-"master" "ms_ncb"
-"target" "q67"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q67"
-"master" "ms_n_gt0"
-"target" "q68"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q68"
-"master" "ms_en_neg"
-"target" "q69"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q69"
-"target" "n_dn"
-"master" "ms_ng_gt0"
-}
-{
-"classname" "game_counter_set"
-"targetname" "T8"
+"targetname" "T16"
 "master" "ms_cb"
 "target" "q70"
 }
 {
 "classname" "game_counter_set"
 "targetname" "q70"
-"master" "ms_ntr"
+"master" "ms_plc"
 "target" "q71"
 }
 {
 "classname" "game_counter_set"
 "targetname" "q71"
-"master" "ms_plc"
+"master" "ms_ng_max"
 "target" "q72"
 }
 {
 "classname" "game_counter_set"
 "targetname" "q72"
-"master" "ms_o_ge3"
+"master" "ms_sg_gt0"
 "target" "q73"
 }
 {
 "classname" "game_counter_set"
 "targetname" "q73"
-"master" "ms_ng_max"
-"target" "q74"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q74"
-"target" "g_up"
-"master" "ms_l_ge14"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q73"
-"master" "ms_g_ge4"
-"target" "q75"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q75"
-"target" "g_dn"
-"master" "ms_nl_ge11"
-}
-{
-"classname" "game_counter_set"
-"targetname" "T8"
-"master" "ms_el_pos"
-"target" "q76"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q76"
-"master" "ms_nsg_max"
-"target" "q77"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q77"
-"target" "sg_up"
-"master" "ms_l_ge14"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q76"
-"target" "l_up"
-"master" "ms_nl_max"
-}
-{
-"classname" "game_counter_set"
-"targetname" "T8"
-"master" "ms_el_neg"
-"target" "q78"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q78"
-"master" "ms_sg_gt0"
-"target" "q79"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q79"
-"target" "sg_dn"
-"master" "ms_nl_ge13"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q78"
-"target" "l_dn"
-"master" "ms_l_gt0"
-}
-{
-"classname" "game_counter_set"
-"targetname" "T8"
-"master" "ms_nsg_max"
-"target" "q80"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q80"
-"master" "ms_nel_pos"
-"target" "q81"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q81"
-"target" "sg_up"
-"master" "ms_l_max"
-}
-{
-"classname" "game_counter_set"
-"targetname" "T16"
-"master" "ms_cb"
-"target" "q82"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q82"
-"master" "ms_plc"
-"target" "q83"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q83"
-"master" "ms_ng_max"
-"target" "q84"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q84"
-"master" "ms_sg_gt0"
-"target" "q85"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q85"
 "target" "sg_dn"
 "master" "ms_nl_ge14"
 }
@@ -10983,11 +10621,11 @@
 "classname" "game_counter_set"
 "targetname" "TS2"
 "master" "ms_g_gt0"
-"target" "q86"
+"target" "q74"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q86"
+"targetname" "q74"
 "target" "g_dn"
 "master" "ms_tr"
 }
@@ -10995,65 +10633,65 @@
 "classname" "game_counter_set"
 "targetname" "TS2"
 "master" "ms_ntr"
-"target" "q87"
+"target" "q75"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q87"
+"targetname" "q75"
 "master" "ms_o_ge3"
-"target" "q88"
+"target" "q76"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q88"
+"targetname" "q76"
 "master" "ms_ng_max"
-"target" "q89"
+"target" "q77"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q89"
+"targetname" "q77"
 "master" "ms_nplc"
-"target" "q90"
+"target" "q78"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q90"
+"targetname" "q78"
 "master" "ms_k_gate_a"
-"target" "q91"
+"target" "q79"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q91"
+"targetname" "q79"
 "target" "g_up"
 "master" "ms_k_gate_u"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q87"
+"targetname" "q75"
 "master" "ms_g_gt0"
-"target" "q92"
+"target" "q80"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q92"
+"targetname" "q80"
 "master" "ms_o_gt0"
-"target" "q93"
+"target" "q81"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q93"
+"targetname" "q81"
 "master" "ms_nplc"
-"target" "q94"
+"target" "q82"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q94"
+"targetname" "q82"
 "master" "ms_k_gate_a"
-"target" "q95"
+"target" "q83"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q95"
+"targetname" "q83"
 "target" "g_dn"
 "master" "ms_nk_gate_u"
 }
@@ -11061,11 +10699,11 @@
 "classname" "game_counter_set"
 "targetname" "TS2"
 "master" "ms_nexc"
-"target" "q96"
+"target" "q84"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q96"
+"targetname" "q84"
 "target" "x_dn"
 "master" "ms_x_gt0"
 }
@@ -11073,59 +10711,59 @@
 "classname" "game_counter_set"
 "targetname" "TS2"
 "master" "ms_exc"
-"target" "q97"
+"target" "q85"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q97"
+"targetname" "q85"
 "master" "ms_navr"
-"target" "q98"
+"target" "q86"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q98"
+"targetname" "q86"
 "master" "ms_k_fa_a"
-"target" "q99"
+"target" "q87"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q99"
+"targetname" "q87"
 "master" "ms_nx_max"
-"target" "q100"
+"target" "q88"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q100"
+"targetname" "q88"
 "target" "x_up"
 "master" "ms_k_fa_u"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q99"
+"targetname" "q87"
 "master" "ms_x_gt0"
-"target" "q101"
+"target" "q89"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q101"
+"targetname" "q89"
 "target" "x_dn"
 "master" "ms_nk_fa_u"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q97"
+"targetname" "q85"
 "master" "ms_avr"
-"target" "q102"
+"target" "q90"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q102"
+"targetname" "q90"
 "target" "x_up"
 "master" "ms_nx_ge20"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q102"
+"targetname" "q90"
 "target" "x_dn"
 "master" "ms_x_ge22"
 }
@@ -11133,23 +10771,23 @@
 "classname" "game_counter_set"
 "targetname" "TS2"
 "master" "ms_ncb"
-"target" "q103"
+"target" "q91"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q103"
+"targetname" "q91"
 "master" "ms_exc"
-"target" "q104"
+"target" "q92"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q104"
+"targetname" "q92"
 "master" "ms_avr"
-"target" "q105"
+"target" "q93"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q105"
+"targetname" "q93"
 "target" "x_dn"
 "master" "ms_x_ge21"
 }
@@ -11157,23 +10795,23 @@
 "classname" "game_counter_set"
 "targetname" "TS2"
 "master" "ms_cb"
-"target" "q106"
+"target" "q94"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q106"
+"targetname" "q94"
 "master" "ms_exc"
-"target" "q107"
+"target" "q95"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q107"
+"targetname" "q95"
 "master" "ms_avr"
-"target" "q108"
+"target" "q96"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q108"
+"targetname" "q96"
 "target" "x_up"
 "master" "ms_nx_ge21"
 }
@@ -11187,11 +10825,11 @@
 "classname" "game_counter_set"
 "targetname" "r_gt_ev"
 "master" "ms_ntr"
-"target" "q109"
+"target" "q97"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q109"
+"targetname" "q97"
 "target" "prot"
 "master" "ms_hgt"
 }
@@ -11205,11 +10843,11 @@
 "classname" "game_counter_set"
 "targetname" "r_exc_ev"
 "master" "ms_ntr"
-"target" "q110"
+"target" "q98"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q110"
+"targetname" "q98"
 "target" "exc=1"
 "master" "ms_hexc"
 }
@@ -11241,83 +10879,83 @@
 "classname" "game_counter_set"
 "targetname" "r_52_ev"
 "master" "ms_ncb"
-"target" "q111"
+"target" "q99"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q111"
+"targetname" "q99"
 "master" "ms_ntr"
-"target" "q112"
+"target" "q100"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q112"
+"targetname" "q100"
 "master" "ms_scr"
-"target" "q113"
+"target" "q101"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q113"
+"targetname" "q101"
 "master" "ms_h52"
-"target" "q114"
+"target" "q102"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q114"
+"targetname" "q102"
 "master" "ms_hss"
-"target" "q115"
+"target" "q103"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q115"
+"targetname" "q103"
 "master" "ms_inph"
-"target" "q116"
+"target" "q104"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q116"
+"targetname" "q104"
 "master" "ms_nv_ge22"
-"target" "q117"
+"target" "q105"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q117"
+"targetname" "q105"
 "target" "cb_close"
 "master" "ms_v_ge19"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q116"
+"targetname" "q104"
 "target" "oop"
 "master" "ms_nv_ge19"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q116"
+"targetname" "q104"
 "target" "oop"
 "master" "ms_v_ge22"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q115"
+"targetname" "q103"
 "target" "oop"
 "master" "ms_ninph"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q112"
+"targetname" "q100"
 "master" "ms_h52"
-"target" "q118"
+"target" "q106"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q118"
+"targetname" "q106"
 "master" "ms_hss"
-"target" "q119"
+"target" "q107"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q119"
+"targetname" "q107"
 "target" "oop"
 "master" "ms_nscr"
 }

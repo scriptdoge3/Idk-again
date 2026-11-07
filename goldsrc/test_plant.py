@@ -51,7 +51,7 @@ def lit():
 
 sim.run(5); show('dark')
 print('try to release brakes with no air:', flip('r_br', 2), ' brake', G('brake'))
-for sw in ('r_lp1', 'r_wp1', 'r_hp', 'r_ac'):
+for sw in ('r_lp', 'r_wp', 'r_hp', 'r_ac'):
     flip(sw, 0.5)
 tt = run_until(lambda: C('o') >= 10 and C('a') >= 6, 30); print(f'aux running, servo oil and air charged after {tt} s'); show('aux')
 sim.run(1); print('brakes released:', G('brake') == 0)
@@ -90,9 +90,9 @@ print('reset: tr', G('tr'), 'OUT OF PHASE lit', sim.ent('A02').on)
 run_until(lambda: C('n') == 20, 120); flip('r_exc'); run_until(lambda: C('v') == 20, 30); run_until(lambda: G('scr') == 1 and G('inph') == 0, 30, 0.05); run_until(lambda: G('inph') == 1, 10, 0.05)
 sim.press('r_52'); sim.run(1); print('back on line:', G('cb'))
 l0 = C('l'); run_until(lambda: False, 180); show('PLC level'); print(f'  PLC holding the pond: level {l0} -> {C("l")} (12 = 513.0 ft), gate {C("g")}')
-flip('r_lp1'); tt = run_until(lambda: G('tr') == 1, 60); print(f'lube oil pump stopped: bearing trip after {tt} s, bt={C("bt")}'); show('lube trip')
-flip('r_lp2'); run_until(lambda: C('n') == 0, 400)
-flip('r_gt', 1); print('with lube pump 2 running, reset: tr', G('tr'))
+flip('r_lp'); tt = run_until(lambda: G('tr') == 1, 60); print(f'lube oil pump stopped: bearing trip after {tt} s, bt={C("bt")}'); show('lube trip')
+flip('r_lp'); run_until(lambda: C('n') == 0, 400)
+flip('r_gt', 1); print('lube oil pump restarted, reset: tr', G('tr'))
 flip('r_ac'); tt = run_until(lambda: G('brake') == 1 and G('hbr') == 1, 120)
 print(f'compressor off, brakes released: air fell and the brakes re-applied after {tt} s (a={C("a")})')
 print('multi_manager re-trigger collisions:', sim.mm_ignored)
