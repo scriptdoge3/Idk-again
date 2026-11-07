@@ -15,7 +15,7 @@ Half-Life's own maps, so a 2.1 m cabinet is 108 units tall.
 import math, os, sys, random
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
-from hlfiles import Box, face_map, face_map_up, write_map, write_wad, write_wav
+from hlfiles import Box, Poly, prism, ngon, face_map, face_map_up, write_map, write_wad, write_wav
 from plant import build as build_logic, ANN, KW
 
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'out')
@@ -313,6 +313,7 @@ def button_textures():
         TEX[name] = noise(im, 3)
     im = Image.new('RGB', (64, 64), (200, 20, 16)); d = ImageDraw.Draw(im); d.ellipse([10, 8, 40, 24], fill=(240, 90, 80)); TEX['sc_estop'] = im
     solid('sc_knob', (14, 14, 14), (16, 16))
+    solid('sc_white', (236, 234, 226), (16, 16))
 
 
 # =================================================================== geometry
@@ -470,6 +471,37 @@ def build_panels(dev):
                   '_brushes': [Box(x - 0.45, -1.6, z - 1.7, x + 0.45, -0.6, z + 1.7, tex='sc_knob'),
                                Box(x - 0.5, -1.6, z - 0.5, x + 0.5, -0.6, z + 0.5, tex='ORIGIN')]})
 
+    knobs = {k['name']: k for k in dev['knobs']}
+
+    def rotor(name, brushes, x, y, z, yaw=False, distance=3600, speed=120):
+        """momentary_rot_button: hold USE to turn; the origin cube sits on whole units (hlcsg truncates it)."""
+        E.append({'classname': 'momentary_rot_button', 'targetname': name, 'target': knobs[name]['target'],
+                  'spawnflags': '0' if yaw else '128', 'distance': str(distance), 'speed': str(speed), 'returnspeed': '0',
+                  'sounds': '21', '_brushes': brushes + [Box(x - 0.5, y - 0.5, z - 0.5, x + 0.5, y + 0.5, z + 0.5, tex='ORIGIN')]})
+
+    def knob_panel(ci, u, v, name, label):
+        x, z = door_xy(ci, u, v)
+        W(x - 2.6, -0.8, z - 2.6, x + 2.6, -0.5, z + 2.6, tex='sc_metal')
+        body = prism(ngon(x, z, 1.9), -2.3, -0.8, 'y', 'sc_knob')
+        idx = prism([(x - 0.3, z + 0.4), (x + 0.3, z + 0.4), (x + 0.3, z + 1.7), (x - 0.3, z + 1.7)], -2.8, -2.3, 'y', 'sc_white')
+        rotor(name, [body, idx], x, -1.5, z, distance=3600, speed=120)
+        doors[ci].plate(u, v - 3.7, 9.5, 1.4, label, px=0.8)
+
+    def wheel_panel(ci, u, v, name, label, R=3.6):
+        x, z = door_xy(ci, u, v)
+        br = []
+        outer, inner = ngon(x, z, R + 0.35), ngon(x, z, R - 0.35)
+        for k in range(8):
+            br.append(prism([outer[k], outer[(k + 1) % 8], inner[(k + 1) % 8], inner[k]], -2.6, -1.8, 'y', 'sc_knob'))
+        for k in range(4):
+            a = math.pi / 4 + k * math.pi / 2; c, sn = math.cos(a), math.sin(a); r0, r1, hw = 0.9, R - 0.35, 0.3
+            br.append(prism([(x + c * r0 - sn * hw, z + sn * r0 + c * hw), (x + c * r1 - sn * hw, z + sn * r1 + c * hw),
+                             (x + c * r1 + sn * hw, z + sn * r1 - c * hw), (x + c * r0 + sn * hw, z + sn * r0 - c * hw)], -2.5, -1.9, 'y', 'sc_knob'))
+        br.append(prism(ngon(x, z, 1.0), -2.8, -0.8, 'y', 'sc_metal'))
+        br.append(prism([(x - 0.45, z + R - 0.2), (x + 0.45, z + R - 0.2), (x + 0.45, z + R + 0.7), (x - 0.45, z + R + 0.7)], -4.2, -1.8, 'y', 'sc_red'))
+        rotor(name, br, x, -1.5, z, distance=3600, speed=180)
+        doors[ci].plate(u, v - R - 1.7, 11, 1.4, label, px=0.8)
+
     # ------------------------------------------------------- cabinet 1: aux
     D = doors[0]
     D.section(1.5, 6, 53, 27, 'GOVERNOR OIL PRESSURE UNIT')
@@ -525,9 +557,11 @@ def build_panels(dev):
     D.section(1.5, 62, 53, 31, 'GOVERNOR - UNIT CONTROL')
     rot(1, 7, 69, 'r_gov')
     lampw(1, 7, 75.5, 'L_govman', ('GOV IN|MANUAL',))
-    button(1, 16, 69, 'b_graise', 'GATE +'); button(1, 21.5, 69, 'b_glower', 'GATE -')
-    button(1, 30, 69, 'b_sraise', 'LOAD +'); button(1, 35.5, 69, 'b_slower', 'LOAD -')
-    D.tape(26, 75, 15, 3.4, 'ROUGH ZONE BELOW|110 kW - AVOID')
+    wheel_panel(1, 17, 71, 'k_gate', 'WICKET GATE - MAN')
+    lampw(1, 17, 78, 'L_k_gate', ('RAISE', 'LOWER', 'NEXT TURN'))
+    knob_panel(1, 31, 71, 'k_load', 'LOAD SETPOINT')
+    lampw(1, 31, 77, 'L_k_load', ('RAISE', 'LOWER', 'NEXT TURN'))
+    D.tape(46, 75, 14, 3.4, 'ROUGH ZONE BELOW|110 kW - AVOID')
     lampw(1, 44, 67, 'L_lock', ('86|LOCKOUT',))
     button(1, 51, 67, 'b_reset86', '86 RESET')
     lampw(1, 7, 82, 'L_ready', ('READY',)); lampw(1, 14, 82, 'L_run', ('RUNNING',))
@@ -558,10 +592,11 @@ def build_panels(dev):
     edge(2, 5, 76, 'HEADWATER|EL FT', (509, 515, 1, 0.25, 'EL', (514, 515), lambda x: f'{x:g}'), ptr='p_hw')
     edge(2, 12.5, 76, 'SPILL GATE|OPEN FT', (0, 4, 1, 0.25, 'FT'), ptr='p_spill')
     lampw(2, 24, 67, 'LP_sg', ('OPEN', 'CLOSED', 'SPILL GATE'))
-    rot(2, 24, 77, 'r_spa'); lampw(2, 24, 83, 'L_spa', ('SPILL AUTO',))
-    button(2, 21, 89, 'b_spraise', 'RAISE'); button(2, 27, 89, 'b_splower', 'LOWER')
+    rot(2, 24, 75, 'r_spa'); lampw(2, 31, 75, 'L_spa', ('SPILL AUTO',))
+    wheel_panel(2, 24, 86, 'k_spill', 'SPILL GATE - MAN')
+    lampw(2, 33, 87, 'L_k_spill', ('RAISE', 'LOWER', 'NEXT TURN'))
     rot(2, 40, 69, 'r_ctl'); lampw(2, 40, 75, 'L_ctl', ('LEVEL CTL|ACTIVE',))
-    D.tape(41, 85, 16, 4.6, 'PLC HOLDS 512.75-513.25|SPILLS ABOVE 513.5')
+    D.tape(45, 82, 16, 4.6, 'PLC HOLDS 512.75-513.25|SPILLS ABOVE 513.5')
 
     # door tiles -> world brushes
     for ci, Dr in enumerate(doors):
@@ -571,27 +606,44 @@ def build_panels(dev):
             zt = DOOR_TOP - t * 24
             W(x0, -0.5, zt - 24, x0 + DOOR_W, 0, zt, tex='sc_paintd', faces={FRONT: (nm, face_map(x0, zt, PPU))})
 
-    # instructor console on the desk
+    # instructor console on the desk: utility trip, river (flood) knob with its meter, oil pump failure
     im = Image.new('RGBA', (320, 144), (40, 44, 46, 255)); d = ImageDraw.Draw(im)
-    text(d, im, (160, 12), 'INSTRUCTOR', 13, (233, 182, 28, 255))
-    cons = []
-    for k, (nm, lab) in enumerate([('b_riverup', 'RIVER +'), ('b_riverdn', 'RIVER -'), ('b_flood', 'FLOOD'), ('b_util', 'UTILITY|TRIP')]):
-        cx = 40 + k * 64
-        for i, ln in enumerate(lab.split('|')):
-            text(d, im, (cx, 34 + i * 12), ln, 11, (236, 234, 226, 255))
-        cons.append((nm, 85 + cx / 8, -150 - 80 / 8))
-    text(d, im, (160, 100), 'OIL PUMPS:  OK  /  FAIL', 11, (236, 234, 226, 255))
+    cpx = lambda X, Y: ((X - 85) * 8, (-150 - Y) * 8)
+    text(d, im, (200, 9), 'INSTRUCTOR', 13, (233, 182, 28, 255))
+    # labels kept near the back edge so the river knob's index doesn't hide them from a standing player
+    for (X, lines) in ((101, ('UTILITY', 'TRIP')), (111, ('RIVER', 'HOLD E')), (120, ('OIL PUMPS', 'OK / FAIL'))):
+        for i, ln in enumerate(lines):
+            text(d, im, (cpx(X, 0)[0], 24 + i * 11), ln, 10, (236, 234, 226, 255))
+    text(d, im, (cpx(111, 0)[0], 138), 'NEXT TURN', 8, (200, 198, 190, 255))
     TEX['sc_console'] = im.convert('RGB')
     W(85, -168, 40, 125, -150, 44, tex='sc_deskm', faces={UP: ('sc_console', face_map_up(85, -150, 8))})
-    for nm, x, y in cons:
-        b = buttons[nm]
-        tex = {'black': 'sc_btn_k', 'amber': 'sc_btn_a'}[b['color']]
-        E.append({'classname': 'func_button', 'targetname': nm, 'target': b['target'], 'angle': '-2', 'speed': '40', 'lip': '-1.4',
-                  'wait': '0.6', 'sounds': '9', '_brushes': [Box(x - 1.3, y - 1.3, 44, x + 1.3, y + 1.3, 45.2, tex=tex)]})
+    b = buttons['b_util']
+    E.append({'classname': 'func_button', 'targetname': 'b_util', 'target': b['target'], 'angle': '-2', 'speed': '40', 'lip': '-1.4',
+              'wait': '0.6', 'sounds': '14', '_brushes': [Box(99.7, -161.3, 44, 102.3, -158.7, 45.2, tex='sc_btn_a')]})
     r = rots['r_pfail']
     E.append({'classname': 'func_rot_button', 'targetname': 'r_pfail', 'target': r['target'], 'spawnflags': '32', 'distance': '90',
               'speed': '240', 'wait': '-1', 'sounds': '21',
-              '_brushes': [Box(103.3, -166.45, 44, 106.7, -165.55, 45.2, tex='sc_knob'), Box(104.5, -166.5, 44, 105.5, -165.5, 45, tex='ORIGIN')]})
+              '_brushes': [Box(118.3, -160.45, 44, 121.7, -159.55, 45.2, tex='sc_knob'), Box(119.5, -160.5, 44, 120.5, -159.5, 45, tex='ORIGIN')]})
+    # river knob: absolute, normal flow at its start stop, full flood (+140 cfs) at the other; yaw axis
+    body = prism(ngon(111, -160, 1.8), 44, 45.6, 'z', 'sc_knob')
+    idx = prism([(110.7, -159.6), (111.3, -159.6), (111.3, -158.3), (110.7, -158.3)], 45.6, 46.1, 'z', 'sc_white')
+    rotor('k_river', [body, idx], 111, -160, 44.5, yaw=True, distance=300, speed=100)
+    (t0, t1), _ = lamp_textures(lamps['L_k_river'])
+    E.append({'classname': 'func_wall', 'targetname': 'L_k_river', 'rendermode': '2', 'renderamt': '255',
+              '_brushes': [Box(108.5, -166, 44, 113.5, -164, 44.8, tex='sc_black', faces={UP: (t0, face_map_up(108.5, -164, 16))})]})
+    # flood meter: a small edgewise meter standing on the console, its pointer driven straight by the knob
+    im = Image.new('RGBA', (80, 112), (242, 238, 226, 255)); d = ImageDraw.Draw(im)
+    d.rectangle([0, 0, 79, 111], outline=(16, 16, 16, 255), width=4)
+    for i, lab in enumerate(('0', '35', '70', '105', '140')):
+        y = 96 - i * 20
+        d.line([(30, y), (42, y)], fill=(20, 20, 20, 255), width=2)
+        text(d, im, (56, y), lab, 9, (20, 20, 20, 255))
+    text(d, im, (40, 8), 'FLOOD CFS', 8, (20, 20, 20, 255))
+    TEX['sc_floodm'] = im.convert('RGB')
+    W(86, -153, 44, 96, -151, 58, tex='sc_deskm', faces={FRONT: ('sc_floodm', face_map(86, 58, 8))})
+    E.append({'classname': 'momentary_door', 'targetname': knobs['k_river']['target'], 'angle': '-1', 'speed': '200',
+              'lip': f'{0.45 - 2 - 10:g}', 'movesnd': '0', 'stopsnd': '0',
+              '_brushes': [Box(88.5, -153.8, 46 - 0.225, 92.5, -153.3, 46 + 0.225, tex='sc_red')]})
     return E
 
 

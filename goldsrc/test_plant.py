@@ -11,6 +11,10 @@ for p in dev['ptrs']: devs.append({'classname': 'momentary_door', 'targetname': 
 for s in dev['sounds']: devs.append({'classname': 'ambient_generic', 'targetname': s['name'], 'spawnflags': '16' if s['loop'] else '48', 'pitch': '100'})
 for b in dev['buttons']: devs.append({'classname': 'func_button', 'targetname': b['name'], 'target': b['target'], 'master': b.get('master', ''), 'wait': '1'})
 for r in dev['rots']: devs.append({'classname': 'func_rot_button', 'targetname': r['name'], 'target': r['target'], 'wait': '0.5'})
+KNOB = {'k_load': (120, 3600), 'k_gate': (180, 3600), 'k_spill': (180, 3600), 'k_river': (100, 300)}
+for k in dev['knobs']:
+    sp, dist = KNOB[k['name']]
+    devs.append({'classname': 'momentary_rot_button', 'targetname': k['name'], 'target': k['target'], 'speed': str(sp), 'distance': str(dist)})
 sim = Sim(ents + devs)
 S = lambda: dict(t=round(sim.time, 1), n=sim.counter('n'), g=sim.counter('g'), v=sim.counter('v'), s=sim.counter('s'), o=sim.counter('o'),
                  l=sim.counter('l'), sg=sim.counter('sg'), h=sim.counter('h'), en=sim.counter('en'), d=sim.counter('d'), dv=sim.counter('dv'), el=sim.counter('el'),
@@ -61,4 +65,35 @@ print('lock', sim.globals.get('lock'), 'ready', sim.globals.get('ready'), 'windo
 sim.run(3); sim.press('b_start'); run_until(lambda: sim.globals.get('cb') == 1, 120); show('online3')
 sim.press('r_pfail'); tt = run_until(lambda: sim.globals.get('lock') == 1, 600, 'pfail', every=40)
 print(f'--> oil pressure trip after {tt} s'); show('opu trip')
+print('multi_manager re-trigger collisions:', sim.mm_ignored)
+
+# ---------------------------------------------------------------- analog knobs
+print('\n--- analog knobs ---')
+sim.press('r_pfail'); run_until(lambda: sim.counter('n') == 0, 400); sim.press('b_reset86'); sim.run(1)
+sim.press('b_ack'); sim.press('b_annreset'); sim.run(1)
+sim.press('b_start'); run_until(lambda: sim.globals.get('cb') == 1, 120); run_until(lambda: False, 40)
+sim.press('r_ctl'); sim.run(1)                       # level control off: the load knob owns the setpoint
+k = sim.ent('k_load'); lamp = sim.ent('L_k_load')
+s0 = sim.counter('s'); k.hold(1.0); sim.run(0.5); s1 = sim.counter('s')
+print(f'load knob turn 1 (1.0 s): s {s0} -> {s1}   next-turn lamp frame {lamp.frame} (1 = LOWER)')
+k.hold(1.6); sim.run(0.5); s2 = sim.counter('s')
+print(f'load knob turn 2 (1.6 s): s {s1} -> {s2}   lamp frame {lamp.frame}')
+k.hold(0.05); sim.run(0.04); k.hold(0.6); sim.run(0.5); s3 = sim.counter('s')
+print(f'quick re-grab within 0.1 s keeps direction: s {s2} -> {s3}')
+run_until(lambda: False, 20); show('loadset')
+print('kW setpoint pointer', round(sim.ent('p_kwsp').pos * 320), 'kW')
+# manual gate handwheel
+sim.press('r_gov'); sim.run(1)                       # governor to MAN
+gw = sim.ent('k_gate'); g0 = sim.counter('g')
+gw.hold(1.0); sim.run(0.5); g1 = sim.counter('g'); sim.run(0.3)
+gw.hold(1.0); sim.run(0.5); g2 = sim.counter('g')
+print(f'gate handwheel in MAN: g {g0} -> {g1} -> {g2}')
+sim.press('r_gov'); sim.run(1)
+# river knob: absolute, drives the flood meter directly and resyncs at its top stop
+rk = sim.ent('k_river'); el0 = sim.counter('el')
+flood = [e for e in sim.byname['k_river_ev'] if e.cls == 'momentary_door'][0]
+rk.hold(3.5); sim.run(0.5)
+print(f'river knob to top: r={sim.counter("r")} el {el0} -> {sim.counter("el")}  flood pointer {flood.pos:.2f}  dir flag {sim.globals.get("k_river_u")}')
+rk.hold(1.5); sim.run(0.5)
+print(f'river knob back half way: r={sim.counter("r")}  flood pointer {flood.pos:.2f}')
 print('multi_manager re-trigger collisions:', sim.mm_ignored)

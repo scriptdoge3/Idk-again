@@ -20,7 +20,7 @@ Difference variables (only their sign is needed):
   en = T(g) - n      speed error: T is the speed the runner settles at for gate g
   d  = (g - 2) - s   online gate error
   dv = n - v         voltage follows speed while excited (capped at 100 %)
-  el = river - g - 3 sg   pond balance
+  el = river - g - 3 sg   pond balance (river = normal flow + flood knob r)
 """
 from hlogic import Logic, USE_ON, USE_OFF, USE_TOGGLE, vname
 
@@ -30,7 +30,7 @@ T = [0, 10, 20, 24, 27, 29, 31, 32, 33, 34, 35] + [35] * 10
 # electrical kW for each gate step at 40 ft (from the Euler runner model)
 KW = [0, 0, 0, 27, 50, 72, 94, 115, 135, 152, 169, 184, 199, 211, 223, 233, 243, 251, 258, 264, 269]
 # shaft vibration on line, mils p-p (draft-tube vortex rope between 20 and 45 % gate)
-VIB = [0.4, 1.0, 3.0, 5.5, 6.5, 7.2, 7.8, 8.2, 7.4, 5.8, 4.0, 2.6, 1.9, 1.6] + [1.5] * 7
+VIB = [0, 1, 3, 6, 6, 7, 8, 8, 7, 6, 4, 3, 2, 2] + [2] * 7
 
 RIVER0 = 15
 INIT = dict(n=0, g=0, v=0, s=14, o=10, l=12, sg=5, h=0)
@@ -42,7 +42,7 @@ ANN = ['OVERSPEED|12', '86 LOCKOUT|RELAY', 'EMERGENCY|STOP', 'GEN BREAKER|52G TR
 
 
 def _build(L):
-    dev = {'lamps': [], 'ptrs': [], 'buttons': [], 'rots': [], 'walls': [], 'sounds': [], 'ann': ANN}
+    dev = {'lamps': [], 'ptrs': [], 'buttons': [], 'rots': [], 'walls': [], 'sounds': [], 'ann': ANN, 'knobs': []}
     fi = {}
 
     def flag(name, init):
@@ -71,6 +71,7 @@ def _build(L):
         L.setf(vname(k, 1), f'{k}_pos', 1); L.setf(vname(k, 0), f'{k}_pos', 0)
         L.setf(vname(k, -1), f'{k}_neg', 1); L.setf(vname(k, 0), f'{k}_neg', 0)
     L.var('sy', 0, 6, 0, values=[1, 6])          # auto-synchronizer timer
+    L.var('r', 0, 30, 0, values=[0, 1, 29, 30])   # flood inflow added by the river knob
 
     for name, init in [('run', 0), ('cb', 0), ('exc', 0), ('lock', 0), ('stopping', 0), ('cw', 0), ('lift', 0),
                        ('brake', 1), ('p1', 0), ('p2', 0), ('ready', 1), ('rz', 0)]:
@@ -85,6 +86,7 @@ def _build(L):
     thr('l', 1, 'l_gt0'); thr('l', 9, 'l_ok'); thr('l', 11); thr('l', 12); thr('l', 13, 'l_hi'); thr('l', 14); thr('l', 16, 'l_max')
     thr('sg', 1, 'sg_gt0'); thr('sg', 8, 'sg_max')
     thr('h', 1, 'h_gt0'); thr('h', 6, 'h_max')
+    thr('r', 1, 'r_gt0'); thr('r', 30, 'r_max')
 
     # ------------------------------------------------- coupled increments
     L.inc_listener('n', 'up', 'en_c', USE_OFF); L.inc_listener('n', 'dn', 'en_c', USE_ON)
@@ -95,6 +97,7 @@ def _build(L):
     L.inc_listener('g', 'up', 'el_c', USE_OFF); L.inc_listener('g', 'dn', 'el_c', USE_ON)
     for _ in range(3):
         L.inc_listener('sg', 'up', 'el_c', USE_OFF); L.inc_listener('sg', 'dn', 'el_c', USE_ON)
+    L.inc_listener('r', 'up', 'el_c', USE_ON); L.inc_listener('r', 'dn', 'el_c', USE_OFF)
     L.dir_flag('g', 'gdir')
     # T(g) lookup: arriving at gate step v adds T(v)-T(v-1) to en; leaving it downward removes it
     for k in sorted({T[v] - T[v - 1] for v in range(1, 21) if T[v] != T[v - 1]}):
@@ -121,8 +124,11 @@ def _build(L):
     # ---------------------------------------------------------------- clock
     L.add('trigger_auto', target='init', delay=0.4, triggerstate=1)
     L.add('trigger_auto', target='clkA', delay=1.2, triggerstate=2)
-    L.add('multi_manager', targetname='clkA', keys={'T1': 0, 'clkB': 0.5})
-    L.add('multi_manager', targetname='clkB', keys={'T1': 0, 'clkA': 0.5})
+    L.add('multi_manager', targetname='clkA', keys={'TK': 0, 'clkB': 0.05})
+    L.add('multi_manager', targetname='clkB', keys={'TK': 0, 'clkA': 0.05})
+    L.add('game_counter', targetname='TK', frags=0, health=2, spawnflags=2, target='TS')     # 0.1 s
+    L.add('game_counter', targetname='TS', frags=0, health=2, spawnflags=2, target='TS2')    # 0.2 s
+    L.add('game_counter', targetname='TS', frags=0, health=5, spawnflags=2, target='T1')     # 0.5 s
     L.add('game_counter', targetname='T1', frags=0, health=2, spawnflags=2, target='T2')
     L.add('game_counter', targetname='T2', frags=0, health=4, spawnflags=2, target='T8')
     L.add('game_counter', targetname='T8', frags=0, health=2, spawnflags=2, target='T16')
@@ -173,7 +179,7 @@ def _build(L):
         {'name': 's_relay', 'wav': 'sablecreek/relay.wav', 'vol': 9, 'loop': False},
     ]
     # turbine sound pitch follows speed (ambient_generic accepts USE_SET as pitch)
-    display('n', 's_turb', lambda x: max(0.02, 5 * x / 255), vals=[1, 4, 8, 12, 16, 19, 20, 21, 23, 25, 27])
+    display('n', 's_turb', lambda x: max(0.02, 5 * x / 255), vals=[1, 6, 12, 17, 20, 22, 25])
     L.relay(vname('n', 1), 's_turb', USE_ON); L.relay(vname('n', 0), 's_turb', USE_OFF)
     L.relay(vname('g', 1), 's_water', USE_ON); L.relay(vname('g', 0), 's_water', USE_OFF)
     L.relay(vname('v', 1), 's_hum', USE_ON); L.relay(vname('v', 0), 's_hum', USE_OFF)
@@ -204,6 +210,33 @@ def _build(L):
         L.relay(event, 's_relay', USE_ON)
 
     dev['walls'] += ['SYNCHRO', 'SYNCLAMPS']
+
+    def knob(name, var, up, dn, step, label, wheel=False, absolute=False, desk=False):
+        """momentary_rot_button turned by holding USE. It fires its target every frame
+        while turning; the logic steps `var` on the `step` clock while that happens.
+        Each new turn reverses (stock Half-Life behaviour); the logic sees the turn end
+        as two quiet 0.05 s ticks and flips its direction flag, shown on a lamp."""
+        ev = f'{name}_ev'
+        flag(f'{name}_a', 0); flag(f'{name}_u', 1)
+        L.setf(ev, f'{name}_a', 1)                                           # turning this step
+        L.add('game_counter_set', targetname=ev, target=f'{name}_ic', frags=0)
+        L.add('game_counter', targetname=f'{name}_ic', frags=9, health=2, target=f'{name}_end')
+        L.relay('TK', f'{name}_ic', USE_ON)                                  # quiet ticks
+        L.toggle_flag(f'{name}_end', f'{name}_u')
+        lamp_nm = f'L_{name}'
+        dev['lamps'].append({'name': lamp_nm, 'colors': ('amber', 'amber'), 'init': 1})
+        L.relay(f'{name}_end', lamp_nm, USE_TOGGLE)
+        L.rule(step, [f'{name}_a', f'{name}_u'] + up, f'{var}_up')
+        L.rule(step, [f'{name}_a', f'!{name}_u'] + dn, f'{var}_dn')
+        L.late('env_global', targetname=step, globalstate=f'{name}_a', triggermode=0)
+        if absolute:
+            # at the top stop the knob is turning up: resynchronise the direction (USE_SET 1.0 -> count 1)
+            L.add('game_counter', targetname=ev, frags=0, health=1, target=f'{name}_top')
+            L.setf(f'{name}_top', f'{name}_u', 1)
+            L.relay(f'{name}_top', lamp_nm, USE_OFF)
+            dev['ptrs'].append(ev)                      # the knob drives its own meter pointer directly
+        dev['knobs'].append({'name': name, 'target': ev, 'label': label, 'wheel': wheel, 'absolute': absolute, 'desk': desk,
+                             'lamp': lamp_nm})
 
     # ----------------------------------------------------- start / stop / trip
     dev['buttons'].append({'name': 'b_start', 'target': 'start', 'master': 'ms_ready', 'color': 'green', 'label': 'START'})
@@ -272,16 +305,10 @@ def _build(L):
     L.rule('T1', on + ['d_pos', 'g_gt0'], 'g_dn')
     L.rule('T1', ['!run', 'g_gt0'], 'g_dn')                           # shutdown
     L.rule('T1', ['lock', 'g_gt0'], 'g_dn')                           # emergency closing, double rate
-    dev['buttons'].append({'name': 'b_graise', 'target': 'm_graise', 'color': 'black', 'label': 'RAISE'})
-    dev['buttons'].append({'name': 'b_glower', 'target': 'm_glower', 'color': 'black', 'label': 'LOWER'})
-    L.rule('m_graise', ['run', '!auto', '!g_max', '!lock', 'o_gt0'], 'g_up')
-    L.rule('m_glower', ['!auto', 'g_gt0'], 'g_dn')
+    knob('k_gate', 'g', ['run', '!auto', '!g_max', '!lock', 'o_gt0'], ['!auto', 'g_gt0'], 'TS2', 'WICKET GATE', wheel=True)
     dev['rots'].append({'name': 'r_gov', 'target': 'gov_tog', 'label': 'GOVERNOR', 'pos': ('AUTO', 'MAN')})
     L.toggle_flag('gov_tog', 'auto'); L.relay('gov_tog', 'L_govman', USE_TOGGLE); L.relay('gov_tog', W[11], USE_TOGGLE)
-    dev['buttons'].append({'name': 'b_sraise', 'target': 'm_sraise', 'color': 'black', 'label': 'RAISE'})
-    dev['buttons'].append({'name': 'b_slower', 'target': 'm_slower', 'color': 'black', 'label': 'LOWER'})
-    L.rule('m_sraise', ['!s_max'], 's_up')
-    L.rule('m_slower', ['s_gt0'], 's_dn')
+    knob('k_load', 's', ['!s_max'], ['s_gt0'], 'TS2', 'LOAD SETPOINT')
     dev['rots'].append({'name': 'r_sync', 'target': 'sync_tog', 'label': 'SYNC MODE', 'pos': ('AUTO', 'MAN')})
     L.toggle_flag('sync_tog', 'synca')
 
@@ -334,10 +361,7 @@ def _build(L):
     L.toggle_flag('ctl_tog', 'ctl'); L.relay('ctl_tog', 'L_ctl', USE_TOGGLE); L.relay('ctl_tog', W[12], USE_TOGGLE)
     dev['rots'].append({'name': 'r_spa', 'target': 'spa_tog', 'label': 'SPILLWAY', 'pos': ('AUTO', 'MAN')})
     L.toggle_flag('spa_tog', 'spa'); L.relay('spa_tog', 'L_spa', USE_TOGGLE)
-    dev['buttons'].append({'name': 'b_spraise', 'target': 'm_spraise', 'color': 'black', 'label': 'RAISE'})
-    dev['buttons'].append({'name': 'b_splower', 'target': 'm_splower', 'color': 'black', 'label': 'LOWER'})
-    L.rule('m_spraise', ['!spa', '!sg_max'], 'sg_up')
-    L.rule('m_splower', ['!spa', 'sg_gt0'], 'sg_dn')
+    knob('k_spill', 'sg', ['!spa', '!sg_max'], ['!spa', 'sg_gt0'], 'TS2', 'SPILL GATE', wheel=True)
     # draft-tube rope indication: on line between 20 and 45 % gate
     L.rule(vname('g', 4), ['cb', 'gdir'], 'rz=1'); L.rule(vname('g', 9), ['cb', '!gdir'], 'rz=1')
     L.rule(vname('g', 3), ['!gdir'], 'rz=0'); L.rule(vname('g', 10), ['gdir'], 'rz=0')
@@ -352,13 +376,9 @@ def _build(L):
         L.relay('ann_clear', W[i], USE_OFF)
 
     # -------------------------------------------------- instructor console
-    for nm, tg, lab, col in [('b_riverup', 'river_up', 'RIVER UP', 'black'), ('b_riverdn', 'river_dn', 'RIVER DOWN', 'black'),
-                             ('b_flood', 'flood', 'FLOOD', 'amber'), ('b_util', 'util_trip', 'UTILITY TRIP', 'amber')]:
-        dev['buttons'].append({'name': nm, 'target': tg, 'color': col, 'label': lab, 'desk': True})
-    for _ in range(3):
-        L.relay('river_up', 'el_c', USE_ON); L.relay('river_dn', 'el_c', USE_OFF)
-    for _ in range(4):
-        L.relay('flood', 'river_up', USE_ON)
+    dev['buttons'].append({'name': 'b_util', 'target': 'util_trip', 'color': 'amber', 'label': 'UTILITY TRIP', 'desk': True})
+    # river: an absolute knob from normal flow (0) to full flood (+30); its own position drives the FLOOD meter
+    knob('k_river', 'r', ['!r_max'], ['r_gt0'], 'TS', 'RIVER', absolute=True, desk=True)
     dev['rots'].append({'name': 'r_pfail', 'target': 'pfail_tog', 'label': 'OIL PUMPS', 'pos': ('OK', 'FAIL'), 'desk': True})
     L.toggle_flag('pfail_tog', 'pfail')
 

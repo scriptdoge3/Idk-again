@@ -50,6 +50,7 @@ class Logic:
         self.used = used            # set of 'x' / '!x' read somewhere, or None in pass 1
         self.reads = set()
         self.rules = []             # (head, conds, action, value, seq)
+        self.late_ents = []         # emitted after the rules (e.g. flags cleared at the end of a tick)
         self.setters = []           # (event, flag, val)
         self.followers = []         # (flag, target, on_when)
         self.rank = {}
@@ -134,6 +135,13 @@ class Logic:
 
     gate_chain = rule
 
+    def late(self, cls, **kv):
+        e = {'classname': cls}
+        for k, v in kv.items():
+            e[k.rstrip('_')] = fmt(v)
+        self.late_ents.append(e)
+        return e
+
     def display(self, event, target, frac, conds=()):
         self.rule(event, list(conds), target, max(0.0, min(1.0, frac)))
 
@@ -184,6 +192,7 @@ class Logic:
                 self.add('game_counter_set', **kv)
         for head, node in trie.items():
             emit(head, node)
+        self.ents += self.late_ents
         # variable fan-outs: direction globals, listeners, then the counters
         for name in self.vars:
             for d, st in (('up', USE_ON), ('dn', USE_OFF)):
@@ -392,10 +401,30 @@ class Auto(SimEnt):
     pass
 
 
+class MomentaryRot(SimEnt):
+    """momentary_rot_button: turns while the player holds USE, reverses each new use,
+    fires its target with USE_SET <position 0..1> on every use call (every frame)."""
+    def __init__(self, sim, kv):
+        super().__init__(sim, kv)
+        self.pos = 0.0; self.dir = -1; self.last = -1.0
+        self.rate = self.f('speed', 100) / self.f('distance', 90)
+
+    def hold(self, seconds, frame=0.01):
+        t = 0.0
+        while t < seconds - 1e-9:
+            if self.sim.time - self.last > 0.1:      # Off() ran: next use starts a new session
+                self.dir = -self.dir
+            self.last = self.sim.time
+            self.pos = min(1.0, max(0.0, self.pos + self.dir * self.rate * frame))
+            self.sim.fire(self.target, None, self, USE_SET, self.pos)
+            self.sim.run(frame)
+            t += frame
+
+
 CLASSES = {'trigger_relay': Relay, 'game_counter': Counter, 'game_counter_set': CounterSet, 'env_global': EnvGlobal,
            'multisource': Multisource, 'multi_manager': MultiManager, 'func_wall_toggle': WallToggle, 'func_wall': Wall,
            'momentary_door': MomentaryDoor, 'ambient_generic': Ambient, 'func_button': Button, 'func_rot_button': RotButton,
-           'trigger_auto': Auto}
+           'trigger_auto': Auto, 'momentary_rot_button': MomentaryRot}
 
 
 class Sim:

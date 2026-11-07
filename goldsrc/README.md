@@ -10,9 +10,24 @@ no scripting. The physics is faked with stock `hl.dll` entities used as variable
 | Integer variable | One `game_counter` per value of interest, all with the same name. A `trigger_relay` sends USE_ON (+1) or USE_OFF (−1); each counter fires `<var>_eq<v>` when the value lands on its number. |
 | True/false flag | `env_global` state (and its opposite `n<flag>`), read by `multisource` masters. `env_global` "Set Initial State" seeds them at spawn. |
 | Rule (if A and B then do X) | A chain of `game_counter_set` entities, each locked by a `multisource` master. Rules with the same leading conditions share links. |
-| Clock | Two `multi_manager`s that trigger each other every 0.5 s; `game_counter`s with "reset on fire" divide it to 1, 4 and 8 s. |
+| Clock | Two `multi_manager`s that trigger each other every 0.05 s; `game_counter`s with "reset on fire" divide it to 0.1, 0.2, 0.5, 1, 4 and 8 s. |
 | Meter needle | `game_counter_set` sends USE_SET with a fraction to a `momentary_door`, which slides to that point on the scale. The same trick sets `ambient_generic` pitch. |
 | Lamp, annunciator window | `func_wall` with `+0` / `+A` textures, switched explicitly on or off by `trigger_relay`. |
+| Analog knob, handwheel | `momentary_rot_button`: while it turns it fires its target every frame. That sets a "moving" flag; a rule steps the variable once per 0.1 or 0.2 s while the flag is set, then clears it. A counter on the 0.05 s base tick notices 0.1 s without movement (when the button itself reverses) and flips the direction flag. |
+
+### Analog controls
+
+The load setpoint, wicket gate (governor in MAN), spill gate and the instructor's river inflow are
+`momentary_rot_button`s rather than raise/lower buttons. Hold USE on one and it turns; the longer
+you hold it, the further the value goes. Like every `momentary_rot_button`, it turns the other way
+each time you let go and grab it again, so each control has an amber NEXT TURN lamp (RAISE / LOWER)
+showing which way the next turn will go. Grabbing it again within a tenth of a second keeps the
+same direction.
+
+The river knob is absolute: its position is the flood inflow (0 to +140 cfs). It also drives the
+FLOOD CFS meter next to it directly, and its direction lamp resets when it reaches the top stop.
+The other three are relative: they nudge the value up or down and stop at its limits. The knob
+spins freely past the limit, but the value stays put.
 
 The plant state lives in eight variables (speed, gate, voltage, load setpoint, governor oil
 pressure, headwater, spill gate, water hammer) plus four difference variables whose sign drives
@@ -56,24 +71,26 @@ texture lights) on its own. Light levels can be changed with
 2. In Half-Life, turn on Options → Content → *Allow custom addon content*.
 3. Open the console and type `map sablecreek`.
 
-The map has about 1,080 entities, so it needs the 25th-anniversary engine (its limit is 1,200; the old
+The map has 1,150 entities, so it needs the 25th-anniversary engine (its limit is 1,200; the old
 limit was 900).
 
-Press USE (E) on buttons and selector switches:
+Press USE (E) on buttons and selector switches; hold it on knobs and handwheels:
 
-- **Panel 2:** START, STOP, EMERGENCY STOP, 86 RESET (only at standstill), GATE +/− (governor in MAN),
-  LOAD +/− (load setpoint, the black pointer on the kW meter), 52G CLOSE/TRIP, GOVERNOR and SYNC MODE
-  selectors.
-- **Panel 3:** annunciator ACK/RESET, EXC ON/OFF, LEVEL CONTROL and SPILLWAY selectors, spill RAISE/LOWER.
+- **Panel 2:** START, STOP, EMERGENCY STOP, 86 RESET (only at standstill), 52G CLOSE/TRIP, GOVERNOR and
+  SYNC MODE selectors, the WICKET GATE handwheel (works with the governor in MAN) and the LOAD SETPOINT
+  knob (the black pointer on the kW meter).
+- **Panel 3:** annunciator ACK/RESET, EXC ON/OFF, LEVEL CONTROL and SPILLWAY selectors, and the SPILL
+  GATE handwheel (works with the spillway selector in MAN).
 - **Panel 1:** PUMP TEST.
-- **Instructor console on the desk:** river up/down, flood, utility trip (load rejection) and an oil
-  pump failure switch.
+- **Instructor console on the desk:** utility trip (load rejection), the RIVER knob with its FLOOD CFS
+  meter, and an oil pump failure switch.
 
 ## Status
 
 Compiled with SDHLT 1.3.1 (CSG, BSP, full VIS, RAD -extra) with no warnings or errors. The compiled
 .bsp was checked outside the game: entity and model counts, pointer travel from the compiled model bounds
-(14 units on every meter), lightmap levels, and a render of the BSP with its lightmaps.
+(14 units on the panel meters, 10 on the flood meter), that the knob and handwheel origins come out where
+they were placed, lightmap levels, and a render of the BSP with its lightmaps.
 
 It has not been played in Half-Life yet. The entity logic was checked in `test_plant.py`'s simulator,
 which follows the Half-Life SDK's entity code, not in the engine itself.
