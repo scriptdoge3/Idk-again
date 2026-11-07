@@ -33,15 +33,16 @@ The spillway gate runs by itself (it opens above 513.5 ft).
 1. Right cabinet: start the lube oil pump, the cooling water pump, the servo oil pump and the air compressor.
    Wait for servo oil and brake air to come up (the SERVO OIL and BRAKE AIR windows go dark).
 2. Left cabinet: BRAKES dial to RELEASE.
-3. Open the wicket gate to about 30 %. As speed passes 80 %, bring the gate back to 10 %
-   (speed-no-load): the unit settles at 100 rpm. More gate overspeeds it (trip at 140 %).
+3. Open the wicket gate to about 25 %. As speed passes 80 %, bring the gate back to 15 %
+   (speed-no-load): the unit settles at 100 rpm. Each 1 % of gate around there moves the speed about 5 %
+   (14 % gives 94 rpm, 16 % gives 104). Leaving the gate open overspeeds it (trip at 140 %).
 4. Close 41 and raise the field with the firing-angle dial until GEN VOLTS reads 480.
 5. SYNCHROSCOPE on. The pointer turns once every 6 s. Close 52G while it is in the green sector.
    Anywhere else, off speed or at the wrong voltage, it's an out-of-phase close and the unit trips.
-6. Open the gate to load the unit (about 200 kW at 60 % gate). Keep it above 10 %, or the reverse-power
+6. Open the gate to load the unit (about 190 kW at 60 % gate). Keep it above 13 %, or the reverse-power
    relay opens 52G. Keep the field up, or loss of field trips 52G.
 
-To stop: close the gate to 10 %, turn 52G to TRIP, open 41, close the gate, and apply the brakes below 30 %.
+To stop: close the gate to 15 %, turn 52G to TRIP, open 41, close the gate, and apply the brakes below 30 %.
 With the PLC ON and the AVR on AUTO (middle cabinet), steps 3 and 4 happen by themselves.
 
 ## How the "math" works
@@ -81,13 +82,12 @@ a manual start and synchronization, loading, the emergency stop, an out-of-phase
 PLC and AVR, the PLC holding the pond, the lube oil pump stopping on line and a brake air failure.
 
 Speed, gate, voltage, field, servo oil, brake air, bearing temperature, pond level and spill gate are
-integer variables. Speed, voltage and field move in 2.5 % steps on a 0.2 to 0.4 s tick, the gate in 5 %
-steps. Four difference variables carry only their sign:
+integer variables. Speed, voltage, field and gate move in 1 % steps; the fast ones update every 0.1 s. Four difference variables carry only their sign:
 
 - **speed error** = T(gate) − speed, where T is the speed the runner would settle at for that gate
-  (speed-no-load at 10 % gate, runaway near 175 %). Off line, speed moves toward T 2.5 % every 0.4 s
-  while it is more than 20 % away, then every second, so it eases in instead of charging into the
-  overspeed trip. Coasting with the gate shut it drops 2.5 % a second; the brakes take 5 % a second.
+  (speed-no-load at 15 % gate, runaway near 175 %). Off line, speed moves toward T at 5 %/s while it
+  is more than 20 % away, 2.5 %/s within 20 % and 1 %/s for the last 5 %, so it eases in instead of
+  charging into the overspeed trip. Coasting with the gate shut it drops 2.5 %/s; the brakes take 5 %/s.
 - **volts per hertz** = speed − voltage and **field** = field − voltage: off line the voltage follows the
   field but can't exceed what the speed allows. On line the grid holds the voltage and the field sets
   the kilovars.
@@ -121,9 +121,14 @@ texture lights) on its own. Light levels can be changed with
 
 Press USE (E) on switches and the brake dial; hold it on the wicket gate handwheel and the firing-angle dial.
 
-The map has 1,154 entities (1,147 once the lights are compiled in), so it needs the 25th-anniversary
-engine: its limit is 1,200, the old limit was 900. The variables only get counters for values something
-listens for, and needles step coarsely away from their normal readings, to stay under it.
+**Launch option needed:** the map has more entities than Half-Life allows by default, so add
+`-num_edicts 2048` to Half-Life's launch options (Steam → Half-Life → Properties → Launch Options).
+Without it the map won't load ("ED_Alloc: no free edicts"). 2048 is the most the engine can handle.
+
+The map has 1,827 entities (1,820 once the lights are compiled in): the 1 % steps need a counter and a
+gauge setter for most values. The default limit is 1,200 (900 before the 25th-anniversary update), hence
+the launch option. The variables only get counters for values something listens for, and needles step
+2-4 % where they are not read closely.
 
 ## Status
 
