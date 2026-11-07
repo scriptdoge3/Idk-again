@@ -7,7 +7,8 @@ The unit is run by hand from 13 controls, with round gauges and pistol-grip cont
 ## Controls
 
 The left cabinet runs the unit, the middle one is the annunciator with the PLC and AVR breakers, and
-the right one holds the auxiliary pumps and their gauges.
+the right one holds the auxiliary pumps and their gauges. On every cabinet the gauges are at the top and
+the breakers and dials in a band across the middle.
 
 | Cabinet | Control | What it does |
 |---|---|---|
