@@ -570,7 +570,7 @@ def build_panels(dev):
         else:
             brushes = [Box(x - 0.45, -1.6, z - 1.7, x + 0.45, -0.6, z + 1.7, tex='sc_knob')]
         E.append({'classname': 'func_rot_button', 'targetname': name, 'target': r['target'], 'spawnflags': str(128 + 32),
-                  'distance': '90', 'speed': '240', 'wait': '-1', 'sounds': '21',
+                  'distance': '90', 'speed': '240', 'wait': str(r['wait']), 'sounds': '21',
                   '_brushes': brushes + [Box(x - 0.5, -1.6, z - 0.5, x + 0.5, -0.6, z + 0.5, tex='ORIGIN')]})
 
     def cs_switch(ci, u, v, name, plate=None):
@@ -585,7 +585,7 @@ def build_panels(dev):
         D.plate(*(plate or (u, v + 5.6)), min(11.5, 0.5 * len(lab) + 1.6), 1.4, lab, px=0.75)
         world.append(prism(ngon(x, z, 1.35), -1.3, -0.5, 'y', 'sc_metal'))
         E.append({'classname': 'func_rot_button', 'targetname': name, 'target': r['target'], 'spawnflags': str(128 + 32),
-                  'distance': str(r['distance']), 'speed': str(r['speed']), 'wait': '-1', 'sounds': '21',
+                  'distance': str(r['distance']), 'speed': str(r['speed']), 'wait': str(r['wait']), 'sounds': '21',
                   '_brushes': [prism(turned(PISTOL, x, z, 45), -2.9, -1.3, 'y', 'sc_red' if r.get('grip') == 'red' else 'sc_knob'),
                                Box(x - 0.5, -2.6, z - 0.5, x + 0.5, -1.6, z + 0.5, tex='ORIGIN')]})
 
@@ -701,11 +701,10 @@ def build_panels(dev):
     gauge(2, 7, ROW1, 'LUBE OIL', [(0, 60, 20, 10, 2, None)], 'PSI', ptr='p_lube', red=(0, 20), xr=5)
     gauge(2, 17, ROW1, 'COOLING WATER', [(0, 100, 20, 20, 5, None)], 'GPM', ptr='p_cw', red=(0, 35), xl=5, xr=5)
     gauge(2, 27, ROW1, 'BEARING TEMP', [(20, 120, 20, 20, 5, None)], 'DEG C', ptr='p_bt', red=(100, 120), xl=5, xr=5)
-    gauge(2, 37, ROW1, 'VIBRATION', [(0, 20, 10, 5, 1, None)], 'MILS P-P', ptr='p_vib', red=(12, 20), xl=5, xr=5)
-    gauge(2, 47, ROW1, 'SPIRAL CASE', [(0, 30, 10, 5, 1, None)], 'PSI', ptr='p_scase', xl=5)
+    gauge(2, 37, ROW1, 'VIBRATION', [(0, 20, 10, 5, 1, None)], 'MILS P-P', ptr='p_vib', red=(12, 20), xl=5)
     gauge(2, 7, ROW2, 'SERVO OIL', [(0, 400, 100, 100, 20, None)], 'PSI', ptr='p_opu', red=(0, 220), xr=5)
     gauge(2, 17, ROW2, 'BRAKE AIR', [(0, 150, 50, 50, 10, None)], 'PSI', ptr='p_air', red=(0, 50), xl=5, xr=5)
-    gauge(2, 27, ROW2, 'HEADWATER', [(509, 515, 1, 1, 0.25, hw_fmt)], 'EL FT', ptr='p_hw', red=(514, 515), xl=5, xr=5)
+    gauge(2, 27, ROW2, 'POND LEVEL', [(509, 515, 1, 1, 0.25, hw_fmt)], 'FT|513.0 NORMAL', ptr='p_hw', red=(514, 515), xl=5, xr=5)
     gauge(2, 37, ROW2, 'SPILL GATE', [(0, 4, 1, 1, 0.25, None)], 'FT OPEN', ptr='p_spill', xl=5)
     D.section(1.5, 40, 53, 22, 'PUMPS')
     for u, nm in ((8, 'r_lp'), (21, 'r_wp'), (34, 'r_hp'), (47, 'r_ac')):

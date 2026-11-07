@@ -408,6 +408,8 @@ class RotButton(Button):
     def press(self):
         if self.moving:
             return 'busy'
+        if self.pos == 1 and self.f('wait', 1) == -1:
+            return 'stuck'                  # m_fStayPushed: wait -1 keeps a button at the far stop for good
         if not self.master_ok():
             self.locked += 1
             return 'locked'

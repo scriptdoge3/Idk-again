@@ -54,7 +54,7 @@ With the PLC ON and the AVR on AUTO (middle cabinet), steps 3 and 4 happen by th
 | Clock | Two `multi_manager`s that trigger each other every 0.05 s; `game_counter`s with "reset on fire" divide it to 0.1, 0.2, 0.5, 1, 4 and 8 s. |
 | Gauge needle | `game_counter_set` sends USE_SET with a fraction to an invisible `momentary_door` (the slider) hidden in the gauge bezel. The needle is an `env_beam` from the dial centre to the slider, so it swings as the slider moves. The same USE_SET trick sets `ambient_generic` pitch. |
 | Synchroscope | A `func_train` circling a hexagon of `path_corner`s behind the bezel, with a beam from the centre as the pointer. The corners at 11 and 1 o'clock fire the in-phase window, so the sync check uses exactly what you see. |
-| Control switch | `func_rot_button` with a pistol-grip handle, maintained in two positions. Each turn toggles a flag. The logic can turn the handle itself, so the 52G, 41 and gate-trip handles always agree with the plant. |
+| Control switch | `func_rot_button` with a pistol-grip handle, maintained in two positions ("toggle", with `wait` 0.5: `wait -1` would make it stay pushed for good). Each turn toggles a flag. The logic can turn the handle itself, so the 52G, 41 and gate-trip handles always agree with the plant. |
 | Lamp, annunciator window | `func_wall` with `+0` / `+A` textures, switched explicitly on or off by `trigger_relay`. |
 | Knob, handwheel | `momentary_rot_button`: while it turns it fires its target every frame. That sets a "moving" flag; a rule steps the variable every 0.2 s while the flag is set. A counter on the 0.05 s tick notices 0.1 s without movement (when the button itself reverses), flips the direction flag and drops any step still pending. |
 
@@ -80,17 +80,21 @@ reproduces how those entities behave in `hl.dll`; `test_plant.py` runs it by han
 a manual start and synchronization, loading, the emergency stop, an out-of-phase close, a start with the
 PLC and AVR, the PLC holding the pond, the lube oil pump stopping on line and a brake air failure.
 
-Speed, gate, voltage, field, servo oil, brake air, bearing temperature, headwater, spill gate and water
-hammer are integer variables. Four difference variables carry only their sign:
+Speed, gate, voltage, field, servo oil, brake air, bearing temperature, pond level and spill gate are
+integer variables. Speed, voltage and field move in 2.5 % steps on a 0.2 to 0.4 s tick, the gate in 5 %
+steps. Four difference variables carry only their sign:
 
 - **speed error** = T(gate) − speed, where T is the speed the runner would settle at for that gate
-  (speed-no-load at 10 % gate, runaway near 175 %). Off line, speed steps toward T every tick.
+  (speed-no-load at 10 % gate, runaway near 175 %). Off line, speed moves toward T 2.5 % every 0.4 s
+  while it is more than 20 % away, then every second, so it eases in instead of charging into the
+  overspeed trip. Coasting with the gate shut it drops 2.5 % a second; the brakes take 5 % a second.
 - **volts per hertz** = speed − voltage and **field** = field − voltage: off line the voltage follows the
   field but can't exceed what the speed allows. On line the grid holds the voltage and the field sets
   the kilovars.
-- **pond balance** = river − gate − 3 × spill gate: the headwater integrates it.
+- **pond balance** = river − gate − 3 × spill gate: the pond level (POND LEVEL gauge, right cabinet)
+  integrates it.
 
-Gate movements draw servo oil; closing the gate fast raises spiral-case pressure (water hammer); on line
+Gate movements draw servo oil; on line
 between 20 and 45 % gate the draft-tube vortex rope shows on the vibration gauge and annunciator.
 
 ## Building
@@ -117,7 +121,7 @@ texture lights) on its own. Light levels can be changed with
 
 Press USE (E) on switches and the brake dial; hold it on the wicket gate handwheel and the firing-angle dial.
 
-The map has 1,128 entities (1,121 once the lights are compiled in), so it needs the 25th-anniversary
+The map has 1,154 entities (1,147 once the lights are compiled in), so it needs the 25th-anniversary
 engine: its limit is 1,200, the old limit was 900. The variables only get counters for values something
 listens for, and needles step coarsely away from their normal readings, to stay under it.
 
