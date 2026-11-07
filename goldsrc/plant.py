@@ -1,11 +1,12 @@
 """
 Sable Creek Unit 1 for plain Half-Life: the plant as entity logic.
 
-The unit is run by hand from 13 controls:
+The unit is run by hand from these controls:
   left (unit control)  wicket gate trip (the emergency stop), synchroscope, 41 field and 52G sync breakers,
-                       firing-angle dial, wicket gate dial, brake dial
+                       firing-angle dial, wicket gate LOWER and RAISE dials, brake dial
   middle (annunciator) PLC and AVR breakers
   right (auxiliaries)  lube oil pump, cooling water pump, gate servo oil pump, brake air compressor
+  spillway panel       AUTO / MANUAL selector, spill gate LOWER and RAISE dials (on the wall by the extinguisher)
 With the PLC on it runs the gate (speed off line, pond level on line); with the AVR on it runs the field.
 
 Every number is a game_counter variable. A clock made of two multi_managers runs the rules; each rule is
@@ -38,7 +39,7 @@ def _interp(pts, x):
 
 
 # runner equilibrium speed (%) for each gate %: speed-no-load at 15 % gate, about 5 % speed per 1 % gate
-# around it (so a notch of the handwheel is a small correction), runaway near 175 %
+# around it (so a step of the gate dials is a small correction), runaway near 175 %
 T = [round(_interp([(0, 0), (2, 0), (5, 30), (10, 70), (15, 100), (20, 120), (25, 132), (30, 140), (40, 152),
                     (55, 163), (75, 171), (100, 175)], g)) for g in range(101)]
 # electrical kW on line at 40 ft for each gate % (Euler runner model; zero at speed-no-load)
@@ -56,9 +57,23 @@ ANN = ['OVERSPEED|TRIP', 'WICKET GATE|TRIPPED', 'OUT OF PHASE|CLOSE', 'GEN BREAK
        'BRAKE AIR|PRESS LOW', 'BRAKES|APPLIED', 'DRAFT TUBE|PULSATION', 'POND LEVEL|HIGH',
        'POND LEVEL|LOW', 'SPILLWAY|GATE OPEN', 'PLC OFF|GATE MANUAL', 'AVR OFF|FIELD MANUAL']
 TRIP_WINDOWS = (0, 1, 2, 3, 4, 5, 6, 7, 8)   # red windows: trips and things that will cause one
-# synchroscope pointer path: a hexagon of path_corners (radius R, one turn in 6 s); the corners at 11 and
-# 1 o'clock open and close the in-phase window. The train starts at the first corner.
-SCOPE = {'R': 5.4, 'speed': 5.4, 'corners': [(-30, 'sc_in'), (30, 'sc_out'), (90, None), (150, None), (210, None), (270, None)]}
+# synchroscope pointer path: a ring of 12 path_tracks (radius R) clockwise from 12 o'clock. Each one sets
+# the sync lamps' brightness for its phase angle; the ones at 1 and 11 o'clock are the in-phase window's
+# edges. 'speed' is the train's top speed: one notch (a quarter of it) is a turn in 11 s.
+SCOPE = {'R': 5.4, 'speed': 12,
+         'nodes': [(30 * i, {1: 'sc_r', 11: 'sc_l'}.get(i, f'scl{min(i, 12 - i)}')) for i in range(12)]}
+# pointer speed in quarter notches (+ = FAST, clockwise) for each speed % while the synchroscope runs
+SLIP = {95: -4, 96: -4, 97: -4, 98: -3, 99: -2, 100: 1, 101: 2, 102: 3, 103: 4, 104: 4, 105: 4}
+slip_ev = lambda k: f'slip{k}' if k >= 0 else f'slipm{-k}'
+# power factor meter: field values it reads (3 apart, so re-sending the field always lands on one) and the
+# kW used for each load band
+PF_X = list(range(61, 121, 3))
+PF_P = (40, 125, 225)
+
+
+def pf_frac(x, P):
+    phi = math.degrees(math.atan2(5 * (x - 100), P))
+    return 0.5 + max(-60.0, min(60.0, phi)) / 120
 
 
 def _build(L):
@@ -100,9 +115,10 @@ def _build(L):
     flag('gdir', 1)
     for nm in ('lube', 'cool', 'plc', 'avr'):
         flag(nm, 0)
-    thr('n', 1, 'n_gt0'); thr('n', 50); thr('n', 90); thr('n', 95); thr('n', 99); thr('n', 102); thr('n', 106)
+    thr('n', 1, 'n_gt0'); thr('n', 50); thr('n', 90); thr('n', 95); thr('n', 100); thr('n', 101); thr('n', 106)
     thr('n', 145, 'n_max')
     thr('g', 1, 'g_gt0'); thr('g', 13); thr('g', 15); thr('g', 16); thr('g', 17); thr('g', 25); thr('g', 26)
+    thr('g', 30); thr('g', 55)
     thr('g', 100, 'g_max')
     thr('v', 1, 'v_gt0'); thr('v', 95); thr('v', 106); thr('v', 120, 'v_max')
     thr('x', 1, 'x_gt0'); thr('x', 60); thr('x', 100); thr('x', 101); thr('x', 104); thr('x', 106); thr('x', 120, 'x_max')
@@ -225,6 +241,21 @@ def _build(L):
         L.late('env_global', targetname=step, globalstate=f'{name}_a', triggermode=0)
         dev['knobs'].append({'name': name, 'target': ev, 'label': label, 'wheel': wheel, 'lamp': lamp_nm})
 
+    def spring(name, var, dirn, conds, label, step='TS'):
+        """Spring-return dial (momentary_rot_button with auto-return): hold USE and it turns to its stop and
+        steps `var` one way on every `step` tick; let go and it springs back. It fires its target every frame
+        while held, and every 0.1 s as it springs back, so the logic only counts it as turning on two fires
+        within one 0.05 s tick: the lone fires on the way back are ignored."""
+        ev = f'{name}_ev'
+        flag(f'{name}_a', 0)
+        L.relay(ev, f'{name}_fc', USE_ON)
+        L.add('game_counter', targetname=f'{name}_fc', frags=0, health=2, target=f'{name}_mv')
+        L.add('game_counter_set', targetname='TK', target=f'{name}_fc', frags=0)      # count afresh every tick
+        L.setf(f'{name}_mv', f'{name}_a', 1)
+        L.rule(step, [f'{name}_a'] + conds, f'{var}_{dirn}')
+        L.late('env_global', targetname=step, globalstate=f'{name}_a', triggermode=0)
+        dev['knobs'].append({'name': name, 'target': ev, 'label': label, 'spring': True})
+
     W = [f'A{i:02d}' for i in range(16)]
     dev['walls'] += W + ['SYNCLAMPS']
     L.relay('alarm', 's_horn', USE_ON); L.relay('alarm', 's_relay', USE_ON)
@@ -236,12 +267,13 @@ def _build(L):
         L.relay(event, 'alarm')
 
     # ------------------------------------------------- gauges
-    # needles move in 1 % steps where they are read closely, 2-4 % elsewhere (each position is two entities)
-    display('n', ptr('p_speed'), lambda x: x / 150, vals=list(range(0, 70, 2)) + list(range(70, 146)))
+    # needles move in 1 % steps where they are read closely (speed 86-112 %, volts 72-108 %), 2-4 % elsewhere
+    # (each position is two entities)
+    display('n', ptr('p_speed'), lambda x: x / 150, vals=list(range(0, 86, 2)) + list(range(86, 113)) + list(range(114, 146, 2)))
     display('g', ptr('p_gate'), lambda x: x / 100, vals=list(range(0, 41)) + list(range(42, 101, 2)))
     display('g', ptr('p_kw'), lambda x: KW[x] / 320, vals=list(range(13, 101, 2)), conds=['cb'])
     display('g', ptr('p_vib'), lambda x: VIB[x] / 20, vals=list(range(0, 101, 5)), conds=['cb'])
-    display('v', ptr('p_volts'), lambda x: x / 125, vals=list(range(0, 72, 4)) + list(range(72, 121)))
+    display('v', ptr('p_volts'), lambda x: x / 125, vals=list(range(0, 72, 4)) + list(range(72, 109)) + list(range(110, 121, 2)))
     # frequency: the generator's follows its speed (60 Hz at 100 %), shown on a 54-66 Hz scale; the station
     # bus is fed from the grid at 60 Hz
     display('n', ptr('p_hz'), lambda x: min(1, max(0, (0.6 * x - 54) / 12)), vals=range(89, 112))
@@ -250,7 +282,7 @@ def _build(L):
     display('x', ptr('p_exc'), lambda x: x / 120, vals=fx)
     # thyristor firing angle: field current goes as cos(alpha); 90 deg = no field, 0 deg = full field (x = 120)
     display('x', ptr('p_fa'), lambda x: math.degrees(math.acos(x / 120)) / 90, vals=fx)
-    display('x', ptr('p_kvar'), lambda x: 0.5 + (x - 100) / 80, vals=list(range(60, 121, 2)), conds=['cb'])
+    ptr('p_pf')                                       # power factor (set further down, with 52G)
     display('o', ptr('p_opu'), lambda x: (200 + 10 * x) / 400, vals=[0, 2, 4, 6, 8, 10])
     display('a', ptr('p_air'), lambda x: 12.5 * x / 150, vals=[0, 2, 4, 6, 8, 10])
     display('bt', ptr('p_bt'), lambda x: x / 10)
@@ -336,7 +368,9 @@ def _build(L):
     L.rule('TS2', ['!cb', 'brake', 'n_gt0'], 'n_dn')                           # air brakes, 5 %/s
 
     # ------------------------------------------------------------- wicket gate
-    knob('k_gate', 'g', ['!plc', '!tr', '!g_max', 'o_ge3'], ['!plc', '!tr', 'g_gt0', 'o_gt0'], 'TS', 'WICKET GATE', wheel=True)
+    # two spring-return dials: hold LOWER to close the gate, RAISE to open it (1 % every 0.1 s)
+    spring('k_gl', 'g', 'dn', ['!plc', '!tr', 'g_gt0', 'o_gt0'], 'LOWER')
+    spring('k_gr', 'g', 'up', ['!plc', '!tr', '!g_max', 'o_ge3'], 'RAISE')
     # PLC: off line it acts as the governor (open to 25 %, then hold speed-no-load), on line it holds the pond
     base = ['plc', '!cb', '!tr', 'o_ge3', '!brake']
     L.rule('TS', base + ['!n_ge90', '!g_ge25'], 'g_up')
@@ -372,23 +406,35 @@ def _build(L):
     L.rule('TS', ['!cb', 'dvx_neg', '!dvn_neg', 'v_gt0'], 'v_dn')     # (exclusive: one step down per tick)
 
     # ------------------------------------------------------ synchronizing
-    # synchroscope: a func_train pointer circling behind the bezel. It turns while the switch is on, the
-    # field is on and the unit is within 5 % of synchronous speed. Its path corners at 11 and 1 o'clock
-    # fire the in-phase window, so what you see is what the sync check uses.
+    # synchroscope: the pointer turns at the slip, the difference between the generator's frequency and the
+    # bus. It is a func_tracktrain on a ring of path_tracks behind the bezel, whose speed the logic sets in
+    # quarter notches: below 100 % speed it turns SLOW (anticlockwise), above it FAST (clockwise), quicker
+    # the further off; at 100 % the unit is a hair fast and the pointer creeps clockwise, 11 s a turn.
+    # It runs while the switch is on, the field is on and the unit is within 5 % of synchronous speed.
     cs('r_ss', 'hss', 'SYNCHROSCOPE', ('OFF', 'ON'))
     L.rule('T1', ['hss', 'exc', 'n_ge95', '!n_ge106', '!cb', '!scr'], 'scope_on')
-    for c in ('!hss', '!exc', '!n_ge95', 'n_ge106', 'cb'):
+    for c in ('!hss', '!exc', '!n_ge95', 'n_ge106'):
         L.rule('T1', ['scr', c], 'scope_off')
-    L.relay('scope_on', 'scr=1'); L.relay('scope_on', 'SCOPE', USE_TOGGLE)
-    L.rule('scope_on', ['!inph'], 'sl_on')
-    L.rule('scope_off', ['scr'], 'scope_off_x')
-    L.relay('scope_off_x', 'scr=0'); L.relay('scope_off_x', 'SCOPE', USE_TOGGLE); L.relay('scope_off_x', 'SYNCLAMPS', USE_OFF)
-    L.relay('sc_in', 'inph=1'); L.relay('sc_in', 'SYNCLAMPS', USE_OFF)          # dark lamps: in phase
-    L.relay('sc_out', 'inph=0'); L.rule('sc_out', ['scr'], 'sl_on')
-    L.relay('sl_on', 'SYNCLAMPS', USE_ON)
+    L.relay('scope_on', 'scr=1'); L.relay('scope_on', 'n_dn'); L.relay('scope_on', 'n_up')   # re-send the speed
+    L.relay('scope_off', 'scr=0'); L.relay('scope_off', 'SCOPE', USE_OFF)
+    for k in sorted(set(SLIP.values())):
+        L.relay(slip_ev(k), 'SCOPE', USE_OFF)                          # stop, then k quarter notches
+        L.rule(slip_ev(k), [], 'SCOPE', k)
+    for v, k in SLIP.items():
+        L.rule(vname('n', v), ['scr'], slip_ev(k))
+    # the in-phase window (+-30 deg): the path_tracks at 11 and 1 o'clock; which way the pointer crosses
+    # them depends on whether the unit is fast or slow
+    L.rule('sc_l', ['n_ge100'], 'inph=1'); L.rule('sc_l', ['!n_ge100'], 'inph=0')
+    L.rule('sc_r', ['n_ge100'], 'inph=0'); L.rule('sc_r', ['!n_ge100'], 'inph=1')
+    # dark-lamp sync lamps: every path_track sets their brightness, |sin(phase / 2)|, dark at 12 o'clock
+    for k in range(7):
+        L.add('env_render', targetname=f'scl{k}', target='SYNCLAMPS', renderamt=round(255 * math.sin(math.radians(15 * k))), spawnflags=13)
+    L.relay('sc_l', 'scl1'); L.relay('sc_r', 'scl1')
+    L.add('env_render', targetname='scope_off', target='SYNCLAMPS', renderamt=0, spawnflags=13)
     # sync check (25), in service with the synchroscope switch: permits a close while the pointer is in the
-    # window, speed is within 1 % and volts within 5 %; the SYNC OK lamp shows it
-    good = ['scr', 'inph', 'n_ge99', '!n_ge102', 'v_ge95', '!v_ge106']
+    # window, the slip is small (100 % speed: the pointer creeping clockwise) and volts are within 5 %;
+    # the SYNC OK lamp shows it
+    good = ['scr', 'inph', 'n_ge100', '!n_ge101', 'v_ge95', '!v_ge106']
     L.rule('TS', good + ['!perm'], 'perm=1')
     for c in good:
         L.rule('TS', ['perm', c[1:] if c.startswith('!') else '!' + c], 'perm=0')
@@ -402,23 +448,50 @@ def _build(L):
     L.rule('T1', ['h52', '!cb'], 'r_52')                           # not closed (refused or tripped): back to TRIP
     L.relay('oop', 'prot'); alarm('oop', W[2])
     L.relay('cb_close', 'cb=1'); L.relay('cb_close', 's_brk', USE_ON); L.relay('cb_close', W[3], USE_OFF)
-    L.relay('cb_close', 'x_dn'); L.relay('cb_close', 'x_up')      # re-send the field value to the kvar meter
+    L.relay('cb_close', 'scope_off')                              # locked to the grid: the pointer stops in phase
+    L.relay('cb_close', 'pf_band')                                # the power factor meter comes alive
     L.rule('cb_open', ['cb'], 'cb_open_x')
     L.rule('cb_prot', ['cb'], 'cb_prot_x')
     L.relay('cb_prot_x', 'cb_open_x'); alarm('cb_prot_x', W[3])
     L.relay('cb_open_x', 'cb=0'); L.relay('cb_open_x', 'rz=0'); L.relay('cb_open_x', 's_brk', USE_ON)
-    L.display('cb_open_x', 'p_kw', 0.0); L.display('cb_open_x', 'p_vib', 3.0 / 20); L.display('cb_open_x', 'p_kvar', 0.5)
+    L.display('cb_open_x', 'p_kw', 0.0); L.display('cb_open_x', 'p_vib', 3.0 / 20); L.display('cb_open_x', 'p_pf', 0.5)
+    for k in range(3):
+        flag(f'pf{k}', 0)
+        L.setf('cb_open_x', f'pf{k}', 0)
+
+    # power factor: phi = atan(Q / P) with Q = 5 (x - 100) kvar and P taken from the load band (gate below
+    # 30 %, 30-54 %, 55 % and up); the meter is linear in phi over +-60 deg (PF 0.5 lead .. 1 .. 0.5 lag).
+    # The band flags are only set on line; the field value is re-sent when 52G closes and at the band edges.
+    for k in range(3):
+        L.setf('pf_band', f'pf{k}', 0)
+        L.setf(f'pf{k}=1', f'pf{k}', 1)
+    L.rule('pf_band', ['!g_ge30'], 'pf0=1'); L.rule('pf_band', ['g_ge30', '!g_ge55'], 'pf1=1'); L.rule('pf_band', ['g_ge55'], 'pf2=1')
+    L.late('trigger_relay', targetname='pf_band', target='x_redo', triggerstate=1)
+    for d in ('x_dn', 'x_dn', 'x_dn', 'x_up', 'x_up', 'x_up'):     # three down and back: one of them is on the meter's list
+        L.relay('x_redo', d)
+    for v in (29, 30, 54, 55):
+        L.rule(vname('g', v), ['cb'], 'pf_band')
+    for x in PF_X:
+        if x == 100:
+            L.display(vname('x', x), 'p_pf', 0.5, ['cb'])
+            continue
+        for k, P in enumerate(PF_P):
+            L.display(vname('x', x), 'p_pf', pf_frac(x, P), [f'pf{k}'])
     L.rule('T1', ['cb', '!g_ge13'], 'cb_prot')                    # reverse power (32): the unit is motoring
     L.rule('T1', ['cb', '!x_ge60'], 'cb_prot')                    # loss of field (40): below 60 %
 
     # ----------------------------------------------------------------- pond
     L.rule('T8', ['el_pos', '!l_max'], 'l_up')
     L.rule('T8', ['el_neg', 'l_gt0'], 'l_dn')
-    # spillway (automatic): open above 513.5 ft while the pond still rises, close below 513.25 ft while it falls
-    L.rule('T8', ['l_ge14', 'el_pos', '!sg_max'], 'sg_up')
-    L.rule('T8', ['l_max', '!el_pos', '!sg_max'], 'sg_up')
-    L.rule('T8', ['!l_ge13', 'el_neg', 'sg_gt0'], 'sg_dn')
-    L.rule('T16', ['plc', 'cb', 'sg_gt0', '!g_max', '!l_ge14'], 'sg_dn')   # the PLC gives the water to the unit
+    # spillway gate, from its own panel: AUTO opens it above 513.5 ft while the pond still rises and closes it
+    # below 513.25 ft while it falls; MANUAL runs it from the LOWER / RAISE dials, 0.5 ft a second
+    selector('r_sp', 'sman', 'CONTROL', ('AUTO', 'MANUAL'))
+    L.rule('T8', ['!sman', 'l_ge14', 'el_pos', '!sg_max'], 'sg_up')
+    L.rule('T8', ['!sman', 'l_max', '!el_pos', '!sg_max'], 'sg_up')
+    L.rule('T8', ['!sman', '!l_ge13', 'el_neg', 'sg_gt0'], 'sg_dn')
+    L.rule('T16', ['!sman', 'plc', 'cb', 'sg_gt0', '!g_max', '!l_ge14'], 'sg_dn')   # the PLC gives the water to the unit
+    spring('k_sl', 'sg', 'dn', ['sman', 'sg_gt0'], 'LOWER', step='T2')
+    spring('k_sr', 'sg', 'up', ['sman', '!sg_max'], 'RAISE', step='T2')
     # draft-tube rope indication: on line between 25 and 50 % gate
     L.rule(vname('g', 26), ['cb', 'gdir'], 'rz=1'); L.rule(vname('g', 50), ['cb', '!gdir'], 'rz=1')
     L.rule(vname('g', 25), ['!gdir'], 'rz=0'); L.rule(vname('g', 51), ['gdir'], 'rz=0')
@@ -437,7 +510,7 @@ def _build(L):
         dev['ann_init'][i] = 1 - fi[flg]
 
     # --------------------------------------------------------------- init
-    L.display('init', 'p_kvar', 0.5); L.display('init', 'p_vib', 0.02); L.display('init', 'p_fa', 1.0)
+    L.display('init', 'p_pf', 0.5); L.display('init', 'p_vib', 0.02); L.display('init', 'p_fa', 1.0)
     L.display('init', 'p_sfreq', 0.5)
     for var, p, fn in [('l', 'p_hw', lambda x: (1 + 0.25 * x) / 6), ('sg', 'p_spill', lambda x: x / 8),
                        ('bt', 'p_bt', lambda x: x / 10)]:

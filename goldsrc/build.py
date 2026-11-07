@@ -136,19 +136,32 @@ def room_textures():
 
 # =================================================================== door art
 class Door:
-    def __init__(self, ci, title, tag):
-        self.ci = ci
-        self.img = Image.new('RGBA', (DOOR_W * PPU, DOOR_H * PPU), (163, 168, 165, 255))
+    """Painted face of a cabinet door (or of the wall panel): u, v in units from its top left corner."""
+    def __init__(self, ci, title, tag, w=DOOR_W, h=DOOR_H, louvres=True):
+        self.ci, self.w, self.h = ci, w, h
+        self.img = Image.new('RGBA', (w * PPU, h * PPU), (163, 168, 165, 255))
         self.img = noise(self.img, 4, 10 + ci)
         self.d = ImageDraw.Draw(self.img)
-        self.plate(28, 2.6, 40, 3.2, title, style='wb', px=2.0)
-        self.plate(52, 2.6, 6, 3.2, tag, px=1.7)
-        # louvres
-        for k in range(6):
-            for x0 in (6, 34):
-                y = 86 + k * 1.4
-                self.d.rounded_rectangle([x0 * PPU, y * PPU, (x0 + 16) * PPU, (y + 0.6) * PPU], radius=3, fill=(40, 42, 40, 255))
+        self.plate(w / 2, 2.6, w - 16, 3.2, title, style='wb', px=2.0)
+        self.plate(w - 4, 2.6, 6, 3.2, tag, px=1.7)
+        if louvres:
+            for k in range(6):
+                for x0 in (6, 34):
+                    y = 86 + k * 1.4
+                    self.d.rounded_rectangle([x0 * PPU, y * PPU, (x0 + 16) * PPU, (y + 0.6) * PPU], radius=3, fill=(40, 42, 40, 255))
         self.d.rectangle([0, 0, self.img.width - 1, self.img.height - 1], outline=(70, 74, 72, 255), width=3)
+
+    def arrow(self, u, v, r, ccw=False):
+        """Curved arrow from 12 o'clock to 2 o'clock (10 o'clock if ccw): the way a spring-return dial turns."""
+        a0, a1 = (-150, -95) if ccw else (-85, -30)
+        x0, y0 = self.P(u - r, v - r); x1, y1 = self.P(u + r, v + r)
+        col = (24, 24, 24, 255)
+        self.d.arc([x0, y0, x1, y1], a0, a1, fill=col, width=3)
+        tip = math.radians(a0 - 7 if ccw else a1 + 7)
+        back = math.radians(a0 + 7 if ccw else a1 - 7)
+        cx, cy = u * PPU, v * PPU
+        P = lambda a, rr: (cx + rr * PPU * math.cos(a), cy + rr * PPU * math.sin(a))
+        self.d.polygon([P(tip, r), P(back, r - 0.6), P(back, r + 0.6)], fill=col)
 
     def P(self, u, v):
         return u * PPU, v * PPU
@@ -220,8 +233,8 @@ class Door:
 
     def tiles(self, prefix):
         out = []
-        for t in range(4):
-            tile = self.img.crop((0, t * 24 * PPU, DOOR_W * PPU, (t + 1) * 24 * PPU)).convert('RGB')
+        for t in range(self.h // 24):
+            tile = self.img.crop((0, t * 24 * PPU, self.w * PPU, (t + 1) * 24 * PPU)).convert('RGB')
             TEX[f'{prefix}{t}'] = tile
             out.append(f'{prefix}{t}')
         return out
@@ -296,10 +309,37 @@ def synchro_textures():
     text(d, im, (c, c + 42), 'SYNCHROSCOPE', 7.5, cream)
     d.ellipse([1, 1, S - 2, S - 2], outline=(160, 162, 158, 255), width=3)
     TEX['sc_sync'] = im.convert('RGB')
-    for frame, lit in (('+0slmp', False), ('+aslmp', True)):
-        im = Image.new('RGB', (80, 32), (26, 26, 26)); d = ImageDraw.Draw(im)
-        lens(d, (0, 0, 31, 31), LENS['white'][1 if lit else 0], lit); lens(d, (48, 0, 79, 31), LENS['white'][1 if lit else 0], lit)
-        TEX[frame] = im
+    # sync lamps: the dark lenses are part of the panel; the lit ones are an additive overlay whose
+    # renderamt the logic sets (env_render), so they glow brighter the further the pointer is from 12
+    for name, lit in (('sc_slmp0', False), ('sc_slmp1', True)):
+        im = Image.new('RGB', (80, 32), (26, 26, 26) if not lit else (0, 0, 0)); d = ImageDraw.Draw(im)
+        for box in ((0, 0, 31, 31), (48, 0, 79, 31)):
+            if lit:
+                d.rectangle([box[0] + 2, box[1] + 2, box[2] - 2, box[3] - 2], fill=(255, 236, 190))
+            else:
+                lens(d, box, LENS['white'][0], False)
+        TEX[name] = im
+
+
+def pf_texture(name):
+    """Power factor dial: needle angle linear in the power-factor angle, +-60 deg; LEAD left, LAG right."""
+    S, c = DIAL, DIAL / 2
+    P = lambda a, r: (c + r * math.sin(a), c - r * math.cos(a))
+    ang = lambda phi: GTH * phi / 60.0                       # phi in degrees -> needle angle (radians)
+    im = Image.new('RGBA', (S, S), (17, 17, 18, 255)); d = ImageDraw.Draw(im)
+    cream, blue = (236, 230, 210, 255), (150, 205, 225, 255)
+    d.arc([c - 52, c - 52, c + 52, c + 52], math.degrees(ang(-60)) - 90, math.degrees(ang(60)) - 90, fill=cream, width=1)
+    for pf, lab, major in ((1.0, '1', 1), (0.95, None, 0), (0.9, None, 1), (0.8, '.8', 1), (0.7, None, 1), (0.6, None, 0), (0.5, '.5', 1)):
+        for sgn in ((1,) if pf == 1.0 else (-1, 1)):
+            a = ang(sgn * math.degrees(math.acos(pf)))
+            d.line([P(a, 52), P(a, 45 if major else 48.5)], fill=cream, width=2 if major else 1)
+            if lab:
+                text(d, im, P(a, 37), lab, 9.5, cream)
+    text(d, im, P(ang(-48), 21), 'LEAD', 7.5, blue); text(d, im, P(ang(48), 21), 'LAG', 7.5, blue)
+    text(d, im, (c, c + 24), 'PF', 10, cream)
+    d.ellipse([1, 1, S - 2, S - 2], outline=(160, 162, 158, 255), width=3)
+    TEX[name] = im.convert('RGB')
+    return name
 
 
 def button_textures():
@@ -323,7 +363,51 @@ def W(*a, **k):
 
 
 def door_xy(ci, u, v):
+    if ci == SP:                                     # the spillway panel, built in its own frame (see to_wall)
+        return u, SP_TOP - v
     return CX0[ci] + 2 + u, DOOR_TOP - v
+
+
+# The spillway panel hangs on the left wall beside the fire extinguisher, facing +X. It is laid out like a
+# cabinet door (facing -Y, x across, z up) and then turned 90 degrees about Z into place:
+# local (x, y, z) -> world (SP_TX - y, SP_TY + x, z).
+SP, SP_W, SP_H, SP_TOP = 3, 40, 48, 92
+SP_TX, SP_TY = -154, -128                    # front of the panel at x = -153.5, its left edge at y = -128
+
+
+def wall_pt(p):
+    return (SP_TX - p[1], SP_TY + p[0], p[2])
+
+
+def to_wall(b):
+    if isinstance(b, Box):
+        lo, hi = wall_pt(b.lo), wall_pt(b.hi)
+        nb = Box(*lo, *hi, tex=b.tex, scale=b.scale)
+        for n, (tex, tx) in b.faces.items():
+            if tx is not None:                       # only front faces carry art; U runs along +Y now
+                assert n == FRONT, n
+                uoff, voff, sx, sy = tx
+                tx = (uoff - SP_TY / sx, voff, sx, sy)
+            nb.faces[(-n[1], n[0], n[2])] = (tex, tx)
+        return nb
+    b.faces = [tuple(wall_pt(p) for p in f) for f in b.faces]
+    b.inside = np.array(wall_pt(b.inside), float)
+    return b
+
+
+def ent_to_wall(e):
+    if 'origin' in e:
+        e['origin'] = ' '.join(f'{c:g}' for c in wall_pt([float(c) for c in e['origin'].split()]))
+    e['_brushes'] = [to_wall(b) for b in e.get('_brushes', [])]
+    if e['classname'] == 'momentary_door':
+        e['angle'] = str((int(e.get('angle', 0)) + 90) % 360)
+    if e['classname'] in ('func_rot_button', 'momentary_rot_button'):
+        sf = int(e['spawnflags']); assert sf & 128
+        sf = (sf & ~128) | 64                        # pitch (about Y) -> roll (about X)
+        if e['classname'] == 'func_rot_button':
+            sf ^= 2                                  # reversed, so it still turns clockwise seen from the room
+        e['spawnflags'] = str(sf)
+    return e
 
 
 def front_box(ci, u, v, w, h, y0, y1, tex, ppu=None, side='sc_black'):
@@ -509,13 +593,14 @@ def build_panels(dev):
     rots = {r['name']: r for r in dev['rots']}
     knobs = {k['name']: k for k in dev['knobs']}
     doors = [Door(0, 'UNIT 1 - UNIT CONTROL', '+CP1'), Door(1, 'UNIT 1 - ANNUNCIATOR / PLC / AVR', '+CP2'),
-             Door(2, 'UNIT 1 - AUXILIARIES', '+CP3')]
+             Door(2, 'UNIT 1 - AUXILIARIES', '+CP3'), Door(SP, 'SPILLWAY GATE', '+SP1', w=SP_W, h=SP_H, louvres=False)]
     E = []
     ndial = [0]
 
-    def gauge_at(x, z, Y0, scales, unit, ptr=None, ptr2=None, red=None, static=None, xl=None, xr=None, angle_of=None):
+    def gauge_at(x, z, Y0, scales, unit, ptr=None, ptr2=None, red=None, static=None, xl=None, xr=None, angle_of=None, tex=None):
         """Round gauge facing -Y on a surface at y = Y0 (Y0 + 0.5 must be whole: the beam plane holds the slider origins)."""
-        tex = dial_texture(f'scg{ndial[0]}', scales, unit, red, static, angle_of); ndial[0] += 1
+        if tex is None:
+            tex = dial_texture(f'scg{ndial[0]}', scales, unit, red, static, angle_of); ndial[0] += 1
         world.extend(holed_plate(x, z, x - (xl or GX + 0.6), x + (xr or GX + 0.6), z - GPH, z + GPH, Y0 - 1.2, Y0))
         W(x - GR - 0.3, Y0 - 0.15, z - GR - 0.3, x + GR + 0.3, Y0 + 0.5, z + GR + 0.3, tex='sc_black',
           faces={FRONT: (tex, face_map(x - GR, z + GR, DIAL / (2 * GR)))})
@@ -590,25 +675,23 @@ def build_panels(dev):
                                Box(x - 0.5, -2.6, z - 0.5, x + 0.5, -1.6, z + 0.5, tex='ORIGIN')]})
 
     def synchroscope(ci, u, v):
-        """Round dial with a full-turn pointer: a beam to a func_train that circles a hexagon of path_corners
-        hidden in the bezel. The corners at 11 and 1 o'clock fire the in-phase window."""
+        """Round dial with a full-turn pointer: a beam to a func_tracktrain that runs round a ring of path_tracks
+        hidden in the bezel, forwards (clockwise, FAST) or backwards (SLOW) at the speed the logic gives it."""
         sc = dev['scope']
         x, z = door_xy(ci, u, v)
         world.extend(holed_plate(x, z, x - 5.7, x + 6.4, z - GPH, z + GPH, -1.7, -0.5))
         W(x - GR - 0.3, -0.65, z - GR - 0.3, x + GR + 0.3, 0, z + GR + 0.3, tex='sc_black',
           faces={FRONT: ('sc_sync', face_map(x - GR, z + GR, DIAL / (2 * GR)))})
         world.append(prism(ngon(x, z, 0.55), -1.45, -0.65, 'y', 'sc_knob'))
-        n = len(sc['corners'])
-        for i, (ang, msg) in enumerate(sc['corners']):
+        n = len(sc['nodes'])
+        for i, (ang, msg) in enumerate(sc['nodes']):
             a = math.radians(ang)
-            e = {'classname': 'path_corner', 'targetname': f'scc{i}', 'target': f'scc{(i + 1) % n}',
-                 'origin': f'{x + sc["R"] * math.sin(a):.3f} -1 {z + sc["R"] * math.cos(a):.3f}'}
-            if msg:
-                e['message'] = msg
-            E.append(e)
-        # the train's brushes are symmetric about its origin, so func_train puts the origin itself on each corner
-        E.append({'classname': 'func_train', 'targetname': 'SCOPE', 'target': 'scc0', 'speed': f'{sc["speed"]:g}',
-                  'rendermode': '2', 'renderamt': '0',
+            E.append({'classname': 'path_track', 'targetname': f'sct{i}', 'target': f'sct{(i + 1) % n}', 'message': msg,
+                      'origin': f'{x + sc["R"] * math.sin(a):.3f} -1 {z + sc["R"] * math.cos(a):.3f}'})
+        # the train's origin runs along the path_tracks; no pitch, no player control, not solid. It is invisible
+        # (the tabs keep it in the room's PVS, so the client gets its position) and starts on the first one.
+        E.append({'classname': 'func_tracktrain', 'targetname': 'SCOPE', 'target': 'sct0', 'speed': f'{sc["speed"]:g}',
+                  'spawnflags': '11', 'height': '0', 'wheels': '1', 'rendermode': '2', 'renderamt': '0',
                   '_brushes': [Box(x - 0.25, -2.3, z - 0.25, x + 0.25, -1.8, z + 0.25, tex='sc_black'),
                                Box(x - 0.25, -0.2, z - 0.25, x + 0.25, 0.3, z + 0.25, tex='sc_black'),
                                Box(x - 0.5, -1.5, z - 0.5, x + 0.5, -0.5, z + 0.5, tex='ORIGIN')]})
@@ -632,20 +715,21 @@ def build_panels(dev):
         rotor(name, [body, idx], x, -1.5, z, distance=3600, speed=120)
         doors[ci].plate(u, v - 3.7, 9.5, 1.4, label, px=0.8)
 
-    def wheel_panel(ci, u, v, name, label, R=3.6):
-        x, z = door_xy(ci, u, v)
-        br = []
-        outer, inner = ngon(x, z, R + 0.35), ngon(x, z, R - 0.35)
-        for k in range(8):
-            br.append(prism([outer[k], outer[(k + 1) % 8], inner[(k + 1) % 8], inner[k]], -2.6, -1.8, 'y', 'sc_knob'))
-        for k in range(4):
-            a = math.pi / 4 + k * math.pi / 2; c, sn = math.cos(a), math.sin(a); r0, r1, hw = 0.9, R - 0.35, 0.3
-            br.append(prism([(x + c * r0 - sn * hw, z + sn * r0 + c * hw), (x + c * r1 - sn * hw, z + sn * r1 + c * hw),
-                             (x + c * r1 + sn * hw, z + sn * r1 - c * hw), (x + c * r0 + sn * hw, z + sn * r0 - c * hw)], -2.5, -1.9, 'y', 'sc_knob'))
-        br.append(prism(ngon(x, z, 1.0), -2.8, -0.8, 'y', 'sc_metal'))
-        br.append(prism([(x - 0.45, z + R - 0.2), (x + 0.45, z + R - 0.2), (x + 0.45, z + R + 0.7), (x - 0.45, z + R + 0.7)], -4.2, -1.8, 'y', 'sc_red'))
-        rotor(name, br, x, -1.5, z, distance=3600, speed=180)
-        doors[ci].plate(u, v - R - 2.6, 11, 1.4, label, px=0.8)          # clear of the handle on the rim
+    def spring_dial(ci, u, v, name, ccw=False):
+        """Spring-return dial: a momentary_rot_button with auto-return. Held, it turns 60 degrees to its stop
+        (clockwise; anticlockwise on the wall panel, where a momentary button can only roll that way) and
+        stays there; let go, it springs back to 12 o'clock."""
+        x, z = door_xy(ci, u, v); D = doors[ci]
+        D.ring(u, v, 2.7, ESC, outline=(90, 90, 86, 255))
+        D.arrow(u, v, 3.4, ccw)
+        world.append(prism(ngon(x, z, 1.5), -1.1, -0.5, 'y', 'sc_metal'))
+        body = prism(ngon(x, z, 1.9), -2.4, -1.1, 'y', 'sc_knob')
+        bar = prism([(x - 0.35, z - 1.7), (x + 0.35, z - 1.7), (x + 0.35, z + 1.7), (x - 0.35, z + 1.7)], -3.1, -2.4, 'y', 'sc_knob')
+        tip = prism([(x - 0.35, z + 0.6), (x + 0.35, z + 0.6), (x + 0.35, z + 1.7), (x - 0.35, z + 1.7)], -3.4, -3.1, 'y', 'sc_white')
+        E.append({'classname': 'momentary_rot_button', 'targetname': name, 'target': knobs[name]['target'],
+                  'spawnflags': '144', 'distance': '60', 'speed': '240', 'returnspeed': '300', 'sounds': '21',
+                  '_brushes': [body, bar, tip, Box(x - 0.5, -2.0, z - 0.5, x + 0.5, -1.0, z + 0.5, tex='ORIGIN')]})
+        D.plate(u, v + 4.4, 5.6, 1.4, knobs[name]['label'], px=0.8)
 
     hw_fmt = lambda x: f'{x:g}'
     ROW1, ROW2, CTL = 13, 29, 50       # gauge rows at the top, the breaker row across the middle (all three cabinets)
@@ -656,11 +740,11 @@ def build_panels(dev):
     gauge(0, 7, ROW1, 'GEN VOLTS', [(0, 600, 200, 100, 20, None)], 'VOLTS AC', ptr='p_volts', xr=5)
     gauge(0, 17, ROW1, 'KILOWATTS', [(0, 320, 80, 80, 20, None), (0, 400, 200, 100, 50, None)], 'kW|AMPS INNER',
           ptr='p_kw', xl=5, xr=5)
-    gauge(0, 27, ROW1, 'KILOVARS', [(-200, 200, 200, 100, 25, lambda x: f'{x:+g}' if x else '0')], 'kvar', ptr='p_kvar',
-          xl=5, xr=7.3)
+    gauge(0, 27, ROW1, 'POWER FACTOR', None, None, ptr='p_pf', xl=5, xr=7.3, tex=pf_texture('scg_pf'))
     synchroscope(0, 41, ROW1)
-    E.append({'classname': 'func_wall', 'targetname': 'SYNCLAMPS', 'rendermode': '2', 'renderamt': '255',
-              '_brushes': [front_box(0, 51.5, ROW1 - 1, 5, 2, -1.2, -0.5, '+0slmp')]})
+    world.append(front_box(0, 51.5, ROW1 - 1, 5, 2, -1.0, -0.5, 'sc_slmp0'))
+    E.append({'classname': 'func_wall', 'targetname': 'SYNCLAMPS', 'rendermode': '5', 'renderamt': '0',
+              '_brushes': [front_box(0, 51.5, ROW1 - 1, 5, 2, -1.25, -1.0, 'sc_slmp1')]})
     D.plate(51.5, ROW1 + 1.4, 5.4, 1.0, 'SYNC LAMPS', px=0.62)
     lampw(0, 51.5, ROW1 + 5, 'L_perm', ('SYNC OK',))        # sync check permissive: close 52G while it is lit
     gauge(0, 7, ROW2, 'SPEED', [(0, 150, 50, 25, 5, None)], 'RPM', ptr='p_speed', red=(140, 150), xr=5)
@@ -676,12 +760,13 @@ def build_panels(dev):
     cs_switch(0, 34, CTL, 'r_exc'); lampw(0, 34, CTL + 9, 'LP_exc', ('ON', 'OFF'))
     cs_switch(0, 47, CTL, 'r_gt'); D.plate(47, CTL + 9, 11, 1.6, 'EMERGENCY STOP', style='red', px=0.8)
     # dials
-    wheel_panel(0, 10, CTL + 21, 'k_gate', 'WICKET GATE')
-    lampw(0, 10, CTL + 28.5, 'L_k_gate', ('OPEN', 'CLOSE', 'NEXT TURN'))
-    rot(0, 27, CTL + 21, 'r_br', dial=True)
-    lampw(0, 27, CTL + 28.5, 'LP_brake', ('APPL', 'REL'))
-    knob_panel(0, 44, CTL + 21, 'k_fa', 'FIRING ANGLE')
-    lampw(0, 44, CTL + 27.5, 'L_k_fa', ('RAISE', 'LOWER'))
+    D.plate(11, CTL + 15.6, 13, 1.4, 'WICKET GATE', px=0.8)
+    spring_dial(0, 6, CTL + 21, 'k_gl'); spring_dial(0, 16, CTL + 21, 'k_gr')
+    D.tape(11, CTL + 29, 14, 2.6, 'HOLD TO MOVE|1 % EVERY 0.1 S')
+    rot(0, 30, CTL + 21, 'r_br', dial=True)
+    lampw(0, 30, CTL + 28.5, 'LP_brake', ('APPL', 'REL'))
+    knob_panel(0, 45, CTL + 21, 'k_fa', 'FIRING ANGLE')
+    lampw(0, 45, CTL + 27.5, 'L_k_fa', ('RAISE', 'LOWER'))
 
     # ------------------------------------------- middle: the annunciator, the PLC and the AVR, nothing else
     D = doors[1]
@@ -706,15 +791,29 @@ def build_panels(dev):
     gauge(2, 27, ROW1, 'BEARING TEMP', [(20, 120, 20, 20, 5, None)], 'DEG C', ptr='p_bt', red=(100, 120), xl=5, xr=5)
     gauge(2, 37, ROW1, 'VIBRATION', [(0, 20, 10, 5, 1, None)], 'MILS P-P', ptr='p_vib', red=(12, 20), xl=5)
     gauge(2, 7, ROW2, 'SERVO OIL', [(0, 400, 100, 100, 20, None)], 'PSI', ptr='p_opu', red=(0, 220), xr=5)
-    gauge(2, 17, ROW2, 'BRAKE AIR', [(0, 150, 50, 50, 10, None)], 'PSI', ptr='p_air', red=(0, 50), xl=5, xr=5)
-    gauge(2, 27, ROW2, 'POND LEVEL', [(509, 515, 1, 1, 0.25, hw_fmt)], 'FT|513.0 NORMAL', ptr='p_hw', red=(514, 515), xl=5, xr=5)
-    gauge(2, 37, ROW2, 'SPILL GATE', [(0, 4, 1, 1, 0.25, None)], 'FT OPEN', ptr='p_spill', xl=5)
+    gauge(2, 17, ROW2, 'BRAKE AIR', [(0, 150, 50, 50, 10, None)], 'PSI', ptr='p_air', red=(0, 50), xl=5)
     D.section(1.5, 40, 53, 22, 'PUMPS')
     for u, nm in ((8, 'r_lp'), (21, 'r_wp'), (34, 'r_hp'), (47, 'r_ac')):
         cs_switch(2, u, CTL, nm)
 
+    # ------------------------------------------- spillway panel, on the wall beside the extinguisher
+    w0, e0 = len(world), len(E)
+    D = doors[SP]
+    gauge(SP, 10, 12, 'POND LEVEL', [(509, 515, 1, 1, 0.25, hw_fmt)], 'FT|513.0 NORMAL', ptr='p_hw', red=(514, 515), xr=5)
+    gauge(SP, 30, 12, 'SPILL GATE', [(0, 4, 1, 1, 0.25, None)], 'FT OPEN', ptr='p_spill', xl=5)
+    rot(SP, 8, 32, 'r_sp', dial=True)
+    D.plate(27.5, 26.6, 13, 1.4, 'GATE', px=0.8)
+    spring_dial(SP, 22, 32, 'k_sl', ccw=True); spring_dial(SP, 33, 32, 'k_sr', ccw=True)
+    D.tape(20, 43, 30, 2.6, 'MANUAL: HOLD LOWER OR RAISE, 0.5 FT A SECOND|AUTO: OPENS ABOVE 513.5 FT')
+    W(-1, 0, SP_TOP - SP_H - 1, SP_W + 1, 6, SP_TOP + 1, tex='sc_paintd', scale=0.5)       # the box, against the wall
+    for t, nm in enumerate(D.tiles('scsp')):
+        zt = SP_TOP - t * 24
+        W(0, -0.5, zt - 24, SP_W, 0, zt, tex='sc_paintd', faces={FRONT: (nm, face_map(0, zt, PPU))})
+    world[w0:] = [to_wall(b) for b in world[w0:]]
+    E[e0:] = [ent_to_wall(e) for e in E[e0:]]
+
     # door tiles -> world brushes
-    for ci, Dr in enumerate(doors):
+    for ci, Dr in enumerate(doors[:3]):
         names = Dr.tiles(f'scd{ci}')
         x0 = CX0[ci] + 2
         for t, nm in enumerate(names):

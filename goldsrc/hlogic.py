@@ -16,6 +16,7 @@ logic can be tested without the game.
                        ambient_generic).
 """
 import heapq
+import math
 from collections import defaultdict
 
 USE_OFF, USE_ON, USE_SET, USE_TOGGLE = 0, 1, 2, 3
@@ -331,6 +332,7 @@ class Wall(SimEnt):
     def __init__(self, sim, kv):
         super().__init__(sim, kv)
         self.frame = 0
+        self.amt = self.f('renderamt', 255)
 
     def use(self, act, caller, ut, value):
         if should_toggle(ut, self.frame):
@@ -439,76 +441,153 @@ class Auto(SimEnt):
 
 
 class MomentaryRot(SimEnt):
-    """momentary_rot_button: turns while the player holds USE, reverses each new use,
-    fires its target with USE_SET <position 0..1> on every use call (every frame)."""
+    """momentary_rot_button as in the SDK (buttons.cpp). Every use (each frame the player holds USE) fires
+    the target with USE_SET <position>. A use that starts a new session reverses the direction. While it
+    turns, Off() runs 0.2 s after the last use (0.1 s when it sits at a stop), so after a quick release it
+    coasts on for up to 0.2 s. With "Auto Return" (spawnflag 16) and a returnspeed, Off() sets the direction
+    back and Return() turns it home, firing the target again every 0.1 s on the way; the next use then turns
+    it forward again."""
+    FRAME = 0.01
+
     def __init__(self, sim, kv):
         super().__init__(sim, kv)
-        self.pos = 0.0; self.dir = -1; self.last = -1.0
-        self.rate = self.f('speed', 100) / self.f('distance', 90)
+        dist = abs(self.f('distance', 90))
+        self.rate = self.f('speed', 100) / dist
+        self.auto = bool(int(self.f('spawnflags')) & 16) and self.f('returnspeed') > 0
+        self.rrate = self.f('returnspeed') / dist
+        self.pos = 0.0; self.dir = -1; self.session = False
+        self.vel = 0.0; self.think = None; self.think_at = 0.0; self.ticking = False
+        self.fires = 0; self.return_fires = 0
+
+    def use_frame(self):
+        t = self.sim.time
+        if not self.session:
+            self.session = True; self.dir = -self.dir
+        self.think_at = t + 0.1
+        if (self.dir > 0 and self.pos >= 1) or (self.dir < 0 and self.pos <= 0):
+            self.pos = min(1.0, max(0.0, self.pos)); self.vel = 0.0      # at a stop (the think stays as it was)
+        else:
+            self.think_at = t + 0.2; self.vel = self.dir * self.rate; self.think = 'off'
+        if not self.ticking:
+            self.ticking = True; self.sim.later(t + self.FRAME, self._tick)
+        self.fires += 1
+        self.sim.fire(self.target, None, self, USE_SET, self.pos)
+
+    def _tick(self):
+        self.pos += self.vel * self.FRAME
+        if self.think and self.sim.time >= self.think_at - 1e-9:
+            if self.think == 'off':
+                self.vel = 0.0; self.session = False
+                if self.auto:
+                    self.think = 'return'; self.think_at = self.sim.time + 0.1; self.dir = -1
+                else:
+                    self.think = None
+            else:                                    # Return()
+                v = self.pos
+                if v <= 0:
+                    self.vel = 0.0; self.pos = 0.0; self.think = None
+                else:
+                    self.vel = -self.rrate; self.think_at = self.sim.time + 0.1
+                    self.return_fires += 1
+                    self.sim.fire(self.target, None, self, USE_SET, v)
+        if self.think or self.vel:
+            self.sim.later(self.sim.time + self.FRAME, self._tick)
+        else:
+            self.ticking = False
 
     def hold(self, seconds, frame=0.01):
         t = 0.0
         while t < seconds - 1e-9:
-            if self.sim.time - self.last > 0.1:      # Off() ran: next use starts a new session
-                self.dir = -self.dir
-            self.last = self.sim.time
-            self.pos = min(1.0, max(0.0, self.pos + self.dir * self.rate * frame))
-            self.sim.fire(self.target, None, self, USE_SET, self.pos)
+            self.use_frame()
             self.sim.run(frame)
             t += frame
 
 
-class Train(SimEnt):
-    """func_train on a loop of path_corners: a use starts or stops it (it resumes toward the corner it was
-    heading for); arriving at a corner fires the corner's message. Corners are given as (name, message, length)."""
+class TrackTrain(SimEnt):
+    """func_tracktrain on a closed loop of path_tracks, following trains.cpp: every frame Next() looks 0.1 s
+    of travel ahead along the path from the current node (CPathTrack::LookAhead), heads for that point, and
+    when the node it looks from changes it fires the message of the node passed (the next one going forward,
+    the one left behind going backward). Going backward, LookAhead first heads for the current node itself,
+    so a train that reverses just after its look-ahead passed a node runs on to that node and fires it as it
+    turns back. USE_SET <v> changes the speed by v quarter notches of the top speed (clamped to +-1); USE_OFF
+    stops it. sim.train_nodes[name] = [(message, x, y)] in order round the loop; the train starts on the first."""
     def __init__(self, sim, kv):
         super().__init__(sim, kv)
-        self.speed = self.f('speed', 100)
-        self.moving = False
-        self.at = 0                     # index of the corner it last reached (or sits at)
-        self.done = 0.0                 # distance covered on the current leg
-        self.t0 = 0.0
-        self.token = 0
+        self.max = self.f('speed', 100)
+        self.speed = 0.0
+        self.p = 0                       # m_ppath: the node the train looks ahead from
+        self.pos = None
+        self.ticking = False
 
-    def corners(self):
-        return self.sim.train_path[self.name]
-
-    def _leg(self):
-        return self.corners()[(self.at + 1) % len(self.corners())][2]
+    def nodes(self):
+        return self.sim.train_nodes[self.name]
 
     def use(self, act, caller, ut, value):
-        if self.moving:
-            self.done += (self.sim.time - self.t0) * self.speed
-            self.moving = False; self.token += 1
+        if self.pos is None:
+            self.pos = self.nodes()[0][1:]
+        if ut == USE_SET:
+            a, b = int(self.speed * 4), int(self.max)
+            q = abs(a) // abs(b) * (1 if a * b >= 0 else -1)          # C integer division
+            self.speed = self.max * max(-1.0, min(1.0, q * 0.25 + 0.25 * value))
+        elif ut == USE_OFF or (ut == USE_TOGGLE and self.speed):
+            self.speed = 0.0
+        if self.speed and not self.ticking:
+            self.ticking = True; self.sim.later(self.sim.time + 0.01, self._tick)
+
+    def _look(self, dist):
+        N = self.nodes(); n = len(N); cur = self.p; pos = self.pos
+        P = lambda k: N[k % n][1:]
+        if dist < 0:
+            dist = -dist
+            while dist > 0:
+                dx, dy = P(cur)[0] - pos[0], P(cur)[1] - pos[1]; length = math.hypot(dx, dy)
+                if length < 1e-9:
+                    cur = (cur - 1) % n
+                elif length > dist:
+                    return cur, (pos[0] + dx * dist / length, pos[1] + dy * dist / length)
+                else:
+                    dist -= length; pos = P(cur); cur = (cur - 1) % n
         else:
-            self.moving = True; self.t0 = self.sim.time; self._schedule()
+            while dist > 0:
+                nx = (cur + 1) % n
+                dx, dy = P(nx)[0] - pos[0], P(nx)[1] - pos[1]; length = math.hypot(dx, dy)
+                if length > dist:
+                    return cur, (pos[0] + dx * dist / length, pos[1] + dy * dist / length)
+                dist -= length; pos = P(nx); cur = nx
+        return cur, pos
 
-    def _schedule(self):
-        tok = self.token
-        left = max(0.0, self._leg() - self.done)
-        self.sim.later(self.sim.time + left / self.speed, lambda: self._arrive(tok))
-
-    def _arrive(self, tok):
-        if tok != self.token or not self.moving:
+    def _tick(self):
+        if not self.speed:
+            self.ticking = False
             return
-        self.at = (self.at + 1) % len(self.corners()); self.done = 0.0; self.t0 = self.sim.time
-        msg = self.corners()[self.at][1]
-        if msg:
-            self.sim.fire(msg, None, self, USE_TOGGLE, 0)
-        self._schedule()
+        pnext, aim = self._look(self.speed * 0.1)
+        vx, vy = (aim[0] - self.pos[0]) * 10, (aim[1] - self.pos[1]) * 10
+        if pnext != self.p:
+            fire = self.nodes()[pnext if self.speed >= 0 else self.p][0]
+            self.p = pnext
+            if fire:
+                self.sim.fire(fire, None, self, USE_TOGGLE, 0)
+        self.pos = (self.pos[0] + vx * 0.01, self.pos[1] + vy * 0.01)
+        self.sim.later(self.sim.time + 0.01, self._tick)
 
     def angle(self):
-        """pointer angle in degrees clockwise from 12 o'clock (corners are evenly spaced around the loop)"""
-        c = self.corners(); n = len(c)
-        d = self.done + ((self.sim.time - self.t0) * self.speed if self.moving else 0.0)
-        frac = min(1.0, d / self._leg())
-        return (c[self.at][3] + frac * 360.0 / n) % 360
+        """pointer angle in degrees clockwise from 12 o'clock (the nodes are centred on the dial)"""
+        N = self.nodes(); cx = sum(p[1] for p in N) / len(N); cy = sum(p[2] for p in N) / len(N)
+        pos = self.pos if self.pos is not None else N[0][1:]
+        return math.degrees(math.atan2(pos[0] - cx, pos[1] - cy)) % 360
 
 
-CLASSES = {'trigger_relay': Relay, 'func_train': Train, 'game_counter': Counter, 'game_counter_set': CounterSet, 'env_global': EnvGlobal,
+class EnvRender(SimEnt):
+    """env_render: copies its renderamt to the target (spawnflags mask the other render fields)."""
+    def use(self, act, caller, ut, value):
+        for e in self.sim.byname.get(self.target, []):
+            e.amt = self.f('renderamt')
+
+
+CLASSES = {'trigger_relay': Relay, 'game_counter': Counter, 'game_counter_set': CounterSet, 'env_global': EnvGlobal,
            'multisource': Multisource, 'multi_manager': MultiManager, 'func_wall_toggle': WallToggle, 'func_wall': Wall,
            'momentary_door': MomentaryDoor, 'ambient_generic': Ambient, 'func_button': Button, 'func_rot_button': RotButton,
-           'trigger_auto': Auto, 'momentary_rot_button': MomentaryRot}
+           'trigger_auto': Auto, 'momentary_rot_button': MomentaryRot, 'func_tracktrain': TrackTrain, 'env_render': EnvRender}
 
 
 class Sim:
@@ -522,7 +601,7 @@ class Sim:
         self.fired = defaultdict(int)
         self.ents = []
         self.byname = defaultdict(list)
-        self.train_path = {}                      # train name -> [(corner, message, leg length, angle)]
+        self.train_nodes = {}                     # track train name -> [(message, x, y)]
         for kv in ents:
             cls = CLASSES.get(kv['classname'])
             if not cls:

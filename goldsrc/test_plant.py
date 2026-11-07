@@ -1,4 +1,5 @@
 """Run the plant logic in the hl.dll-behaviour simulator and check the physics, operating it by hand."""
+import math
 from hlogic import Sim
 from plant import build, KW
 
@@ -10,14 +11,13 @@ for p in dev['ptrs']: devs.append({'classname': 'momentary_door', 'targetname': 
 for s in dev['sounds']: devs.append({'classname': 'ambient_generic', 'targetname': s['name'], 'spawnflags': '16' if s['loop'] else '48', 'pitch': '100'})
 for r in dev['rots']: devs.append({'classname': 'func_rot_button', 'targetname': r['name'], 'target': r['target'], 'wait': str(r['wait']),
                                    'spawnflags': '32' if r['toggle'] else '0', 'distance': str(r['distance']), 'speed': str(r['speed'])})
-KNOB = {'k_gate': (180, 3600), 'k_fa': (120, 3600)}
-for k in dev['knobs']:
-    sp, dist = KNOB[k['name']]
-    devs.append({'classname': 'momentary_rot_button', 'targetname': k['name'], 'target': k['target'], 'speed': str(sp), 'distance': str(dist)})
+for k in dev['knobs']:                     # as build.py makes them
+    kv = dict(speed=240, distance=60, returnspeed=300, spawnflags=144) if k.get('spring') else dict(speed=120, distance=3600, spawnflags=128)
+    devs.append({'classname': 'momentary_rot_button', 'targetname': k['name'], 'target': k['target'], **{a: str(b) for a, b in kv.items()}})
 sc = dev['scope']
-devs.append({'classname': 'func_train', 'targetname': 'SCOPE', 'speed': str(sc['speed'])})
+devs.append({'classname': 'func_tracktrain', 'targetname': 'SCOPE', 'speed': str(sc['speed'])})
 sim = Sim(ents + devs)
-sim.train_path['SCOPE'] = [(f'sc{i}', msg, sc['R'], ang) for i, (ang, msg) in enumerate(sc['corners'])]
+sim.train_nodes['SCOPE'] = [(msg, sc['R'] * math.sin(math.radians(a)), sc['R'] * math.cos(math.radians(a))) for a, msg in sc['nodes']]
 G = lambda k: sim.globals.get(k)
 C = sim.counter
 S = lambda: dict(t=round(sim.time, 1), n=C('n'), g=C('g'), v=C('v'), x=C('x'), o=C('o'), a=C('a'), bt=C('bt'), l=C('l'), sg=C('sg'),
@@ -32,9 +32,11 @@ def run_until(cond, limit, step=0.5):
     return None
 def turn(knob, var, target, limit=60):
     """Turn a knob like a player: hold it until the gauge shows the target, let go, correct if it went one past.
-    Each new grab turns the other way (stock momentary_rot_button), so a quick tap is used to reverse."""
-    k = sim.ent(knob); t0 = sim.time
-    while C(var) != target and sim.time - t0 < limit:
+    Each new grab turns the other way (stock momentary_rot_button), so a quick tap is used to reverse.
+    A step already pending when you let go can still land, so after a few tries one step off is accepted."""
+    k = sim.ent(knob); t0 = sim.time; tries = 0
+    while C(var) != target and sim.time - t0 < limit and not (tries >= 3 and abs(C(var) - target) <= 1):
+        tries += 1
         want_up = C(var) < target
         if bool(G(f'{knob}_u')) != want_up:
             k.hold(0.01); sim.run(0.4); continue
@@ -42,6 +44,26 @@ def turn(knob, var, target, limit=60):
             k.hold(0.02)
         sim.run(0.4)
     return C(var)
+def gate_to(target, raise_='k_gr', lower='k_gl', var='g', limit=60):
+    """Hold RAISE or LOWER like a player until the gauge shows the target, let go, correct if it went past."""
+    t0 = sim.time
+    while C(var) != target and sim.time - t0 < limit:
+        up = C(var) < target
+        k = sim.ent(raise_ if up else lower)
+        while C(var) != target and (C(var) < target) == up and sim.time - t0 < limit:
+            k.hold(0.02)
+        sim.run(0.8)
+    return C(var)
+def scope_turn(seconds=3.0):
+    """degrees the synchroscope pointer turns in `seconds` (+ = clockwise, FAST)"""
+    sc_ = sim.ent('SCOPE'); tot = [0.0]; last = [sc_.angle()]
+    def acc(s_):
+        a_ = sc_.angle(); tot[0] += (a_ - last[0] + 180) % 360 - 180; last[0] = a_
+    sim.run(seconds, every=acc)
+    return round(tot[0])
+def pf_reading():
+    f = sim.ent('p_pf').pos; phi = (f - 0.5) * 120
+    return f"{math.cos(math.radians(phi)):.2f} {'LAG' if phi > 0.5 else 'LEAD' if phi < -0.5 else ''}".strip()
 def flip(name, settle=0.6):
     r = sim.press(name); sim.run(settle); return r
 def windows():
@@ -56,21 +78,54 @@ for sw in ('r_lp', 'r_wp', 'r_hp', 'r_ac'):
 tt = run_until(lambda: C('o') >= 10 and C('a') >= 6, 30); print(f'aux running, servo oil and air charged after {tt} s'); show('aux')
 sim.run(1); print('brakes released:', G('brake') == 0)
 # manual run-up: open the gate, then back to speed-no-load as speed comes up
-print('gate', turn('k_gate', 'g', 25))
-tt = run_until(lambda: C('n') >= 80, 60); print(f'80 % speed after {tt} s'); turn('k_gate', 'g', 15)
+k = sim.ent('k_gr'); k.hold(1.0); g_rel = C('g'); sim.run(0.15); g_015 = C('g'); sim.run(1.5)
+print(f'RAISE held 1 s: gate {g_rel} % at release, {g_015} % 0.15 s later, {C("g")} % after the dial sprang back '
+      f'({k.return_fires} fires on the way back, ignored); dial at {k.pos:.2f}')
+for t in (0.02, 0.05, 0.1, 0.3):
+    g0 = C('g'); sim.ent('k_gr').hold(t); sim.run(1.0); print(f'  tap RAISE {t:.2f} s: +{C("g") - g0} %')
+print('gate', gate_to(25))
+tt = run_until(lambda: C('n') >= 80, 60); print(f'80 % speed after {tt} s'); gate_to(15)
 tt = run_until(lambda: C('n') == 100, 60); print(f'100 % speed {tt} s later'); show('snl')
 for gg in (16, 14, 15):
-    turn('k_gate', 'g', gg); run_until(lambda: False, 12); print(f'  gate {C("g")} % -> speed settles at {C("n")} %')
+    gate_to(gg); run_until(lambda: False, 12); print(f'  gate {C("g")} % -> speed settles at {C("n")} %')
 flip('r_exc'); print('41 closed, exc', G('exc'), ' field', turn('k_fa', 'x', 100))
 run_until(lambda: C('v') == 100, 20); show('excited')
 flip('r_ss', 1); print('synchroscope on, rotating', G('scr'))
 scope = sim.ent('SCOPE')
+print(f'  at 100 % speed the pointer turns {scope_turn(5.5)} deg in 5.5 s (FAST, creeping)')
+bad = []
+def window_check(s_):
+    """the logic's in-phase flag against where the pointer is; the edges fire when the point the train looks
+    0.1 s ahead to passes them, so the window leads the pointer by that much (3 deg at the sync slip)"""
+    if G('scr'):
+        a_ = (scope.angle() + 180) % 360 - 180
+        lead = math.degrees(abs(scope.speed) * 0.1 / sc['R']) + 2
+        if (abs(a_) < 30 - lead and not G('inph')) or (abs(a_) > 30 + lead and G('inph')): bad.append(round(a_))
+for gg in (14, 16):
+    gate_to(gg); run_until(lambda: C('n') in (94, 104), 30)
+    gate_to(15); trace = []
+    for _ in range(14):
+        n0 = C('n'); d = scope_turn(0.5); trace.append((n0, d))
+        sim.run(0, every=window_check)
+    print(f'  speed {"rising" if gg == 14 else "falling"} to 100 % (speed, pointer deg per 0.5 s, + = FAST):', trace)
+for gg in (14, 15, 16, 15):
+    gate_to(gg); sim.run(8, every=window_check)
+print('  in-phase flag disagreeing with the pointer (deg):', bad[:10], len(bad))
+run_until(lambda: C('n') == 100, 30); sim.run(4)
+lev = []
+run_until(lambda: lev.append((round(scope.angle()), sim.ent('SYNCLAMPS').amt)) or False, 12, 0.5)
+print('  sync lamps (pointer deg, brightness):', lev[:12])
 run_until(lambda: G('perm') == 0, 10, 0.05)
 run_until(lambda: G('perm') == 1, 10, 0.05); a_press = scope.angle()                     # SYNC OK lamp lights
 sim.press('r_52'); sim.run(0.1); print(f'52G turned to CLOSE as SYNC OK lit (pointer {a_press:.0f} deg, closed at {scope.angle():.0f}) -> cb={G("cb")}')
 sim.run(1); show('on line')
-print('kW', turn('k_gate', 'g', 60), '->', round(sim.ent('p_kw').pos * 320), 'kW (KW[60]=', KW[60], ')')
-print('field to 115 (overexcited):', turn('k_fa', 'x', 115), ' kvar pointer', round(sim.ent('p_kvar').pos * 400 - 200), 'kvar')
+print(f'  pointer stopped at {scope.angle():.0f} deg once on line, scope running {G("scr")}')
+print('PF just after closing:', pf_reading(), ' (x', C('x'), ')')
+for gg in (25, 40, 60):
+    gate_to(gg); sim.run(1); print(f'  gate {gg} %: {round(sim.ent("p_kw").pos * 320)} kW, PF {pf_reading()}')
+print('kW', C('g'), '->', round(sim.ent('p_kw').pos * 320), 'kW (KW[60]=', KW[60], ')')
+print('field to 115 (overexcited):', turn('k_fa', 'x', 115), ' PF', pf_reading())
+print('field to 94 (underexcited):', turn('k_fa', 'x', 94), ' PF', pf_reading()); turn('k_fa', 'x', 115)
 run_until(lambda: False, 30); show('loaded')
 
 # emergency stop from load: the gate trip
@@ -106,6 +161,15 @@ flip('r_lp'); run_until(lambda: C('n') == 0, 400)
 flip('r_gt', 1); print('lube oil pump restarted, reset: tr', G('tr'))
 flip('r_ac'); tt = run_until(lambda: G('brake') == 1 and G('hbr') == 1, 120)
 print(f'compressor off, brakes released: air fell and the brakes re-applied after {tt} s (a={C("a")})')
+
+# spillway panel: manual control
+sg0 = C('sg'); sim.ent('k_sr').hold(2.0); sim.run(0.5)
+print(f'spill gate {sg0} in AUTO; RAISE held 2 s does nothing: {C("sg")}')
+flip('r_sp'); print('CONTROL to MANUAL:', G('sman'))
+tt = sim.time; print('  RAISE to 8 (4 ft):', gate_to(8, 'k_sr', 'k_sl', 'sg'), f'in {sim.time - tt:.1f} s; pointer', round(sim.ent('p_spill').pos * 8))
+print('  LOWER to 2:', gate_to(2, 'k_sr', 'k_sl', 'sg'), ' pond level', C('l'))
+l0 = C('l'); run_until(lambda: False, 120); print(f'  in MANUAL the gate stays at {C("sg")}; level {l0} -> {C("l")}')
+flip('r_sp'); run_until(lambda: False, 200); print(f'  back to AUTO: gate {C("sg")}, level {C("l")}')
 print('multi_manager re-trigger collisions:', sim.mm_ignored)
 
 import re
