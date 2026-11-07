@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sable Creek Hydro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@400;500;600;700;800&family=Barlow:wght@500;600&family=Permanent+Marker&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  /* One deliberate look: a dim control room with an instructor overlay in safety amber. */
+  :root {
+    --bg: #1c1f1c;
+    --panel: rgba(19, 22, 23, 0.95);
+    --ink: #e8e5da;
+    --mute: #a2a59b;
+    --line: rgba(232, 229, 218, 0.14);
+    --amber: #e8b51a;
+    --red: #e2533f;
+    --green: #56b872;
+    --f-ui: "Barlow Semi Condensed", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+    --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+    color-scheme: dark;
+  }
+  [hidden] { display: none !important; }
+  html, body { height: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 500 15px/1.4 var(--f-ui); overflow: hidden; -webkit-user-select: none; user-select: none; }
+  #gl { position: fixed; inset: 0; display: block; touch-action: none; cursor: grab; }
+  #gl:active { cursor: grabbing; }
+  #vignette { position: fixed; inset: 0; pointer-events: none; z-index: 1; background: radial-gradient(ellipse at 50% 48%, rgba(0,0,0,0) 55%, rgba(0,0,0,0.38) 100%); }
+  button { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+
+  .chipbtn {
+    background: rgba(18, 20, 21, 0.78); border: 1px solid var(--line); border-radius: 6px;
+    padding: 8px 14px; letter-spacing: 0.12em; font-weight: 700; font-size: 13px; cursor: pointer;
+    -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  }
+  .chipbtn:hover { border-color: var(--amber); color: #fff; }
+  #topbar {
+    position: fixed; z-index: 5; display: flex; gap: 8px; align-items: center;
+    top: calc(12px + env(safe-area-inset-top, 0px)); right: calc(12px + env(safe-area-inset-right, 0px));
+  }
+  #speedchip { font: 600 12px var(--f-mono); color: #141414; background: var(--amber); border-radius: 4px; padding: 4px 8px; }
+
+  #menu {
+    position: fixed; z-index: 6; top: 0; right: 0; bottom: 0; width: min(420px, 100%);
+    background: var(--panel); border-left: 1px solid var(--line); overflow-y: auto; overscroll-behavior: contain;
+    padding: calc(14px + env(safe-area-inset-top, 0px)) calc(18px + env(safe-area-inset-right, 0px)) calc(24px + env(safe-area-inset-bottom, 0px)) 18px;
+    box-sizing: border-box; -webkit-user-select: text; user-select: text;
+  }
+  #menu header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 4px; }
+  #menu h1 { font-size: 20px; letter-spacing: 0.06em; margin: 0; font-weight: 800; text-wrap: balance; }
+  #menu h1 small { display: block; font-size: 13px; font-weight: 500; color: var(--mute); letter-spacing: 0.04em; }
+  #mClock { font: 500 13px var(--f-mono); color: var(--amber); }
+  #mState { color: var(--mute); font-size: 13px; margin: 6px 0 4px; font-variant-numeric: tabular-nums; }
+  #menu section { border-top: 1px solid var(--line); padding: 12px 0 10px; display: grid; gap: 8px; }
+  #menu h2 { margin: 0; font-size: 12px; letter-spacing: 0.16em; color: var(--amber); font-weight: 700; }
+  .row { display: flex; flex-wrap: wrap; gap: 6px; }
+  .btn { background: transparent; border: 1px solid var(--line); border-radius: 5px; padding: 6px 10px; cursor: pointer; font-weight: 600; font-size: 14px; }
+  .btn:hover { border-color: var(--amber); }
+  .btn[aria-pressed="true"] { background: var(--amber); color: #141414; border-color: var(--amber); }
+  .btn.warn:hover { border-color: var(--red); color: #fff; }
+  .chk { display: flex; gap: 8px; align-items: flex-start; font-size: 14px; cursor: pointer; padding: 2px 0; }
+  .chk input { accent-color: var(--red); margin-top: 3px; }
+  #faults { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 12px; }
+  @media (max-width: 420px) { #faults { grid-template-columns: 1fr; } }
+  .slider { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; }
+  .slider input { width: 100%; accent-color: var(--amber); }
+  .slider output { font: 500 13px var(--f-mono); min-width: 64px; text-align: right; }
+  #log { list-style: none; margin: 0; padding: 0; font: 400 12px/1.5 var(--f-mono); color: var(--mute); max-height: 230px; overflow-y: auto; }
+  #log li { display: flex; gap: 10px; }
+  #log time { color: #6f726a; flex: none; }
+  #log li.alarm { color: var(--amber); }
+  #log li.trip { color: var(--red); }
+  details { font-size: 14px; color: var(--ink); }
+  details summary { cursor: pointer; font-weight: 700; padding: 3px 0; }
+  details p, details li { color: #cfccc1; margin: 4px 0; max-width: 62ch; }
+  details ul { padding-left: 18px; margin: 4px 0; }
+  kbd { font: 500 12px var(--f-mono); border: 1px solid var(--line); border-radius: 3px; padding: 0 4px; }
+
+  #tip {
+    position: fixed; z-index: 4; pointer-events: none; max-width: 300px;
+    background: rgba(14, 16, 17, 0.92); border: 1px solid var(--line); border-left: 3px solid var(--amber); border-radius: 4px;
+    padding: 6px 10px; font-size: 14px; line-height: 1.3; display: grid; gap: 2px;
+  }
+  #tip b { letter-spacing: 0.04em; }
+  #tip span { color: #cfccc1; font-variant-numeric: tabular-nums; }
+
+  #hint {
+    position: fixed; z-index: 4; left: 50%; transform: translateX(-50%);
+    bottom: calc(18px + env(safe-area-inset-bottom, 0px)); width: min(560px, calc(100% - 32px)); box-sizing: border-box;
+    background: rgba(14, 16, 17, 0.9); border: 1px solid var(--line); border-radius: 8px; padding: 12px 16px;
+    display: grid; grid-template-columns: 1fr auto; gap: 6px 14px; align-items: start;
+  }
+  #hint ul { margin: 0; padding-left: 16px; display: grid; gap: 2px; font-size: 14px; color: #d7d4c9; }
+  #hint strong { grid-column: 1 / -1; font-size: 13px; letter-spacing: 0.14em; color: var(--amber); }
+
+  #loading, #nogl { position: fixed; inset: 0; display: grid; place-items: center; text-align: center; padding: 0 16px; background: var(--bg); z-index: 9; }
+  #loading p, #nogl p { margin: 6px 0 0; color: var(--mute); }
+  #loading b, #nogl b { font-size: 22px; letter-spacing: 0.1em; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div id="loading"><div><b>SABLE CREEK HYDRO</b><p>Building the control room…</p></div></div>
+<div id="nogl" hidden><div><b>WebGL is not available</b><p>This simulator draws the control room in 3D and needs a browser with WebGL turned on.</p></div></div>
+
+<div id="topbar">
+  <span id="speedchip" hidden></span>
+  <button id="hintBtn" class="chipbtn" aria-label="Show controls help">?</button>
+  <button id="menuBtn" class="chipbtn" aria-expanded="false" aria-controls="menu">SIMULATOR</button>
+</div>
+
+<aside id="menu" hidden role="dialog" aria-label="Simulator controls">
+  <header>
+    <h1>SABLE CREEK HYDRO<small>Unit 1 · 250 kW vertical Francis · 72-pole 60 Hz · 100 rpm</small></h1>
+    <button id="menuClose" class="btn" aria-label="Close menu">Close</button>
+  </header>
+  <div id="mClock">--:--:--</div>
+  <div id="mState"></div>
+
+  <section aria-labelledby="h-sim">
+    <h2 id="h-sim">SIMULATION</h2>
+    <div class="row" role="group" aria-label="Simulation speed">
+      <button class="btn" data-speed="0">Pause</button>
+      <button class="btn" data-speed="1">×1</button>
+      <button class="btn" data-speed="2">×2</button>
+      <button class="btn" data-speed="5">×5</button>
+      <button class="btn" data-speed="10">×10</button>
+      <button class="btn" data-speed="30">×30</button>
+    </div>
+    <div class="row"><button id="snd" class="btn" aria-pressed="false">Sound off</button></div>
+  </section>
+
+  <section aria-labelledby="h-go">
+    <h2 id="h-go">WALK TO</h2>
+    <div class="row">
+      <button class="btn" data-go="0">1 · Auxiliary</button>
+      <button class="btn" data-go="1">2 · Turbine–generator</button>
+      <button class="btn" data-go="2">3 · Excitation, PLC, spillway</button>
+      <button class="btn" data-go="home">Room</button>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-ic">
+    <h2 id="h-ic">START FROM</h2>
+    <div class="row">
+      <button class="btn" data-ic="online">On line, level control</button>
+      <button class="btn" data-ic="ready">Stopped, ready</button>
+      <button class="btn" data-ic="cold">Inlet valve closed</button>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-env">
+    <h2 id="h-env">RIVER AND UTILITY</h2>
+    <div class="slider"><input id="inflow" type="range" min="20" max="250" step="1" value="90" aria-label="River inflow"><output id="inflowV" for="inflow">90 cfs</output></div>
+    <div class="row">
+      <button class="btn" data-ev="flood">Flood</button>
+      <button class="btn" data-ev="debris">Debris on rack</button>
+      <button class="btn warn" data-ev="trip">Utility trip, 2 s reclose</button>
+      <button class="btn warn" data-ev="outage">Utility outage, 10 min</button>
+      <button class="btn" data-ev="sag">Voltage sag</button>
+      <button class="btn" data-ev="fdip">Frequency dip</button>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-flt">
+    <h2 id="h-flt">MALFUNCTIONS</h2>
+    <div id="faults"></div>
+  </section>
+
+  <section aria-labelledby="h-proc">
+    <h2 id="h-proc">OPERATING NOTES</h2>
+    <details><summary>Automatic start and stop</summary>
+      <p>Put UNIT CONTROL and GOVERNOR in AUTO and the auxiliary switches on panel 1 in AUTO. Press START on panel 2.</p>
+      <p>The PLC starts cooling water and the HP lift pump, equalizes and opens the inlet valve, releases the brakes and opens the gates to 30 %. At 95 % speed it excites, then the auto-synchronizer closes 52G. With LEVEL CONTROL on, the PLC sets the load to hold the pond.</p>
+      <p>STOP unloads, opens 52G and closes the gates. The lift pump comes on below 90 % speed and the brakes apply at 25 %.</p>
+    </details>
+    <details><summary>Manual synchronizing</summary>
+      <p>Set SYNC MODE to MAN. At speed-no-load, match the incoming and running voltmeters with AVR SETPOINT and get the synchroscope turning slowly clockwise with SPEED / LOAD. Turn the 52G pistol grip to CLOSE just before 12 o'clock.</p>
+      <p>The 25 relay blocks the close outside ±15°, 0.2 Hz slip or 5 % voltage difference. SYNC CHECK BYPASS removes that protection.</p>
+    </details>
+    <details><summary>Running a slow Francis</summary>
+      <ul>
+        <li>Below about 110 kW the unit is in its rough zone. Between 40 and 85 % of best-efficiency flow a vortex rope forms in the draft tube: watch the draft tube gauge, vibration and the kW needle swing. Draft tube air admission calms it.</li>
+        <li>Best efficiency is near 70 % gate (about 92 %). Full gate gives about 270 kW.</li>
+        <li>The thrust bearing has no oil film below roughly 12 % speed. Never turn the unit slowly without HP lift.</li>
+        <li>A full-load rejection overspeeds the unit to about 135 % and raises spiral case pressure about 4 psi.</li>
+      </ul>
+    </details>
+    <details><summary>After a trip</summary>
+      <p>Read the annunciator and the protection relay targets. ACK the annunciator, fix the cause, reset 86G or 86M by clicking the lockout handle, press TARGET RESET on the relay, then START.</p>
+    </details>
+    <details><summary>Moving around</summary>
+      <ul>
+        <li>Drag to look. <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> or scroll to walk, <kbd>Q</kbd> <kbd>E</kbd> to turn, <kbd>Shift</kbd> to hurry.</li>
+        <li>Double-click a panel to step up to it. <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> go to the cabinets, <kbd>0</kbd> steps back.</li>
+        <li>Click the left or right side of a switch to turn it that way. Hold raise/lower switches.</li>
+        <li>On a phone: drag to look, pinch to walk, tap a device to see what it is.</li>
+      </ul>
+    </details>
+  </section>
+
+  <section aria-labelledby="h-log">
+    <h2 id="h-log">EVENT LOG</h2>
+    <ul id="log"></ul>
+  </section>
+</aside>
+
+<div id="vignette"></div>
+<div id="tip" hidden></div>
+<div id="hint" hidden role="note">
+  <strong>CONTROL ROOM</strong>
+  <ul>
+    <li>Drag to look around. W A S D or scroll to walk. Double-click a panel to step up to it.</li>
+    <li>Click the left or right side of a switch to turn it. Hover any device to read it.</li>
+    <li>Keys 1 2 3 jump to the cabinets. SIMULATOR opens speed, scenarios and faults.</li>
+  </ul>
+  <button id="hintClose" class="btn" aria-label="Dismiss help">Got it</button>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js"></script>
+<script src="sim.js"></script>
+<script src="panels.js"></script>
+<script src="room.js"></script>
+<script src="ui.js"></script>
+</body>
+</html>
