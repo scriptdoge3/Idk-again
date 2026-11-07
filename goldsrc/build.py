@@ -662,6 +662,7 @@ def build_panels(dev):
     E.append({'classname': 'func_wall', 'targetname': 'SYNCLAMPS', 'rendermode': '2', 'renderamt': '255',
               '_brushes': [front_box(0, 51.5, ROW1 - 1, 5, 2, -1.2, -0.5, '+0slmp')]})
     D.plate(51.5, ROW1 + 1.4, 5.4, 1.0, 'SYNC LAMPS', px=0.62)
+    lampw(0, 51.5, ROW1 + 5, 'L_perm', ('SYNC OK',))        # sync check permissive: close 52G while it is lit
     gauge(0, 7, ROW2, 'SPEED', [(0, 150, 50, 25, 5, None)], 'RPM', ptr='p_speed', red=(140, 150), xr=5)
     gauge(0, 17, ROW2, 'WICKET GATE', [(0, 100, 50, 25, 5, None), (0, 90, 30, 30, 10, None)], '% OPEN|CFS INNER',
           ptr='p_gate', xl=5, xr=5)

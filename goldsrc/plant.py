@@ -95,12 +95,13 @@ def _build(L):
         flag(fl, 0); L.setf(vname('en', a_), fl, 1); L.setf(vname('en', b_), fl, 0)
 
     for name, init in [('cb', 0), ('exc', 0), ('tr', 0), ('brake', 1), ('scr', 0),
-                       ('inph', 1), ('rz', 0)]:
+                       ('inph', 1), ('rz', 0), ('perm', 0)]:
         state(name, init)
     flag('gdir', 1)
     for nm in ('lube', 'cool', 'plc', 'avr'):
         flag(nm, 0)
-    thr('n', 1, 'n_gt0'); thr('n', 50); thr('n', 90); thr('n', 99); thr('n', 102); thr('n', 145, 'n_max')
+    thr('n', 1, 'n_gt0'); thr('n', 50); thr('n', 90); thr('n', 95); thr('n', 99); thr('n', 102); thr('n', 106)
+    thr('n', 145, 'n_max')
     thr('g', 1, 'g_gt0'); thr('g', 13); thr('g', 15); thr('g', 16); thr('g', 17); thr('g', 25); thr('g', 26)
     thr('g', 100, 'g_max')
     thr('v', 1, 'v_gt0'); thr('v', 95); thr('v', 106); thr('v', 120, 'v_max')
@@ -183,14 +184,14 @@ def _build(L):
                 continue
             L.display(vname(var, x), target, y, conds)
 
-    def cs(name, flg, label, pos, grip='black', lamp=None):
+    def cs(name, flg, label, pos, grip='black', lamp=None, speed=240):
         """Control switch: pistol grip, maintained, two positions. Each turn fires `<name>_ev`, which
         toggles `flg` (1 = right-hand position). The logic may turn the handle itself (by firing it).
         lamp = (name, colors): a RUN/STOP lamp pair that follows the handle."""
         flag(flg, 0)
         L.toggle_flag(f'{name}_ev', flg)
         d = {'name': name, 'target': f'{name}_ev', 'label': label, 'pos': pos, 'kind': 'cs', 'grip': grip,
-             'distance': 90, 'speed': 240, 'wait': 0.5, 'toggle': True}
+             'distance': 90, 'speed': speed, 'wait': 0.5, 'toggle': True}
         if lamp:
             dev['lamps'].append({'name': lamp[0], 'colors': lamp[1], 'init': 0})
             L.relay(f'{name}_ev', lamp[0], USE_TOGGLE)
@@ -372,11 +373,11 @@ def _build(L):
 
     # ------------------------------------------------------ synchronizing
     # synchroscope: a func_train pointer circling behind the bezel. It turns while the switch is on, the
-    # field is on and the unit is within 1 % of synchronous speed. Its path corners at 11 and 1 o'clock
+    # field is on and the unit is within 5 % of synchronous speed. Its path corners at 11 and 1 o'clock
     # fire the in-phase window, so what you see is what the sync check uses.
     cs('r_ss', 'hss', 'SYNCHROSCOPE', ('OFF', 'ON'))
-    L.rule('T1', ['hss', 'exc', 'n_ge99', '!n_ge102', '!cb', '!scr'], 'scope_on')
-    for c in ('!hss', '!exc', '!n_ge99', 'n_ge102', 'cb'):
+    L.rule('T1', ['hss', 'exc', 'n_ge95', '!n_ge106', '!cb', '!scr'], 'scope_on')
+    for c in ('!hss', '!exc', '!n_ge95', 'n_ge106', 'cb'):
         L.rule('T1', ['scr', c], 'scope_off')
     L.relay('scope_on', 'scr=1'); L.relay('scope_on', 'SCOPE', USE_TOGGLE)
     L.rule('scope_on', ['!inph'], 'sl_on')
@@ -385,15 +386,18 @@ def _build(L):
     L.relay('sc_in', 'inph=1'); L.relay('sc_in', 'SYNCLAMPS', USE_OFF)          # dark lamps: in phase
     L.relay('sc_out', 'inph=0'); L.rule('sc_out', ['scr'], 'sl_on')
     L.relay('sl_on', 'SYNCLAMPS', USE_ON)
-    # 52G: closing needs the synchroscope switch (sync check). Closing outside the window, off speed or
-    # with the wrong voltage is an out-of-phase close, and protection trips the unit.
-    cs('r_52', 'h52', '52G SYNC BREAKER', ('TRIP', 'CLOSE'))
-    ok = ['h52', 'hss', '!tr', '!cb']
-    L.rule('r_52_ev', ok + ['scr', 'inph', 'v_ge95', '!v_ge106'], 'cb_close')
-    L.rule('r_52_ev', ok + ['!scr'], 'oop')
-    L.rule('r_52_ev', ok + ['scr', '!inph'], 'oop')
-    L.rule('r_52_ev', ok + ['scr', 'inph', '!v_ge95'], 'oop')
-    L.rule('r_52_ev', ok + ['scr', 'inph', 'v_ge106'], 'oop')
+    # sync check (25), in service with the synchroscope switch: permits a close while the pointer is in the
+    # window, speed is within 1 % and volts within 5 %; the SYNC OK lamp shows it
+    good = ['scr', 'inph', 'n_ge99', '!n_ge102', 'v_ge95', '!v_ge106']
+    L.rule('TS', good + ['!perm'], 'perm=1')
+    for c in good:
+        L.rule('TS', ['perm', c[1:] if c.startswith('!') else '!' + c], 'perm=0')
+    # 52G: with the sync check in service a close it does not permit is simply refused (the handle springs
+    # back); closing with the synchroscope switch off is a blind close and trips the unit as out of phase.
+    # The handle turns in 0.1 s, so the close lands where you pressed it.
+    cs('r_52', 'h52', '52G SYNC BREAKER', ('TRIP', 'CLOSE'), speed=900)
+    L.rule('r_52_ev', ['h52', 'hss', 'perm', '!tr', '!cb'], 'cb_close')
+    L.rule('r_52_ev', ['h52', '!hss', '!tr', '!cb'], 'oop')
     L.rule('r_52_ev', ['!h52'], 'cb_open')
     L.rule('T1', ['h52', '!cb'], 'r_52')                           # not closed (refused or tripped): back to TRIP
     L.relay('oop', 'prot'); alarm('oop', W[2])
@@ -423,6 +427,7 @@ def _build(L):
     lamp('LP_cb', 'cb', ('red', 'green'))
     lamp('LP_brake', 'brake', ('red', 'green'))
     lamp('LP_exc', 'exc', ('red', 'green'))
+    lamp('L_perm', 'perm', ('green', None))
     for i, flg, lit_when in [(1, 'tr', 1), (4, 'o_ge4', 0), (6, 'bt_ge8', 1),
                              (8, 'a_ge4', 0), (9, 'brake', 1), (10, 'rz', 1), (11, 'l_ge14', 1), (12, 'l_ok', 0),
                              (13, 'sg_gt0', 1)]:

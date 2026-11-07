@@ -13,8 +13,8 @@ the breakers and dials in a band across the middle.
 | Cabinet | Control | What it does |
 |---|---|---|
 | Left | WICKET GATE TRIP (red, yellow plate) | The emergency stop: closes the gate fast and opens 41 and 52G. Protection turns it to TRIP by itself; turning it back to NORMAL resets (it trips again if the cause is still there). |
-| Left | SYNCHROSCOPE | Switches the synchroscope and the sync check on. |
-| Left | 52G SYNC BREAKER | Closes the generator onto the grid. Close it while the synchroscope pointer is in the green sector (the sync lamps go dark there). |
+| Left | SYNCHROSCOPE | Switches the synchroscope and the sync check (25) on. The pointer turns while the unit is within 5 % of 60 Hz. The green SYNC OK lamp beside it lights while a close would be allowed: pointer in the green sector, speed within 1 % (59.4–60.6 Hz) and volts within 5 % (456–504 V). |
+| Left | 52G SYNC BREAKER | Closes the generator onto the grid. Close it while SYNC OK is lit. With the sync check on, a close it doesn't allow is refused and the handle springs back. Closing with the SYNCHROSCOPE switch off is a blind close: out of phase, and the unit trips. |
 | Left | 41 FIELD BREAKER | Connects the thyristor exciter. Opening it lets the field decay. |
 | Left | FIRING ANGLE dial | Sets the field (manual excitation). Off line it sets the voltage; on line it sets the kilovars. The FIRING ANGLE gauge above shows the thyristor angle: field goes as cos α, so 90° is no field, about 34° is rated field and 0° is full field. |
 | Left | WICKET GATE dial (handwheel) | Opens or closes the gate (hold USE; each grab turns the other way, see the NEXT TURN lamps). |
@@ -37,8 +37,8 @@ The spillway gate runs by itself (it opens above 513.5 ft).
    (speed-no-load): the unit settles at 100 rpm. Each 1 % of gate around there moves the speed about 5 %
    (14 % gives 94 rpm, 16 % gives 104). Leaving the gate open overspeeds it (trip at 140 %).
 4. Close 41 and raise the field with the firing-angle dial until GEN VOLTS reads 480.
-5. SYNCHROSCOPE on. The pointer turns once every 6 s. Close 52G while it is in the green sector.
-   Anywhere else, off speed or at the wrong voltage, it's an out-of-phase close and the unit trips.
+5. SYNCHROSCOPE on. The pointer turns once every 6 s. Close 52G while the green SYNC OK lamp is lit
+   (pointer in the green, speed and volts matched). If it isn't, the close is refused and nothing trips.
 6. Open the gate to load the unit (about 190 kW at 60 % gate). Keep it above 13 %, or the reverse-power
    relay opens 52G. Keep the field up, or loss of field trips 52G.
 
@@ -125,7 +125,7 @@ Press USE (E) on switches and the brake dial; hold it on the wicket gate handwhe
 `-num_edicts 2048` to Half-Life's launch options (Steam → Half-Life → Properties → Launch Options).
 Without it the map won't load ("ED_Alloc: no free edicts"). 2048 is the most the engine can handle.
 
-The map has 1,853 entities (1,846 once the lights are compiled in): the 1 % steps need a counter and a
+The map has 1,881 entities (1,874 once the lights are compiled in): the 1 % steps need a counter and a
 gauge setter for most values. The default limit is 1,200 (900 before the 25th-anniversary update), hence
 the launch option. The variables only get counters for values something listens for, and needles step
 2-4 % where they are not read closely.
