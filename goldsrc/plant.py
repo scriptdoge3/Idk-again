@@ -241,6 +241,10 @@ def _build(L):
     display('g', ptr('p_kw'), lambda x: KW[x] / 320, vals=list(range(13, 101, 2)), conds=['cb'])
     display('g', ptr('p_vib'), lambda x: VIB[x] / 20, vals=list(range(0, 101, 5)), conds=['cb'])
     display('v', ptr('p_volts'), lambda x: x / 125, vals=list(range(0, 72, 4)) + list(range(72, 121)))
+    # frequency: the generator's follows its speed (60 Hz at 100 %), shown on a 54-66 Hz scale; the station
+    # bus is fed from the grid at 60 Hz
+    display('n', ptr('p_hz'), lambda x: min(1, max(0, (0.6 * x - 54) / 12)), vals=range(89, 112))
+    ptr('p_sfreq')
     fx = list(range(0, 68, 4)) + list(range(68, 121, 2))
     display('x', ptr('p_exc'), lambda x: x / 120, vals=fx)
     # thyristor firing angle: field current goes as cos(alpha); 90 deg = no field, 0 deg = full field (x = 120)
@@ -429,6 +433,7 @@ def _build(L):
 
     # --------------------------------------------------------------- init
     L.display('init', 'p_kvar', 0.5); L.display('init', 'p_vib', 0.02); L.display('init', 'p_fa', 1.0)
+    L.display('init', 'p_sfreq', 0.5)
     for var, p, fn in [('l', 'p_hw', lambda x: (1 + 0.25 * x) / 6), ('sg', 'p_spill', lambda x: x / 8),
                        ('bt', 'p_bt', lambda x: x / 10)]:
         L.display('init', p, fn(INIT[var]))

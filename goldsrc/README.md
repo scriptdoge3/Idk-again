@@ -6,8 +6,8 @@ The unit is run by hand from 13 controls, with round gauges and pistol-grip cont
 
 ## Controls
 
-The left cabinet runs the unit, the middle one is the annunciator with the PLC and AVR breakers, and
-the right one holds the auxiliary pumps and their gauges. On every cabinet the gauges are at the top and
+The left cabinet runs the unit, the middle one is the annunciator with the generator and station
+frequency meters and the PLC and AVR breakers, and the right one holds the auxiliary pumps and their gauges. On every cabinet the gauges are at the top and
 the breakers and dials in a band across the middle.
 
 | Cabinet | Control | What it does |
@@ -125,7 +125,7 @@ Press USE (E) on switches and the brake dial; hold it on the wicket gate handwhe
 `-num_edicts 2048` to Half-Life's launch options (Steam → Half-Life → Properties → Launch Options).
 Without it the map won't load ("ED_Alloc: no free edicts"). 2048 is the most the engine can handle.
 
-The map has 1,827 entities (1,820 once the lights are compiled in): the 1 % steps need a counter and a
+The map has 1,853 entities (1,846 once the lights are compiled in): the 1 % steps need a counter and a
 gauge setter for most values. The default limit is 1,200 (900 before the 25th-anniversary update), hence
 the launch option. The variables only get counters for values something listens for, and needles step
 2-4 % where they are not read closely.

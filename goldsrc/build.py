@@ -684,14 +684,16 @@ def build_panels(dev):
 
     # ------------------------------------------- middle: the annunciator, the PLC and the AVR, nothing else
     D = doors[1]
-    W(door_xy(1, 0.5, 0)[0], -0.9, DOOR_TOP - 37.5, door_xy(1, 55.5, 0)[0], -0.5, DOOR_TOP - 4.5, tex='sc_black')
+    W(door_xy(1, 0.5, 0)[0], -0.9, DOOR_TOP - 30.5, door_xy(1, 55.5, 0)[0], -0.5, DOOR_TOP - 4.5, tex='sc_black')
     for i, label in enumerate(ANN):
         c, r = i % 4, i // 4
-        u, v = 7.75 + c * 13.5, 9 + r * 8
+        u, v = 7.75 + c * 13.5, 8 + r * 6.2
         lit0 = dev.get('ann_init', {}).get(i, 0)
         t0, t1 = ann_textures(i, label, lit0)
         E.append({'classname': 'func_wall', 'targetname': f'A{i:02d}', 'rendermode': '2', 'renderamt': '255',
-                  '_brushes': [front_box(1, u, v, 12.6, 7.0, -1.4, -0.9, t0)]})
+                  '_brushes': [front_box(1, u, v, 12.6, 5.8, -1.4, -0.9, t0)]})
+    gauge(1, 22, 37, 'GEN FREQUENCY', [(54, 66, 3, 1, 0.2, None)], 'Hz', ptr='p_hz', xr=6)
+    gauge(1, 34, 37, 'STATION FREQUENCY', [(54, 66, 3, 1, 0.2, None)], 'Hz|GRID', ptr='p_sfreq', xl=6)
     cs_switch(1, 17, CTL, 'r_plc')
     cs_switch(1, 39, CTL, 'r_avr')
 
