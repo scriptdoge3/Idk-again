@@ -155,18 +155,19 @@ def _build(L):
                 continue
             L.display(vname(var, x), target, y, conds)
 
-    display('n', ptr('p_speed'), lambda x: x / 30)
+    # below half speed / half voltage the needles step 10 % at a time (saves entities; nobody reads them closely there)
+    display('n', ptr('p_speed'), lambda x: x / 30, vals=list(range(0, 10, 2)) + list(range(10, 29)))
     display('n', ptr('p_hz'), lambda x: min(1, max(0, (3 * x - 54) / 12)), vals=range(17, 24))
     display('g', ptr('p_gate'), lambda x: x / 20)                     # gate + turbine discharge meters
     display('g', ptr('p_kw'), lambda x: KW[x] / 320, conds=['cb'])    # kilowatts + generator amperes
     display('s', ptr('p_kwsp'), lambda x: KW[min(20, x + 2)] / 320)
     display('g', ptr('p_vib'), lambda x: VIB[x] / 20, conds=['cb'])
-    display('v', ptr('p_volts'), lambda x: x / 25)                    # volts + exciter field A and V
+    display('v', ptr('p_volts'), lambda x: x / 25, vals=list(range(0, 16, 2)) + list(range(16, 22)))
     display('o', ptr('p_opu'), lambda x: (200 + 10 * x) / 400)
     display('l', ptr('p_hw'), lambda x: (1 + 0.25 * x) / 6)
     display('sg', ptr('p_spill'), lambda x: x / 8)
     display('h', ptr('p_scase'), lambda x: (14.5 + x) / 30)
-    for p in ('p_kvar', 'p_cw', 'p_lift'):
+    for p in ('p_kvar', 'p_cw', 'p_lift', 'p_exc'):
         ptr(p)
 
     dev['sounds'] += [
@@ -204,10 +205,25 @@ def _build(L):
         dev.setdefault('ann_init', {})[i] = int(fi[flg] == lit_when)
         L.follow(flg, W[i], 1 - fi[flg])
 
+    L.relay('alarm', 's_horn', USE_ON); L.relay('alarm', 's_relay', USE_ON)
+
     def alarm(event, win):
         L.relay(event, win, USE_ON)
-        L.relay(event, 's_horn', USE_ON)
-        L.relay(event, 's_relay', USE_ON)
+        L.relay(event, 'alarm')
+
+    def cs(name, flg, label, pos):
+        """Breaker control switch: pistol-grip handle, maintained, two positions. Each turn fires
+        `<name>_ev`, which toggles `flg` (1 = right-hand position). The logic also turns the handle
+        itself (by firing it) so it always agrees with the plant."""
+        flag(flg, 0)
+        L.toggle_flag(f'{name}_ev', flg)
+        dev['rots'].append({'name': name, 'target': f'{name}_ev', 'label': label, 'pos': pos, 'kind': 'cs',
+                            'distance': 90, 'speed': 240, 'wait': -1, 'toggle': True})
+
+    def twist(name, target, label, act, desk=False):
+        """Spring-return twist switch: turn 45 degrees, fires on arrival, springs back."""
+        dev['rots'].append({'name': name, 'target': target, 'label': label, 'pos': ('', act), 'kind': 'spring',
+                            'distance': 45, 'speed': 180, 'wait': 0.4, 'toggle': False, 'desk': desk})
 
     dev['walls'] += ['SYNCHRO', 'SYNCLAMPS']
 
@@ -239,10 +255,12 @@ def _build(L):
                              'lamp': lamp_nm})
 
     # ----------------------------------------------------- start / stop / trip
-    dev['buttons'].append({'name': 'b_start', 'target': 'start', 'master': 'ms_ready', 'color': 'green', 'label': 'START'})
+    cs('r_run', 'hrun', 'UNIT START / STOP', ('STOP', 'START'))
+    L.rule('r_run_ev', ['hrun', 'ready'], 'start')
+    L.rule('r_run_ev', ['!hrun', 'run'], 'stop')
+    L.rule('T1', ['hrun', '!run'], 'r_run')                 # not running (refused, stopped or tripped): back to STOP
     for f_, val in [('run', 1), ('stopping', 0), ('cw', 1), ('lift', 1), ('brake', 0), ('ready', 0)]:
         L.relay('start', f'{f_}={val}')
-    dev['buttons'].append({'name': 'b_stop', 'target': 'stop', 'master': 'ms_run', 'color': 'red', 'label': 'STOP'})
     L.relay('stop', 'stopping=1')
     L.rule('T1', ['!run', '!lock', '!n_gt0', '!ready'], 'ready=1')
     L.rule('T1', ['ready', 'run'], 'ready=0')
@@ -263,7 +281,7 @@ def _build(L):
     L.relay('estop', 'trip'); alarm('estop', W[2])
     L.relay(vname('n', 28), 'trip'); alarm(vname('n', 28), W[0])
     L.rule(vname('o', 2), ['run'], 'trip_opu'); L.relay('trip_opu', 'trip'); alarm('trip_opu', W[4])
-    dev['buttons'].append({'name': 'b_reset86', 'target': 'reset86', 'color': 'black', 'label': '86 RESET'})
+    twist('r_86', 'reset86', '86 LOCKOUT', 'RESET')
     L.rule('reset86', ['!n_gt0'], 'lock=0')
     L.rule(vname('l', 6), ['run', '!stopping'], 'lowlevel')
     L.relay('lowlevel', 'stopping=1'); alarm('lowlevel', W[15])
@@ -280,8 +298,11 @@ def _build(L):
         L.display(f'{ev}_x', 'p_kw', 0.0); L.display(f'{ev}_x', 'p_vib', 3.0 / 20)
     alarm('cb_trip_x', W[3]); alarm('util_trip_x', W[8])
     L.display('cb=1', 'p_kvar', 0.65); L.display('cb=0', 'p_kvar', 0.5)
-    dev['buttons'].append({'name': 'b_cbclose', 'target': 'm_close', 'color': 'red', 'label': 'CLOSE'})
-    dev['buttons'].append({'name': 'b_cbtrip', 'target': 'cb_open', 'color': 'green', 'label': 'TRIP'})
+    cs('r_52', 'h52', '52G BREAKER', ('TRIP', 'CLOSE'))
+    L.rule('r_52_ev', ['h52'], 'm_close')
+    L.rule('r_52_ev', ['!h52'], 'cb_open')
+    L.rule('T1', ['h52', '!cb'], 'r_52')                    # close refused, or opened by protection / stop
+    L.rule('T1', ['!h52', 'cb'], 'r_52')                    # closed by the auto-synchronizer
     L.rule('m_close', ['!cb', 'exc', 'n_ge20', '!n_ge21', 'v_ge19', '!lock'], 'cb_close')
     # auto-synchronizer: 3 s of good conditions, then close
     L.rule('T1', ['run', '!cb', 'exc', 'synca', 'n_ge20', '!n_ge21', 'v_ge19', '!lock'], 'sy_inc')
@@ -306,10 +327,10 @@ def _build(L):
     L.rule('T1', ['!run', 'g_gt0'], 'g_dn')                           # shutdown
     L.rule('T1', ['lock', 'g_gt0'], 'g_dn')                           # emergency closing, double rate
     knob('k_gate', 'g', ['run', '!auto', '!g_max', '!lock', 'o_gt0'], ['!auto', 'g_gt0'], 'TS2', 'WICKET GATE', wheel=True)
-    dev['rots'].append({'name': 'r_gov', 'target': 'gov_tog', 'label': 'GOVERNOR', 'pos': ('AUTO', 'MAN')})
+    dev['rots'].append({'name': 'r_gov', 'target': 'gov_tog', 'label': 'GOVERNOR', 'pos': ('AUTO', 'MAN'), 'kind': 'sel', 'distance': 90, 'speed': 240, 'wait': -1, 'toggle': True})
     L.toggle_flag('gov_tog', 'auto'); L.relay('gov_tog', 'L_govman', USE_TOGGLE); L.relay('gov_tog', W[11], USE_TOGGLE)
     knob('k_load', 's', ['!s_max'], ['s_gt0'], 'TS2', 'LOAD SETPOINT')
-    dev['rots'].append({'name': 'r_sync', 'target': 'sync_tog', 'label': 'SYNC MODE', 'pos': ('AUTO', 'MAN')})
+    dev['rots'].append({'name': 'r_sync', 'target': 'sync_tog', 'label': 'SYNC MODE', 'pos': ('AUTO', 'MAN'), 'kind': 'sel', 'distance': 90, 'speed': 240, 'wait': -1, 'toggle': True})
     L.toggle_flag('sync_tog', 'synca')
 
     # ---------------------------------------------------------------- speed
@@ -325,8 +346,14 @@ def _build(L):
 
     # ----------------------------------------------------------- excitation
     L.rule(vname('n', 19), ['run', 'auto', '!exc', '!lock', '!stopping'], 'exc=1')
-    dev['buttons'].append({'name': 'b_excon', 'target': 'm_excon', 'color': 'red', 'label': 'ON'})
-    dev['buttons'].append({'name': 'b_excoff', 'target': 'm_excoff', 'color': 'green', 'label': 'OFF'})
+    cs('r_exc', 'hexc', '41 FIELD BREAKER', ('OFF', 'ON'))
+    L.rule('r_exc_ev', ['hexc'], 'm_excon')
+    L.rule('r_exc_ev', ['!hexc'], 'm_excoff')
+    L.rule('T1', ['hexc', '!exc'], 'r_exc')
+    L.rule('T1', ['!hexc', 'exc'], 'r_exc')
+    # exciter field meter: off, no-load field, loaded field
+    L.display('exc=1', 'p_exc', 0.55); L.display('exc=0', 'p_exc', 0.0)
+    L.display('cb=1', 'p_exc', 0.68, conds=['exc']); L.display('cb=0', 'p_exc', 0.55, conds=['exc'])
     L.rule('m_excon', ['n_ge19', '!lock', '!exc'], 'exc=1')
     L.rule('m_excoff', ['!cb', 'exc'], 'exc=0')
     L.rule('T1', ['exc', 'dv_pos', '!v_max'], 'v_up')
@@ -339,7 +366,7 @@ def _build(L):
     L.rule('T1', ['p1', '!pfail', '!o_full'], 'o_up')
     L.rule('T1', ['p2', '!pfail', '!o_full'], 'o_up')
     L.rule('T16', ['o_gt0'], 'o_dn')                                   # pilot-valve leakage
-    dev['buttons'].append({'name': 'b_air', 'target': 'm_air', 'color': 'black', 'label': 'PUMP TEST'})
+    twist('r_air', 'm_air', 'OIL PUMP TEST', 'TEST')
     L.rule('m_air', ['!o_full', '!pfail'], 'o_up')
 
     # ----------------------------------------------------------------- pond
@@ -357,9 +384,9 @@ def _build(L):
     L.rule('T8', ['spa', 'l_max', '!sg_max'], 'sg_up')
     L.rule('T8', ['spa', '!l_hi', 'el_neg', 'sg_gt0'], 'sg_dn')
     L.rule('T16', ['spa', 'ctl', 'cb', 'sg_gt0', '!s_max', '!l_ge14'], 'sg_dn')   # give the water to the unit
-    dev['rots'].append({'name': 'r_ctl', 'target': 'ctl_tog', 'label': 'LEVEL CONTROL', 'pos': ('ON', 'OFF')})
+    dev['rots'].append({'name': 'r_ctl', 'target': 'ctl_tog', 'label': 'LEVEL CONTROL', 'pos': ('ON', 'OFF'), 'kind': 'sel', 'distance': 90, 'speed': 240, 'wait': -1, 'toggle': True})
     L.toggle_flag('ctl_tog', 'ctl'); L.relay('ctl_tog', 'L_ctl', USE_TOGGLE); L.relay('ctl_tog', W[12], USE_TOGGLE)
-    dev['rots'].append({'name': 'r_spa', 'target': 'spa_tog', 'label': 'SPILLWAY', 'pos': ('AUTO', 'MAN')})
+    dev['rots'].append({'name': 'r_spa', 'target': 'spa_tog', 'label': 'SPILLWAY', 'pos': ('AUTO', 'MAN'), 'kind': 'sel', 'distance': 90, 'speed': 240, 'wait': -1, 'toggle': True})
     L.toggle_flag('spa_tog', 'spa'); L.relay('spa_tog', 'L_spa', USE_TOGGLE)
     knob('k_spill', 'sg', ['!spa', '!sg_max'], ['!spa', 'sg_gt0'], 'TS2', 'SPILL GATE', wheel=True)
     # draft-tube rope indication: on line between 20 and 45 % gate
@@ -368,18 +395,18 @@ def _build(L):
     L.rule('T1', ['h_gt0'], 'h_dn')                                              # hammer decays
 
     # ------------------------------------------------ annunciator controls
-    dev['buttons'].append({'name': 'b_ack', 'target': 'ann_ack', 'color': 'black', 'label': 'ACK'})
-    dev['buttons'].append({'name': 'b_annreset', 'target': 'ann_reset', 'color': 'black', 'label': 'RESET'})
+    twist('r_ack', 'ann_ack', 'ANN ACK', 'ACK')
+    twist('r_annrst', 'ann_reset', 'ANN RESET', 'RESET')
     L.relay('ann_ack', 's_horn', USE_OFF)
     L.rule('ann_reset', ['!lock'], 'ann_clear')
     for i in (0, 1, 2, 3, 4, 8, 15):
         L.relay('ann_clear', W[i], USE_OFF)
 
     # -------------------------------------------------- instructor console
-    dev['buttons'].append({'name': 'b_util', 'target': 'util_trip', 'color': 'amber', 'label': 'UTILITY TRIP', 'desk': True})
+    twist('r_util', 'util_trip', 'UTILITY TRIP', 'TRIP', desk=True)
     # river: an absolute knob from normal flow (0) to full flood (+30); its own position drives the FLOOD meter
     knob('k_river', 'r', ['!r_max'], ['r_gt0'], 'TS', 'RIVER', absolute=True, desk=True)
-    dev['rots'].append({'name': 'r_pfail', 'target': 'pfail_tog', 'label': 'OIL PUMPS', 'pos': ('OK', 'FAIL'), 'desk': True})
+    dev['rots'].append({'name': 'r_pfail', 'target': 'pfail_tog', 'label': 'OIL PUMPS', 'pos': ('OK', 'FAIL'), 'desk': True, 'kind': 'sel', 'distance': 90, 'speed': 240, 'wait': -1, 'toggle': True})
     L.toggle_flag('pfail_tog', 'pfail')
 
     # --------------------------------------------------------------- init
@@ -388,6 +415,8 @@ def _build(L):
                        ('h', 'p_scase', lambda x: (14.5 + x) / 30)]:
         L.display('init', p, fn(INIT[var]))
     L.display('init', 'p_kvar', 0.5); L.display('init', 'p_vib', 0.02)
+    L.display('cw=1', 'p_cw', 0.62); L.display('cw=0', 'p_cw', 0.0)
+    L.display('lift=1', 'p_lift', 2100 / 3000); L.display('lift=0', 'p_lift', 0.0)
     dev['flags_init'] = fi
     return L.finalize(), dev
 

@@ -61,12 +61,13 @@ class Poly:
     """Convex brush from planes given as three points each; `inside` orients them outward.
     Texture axes are world-aligned to the nearest axis, as editors do."""
 
-    def __init__(self, faces, inside, tex='sc_black'):
+    def __init__(self, faces, inside, tex='sc_black', face_tex=None):
         self.faces, self.inside, self.tex = faces, np.array(inside, float), tex
+        self.face_tex = face_tex or {}          # face index -> texture
 
     def lines(self):
         out = []
-        for pts in self.faces:
+        for i, pts in enumerate(self.faces):
             p0, p1, p2 = [np.array(p, float) for p in pts]
             n = np.cross(p0 - p1, p2 - p1)
             if np.dot(n, p1 - self.inside) < 0:
@@ -75,13 +76,13 @@ class Poly:
             key = tuple(int(np.sign(n[i])) if i == ax else 0 for i in range(3))
             U, V = AXES[key]
             pt = ' '.join('( ' + ' '.join(_fmt(c) for c in p) + ' )' for p in (p0, p1, p2))
-            out.append(f'{pt} {self.tex} [ {U[0]} {U[1]} {U[2]} 0 ] [ {V[0]} {V[1]} {V[2]} 0 ] 0 1 1')
+            out.append(f'{pt} {self.face_tex.get(i, self.tex)} [ {U[0]} {U[1]} {U[2]} 0 ] [ {V[0]} {V[1]} {V[2]} 0 ] 0 1 1')
         return out
 
 
-def prism(poly2d, a0, a1, axis='y', tex='sc_black'):
+def prism(poly2d, a0, a1, axis='y', tex='sc_black', edge_tex=None):
     """Prism over a convex polygon. axis 'y': polygon in (x, z), extruded a0..a1 along y.
-    axis 'z': polygon in (x, y), extruded a0..a1 along z."""
+    axis 'z': polygon in (x, y), extruded a0..a1 along z. edge_tex: {edge index: texture} for side faces."""
     def P(u, w, a):
         return (u, a, w) if axis == 'y' else (u, w, a)
     n = len(poly2d)
@@ -92,7 +93,7 @@ def prism(poly2d, a0, a1, axis='y', tex='sc_black'):
     faces.append(tuple(P(*poly2d[k], a0) for k in range(3)))
     faces.append(tuple(P(*poly2d[k], a1) for k in range(3)))
     cu = sum(p[0] for p in poly2d) / n; cw = sum(p[1] for p in poly2d) / n
-    return Poly(faces, P(cu, cw, (a0 + a1) / 2), tex)
+    return Poly(faces, P(cu, cw, (a0 + a1) / 2), tex, edge_tex)
 
 
 def ngon(cu, cw, r, n=8, phase=None):

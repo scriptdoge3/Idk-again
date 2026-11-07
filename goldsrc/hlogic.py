@@ -386,15 +386,42 @@ class Button(SimEnt):
 
 
 class RotButton(Button):
+    """func_rot_button as in the SDK: a use while it moves (or waits to spring back) is ignored.
+    Toggle (spawnflag 32): turns to the other stop and fires its target on arrival, both ways.
+    Otherwise: fires on arrival at the far stop, waits `wait` seconds, springs back.
+    Players and the logic both just 'use' it."""
     def __init__(self, sim, kv):
         super().__init__(sim, kv)
         self.pos = 0
+        self.moving = False
+        self.toggle = bool(int(self.f('spawnflags')) & 32)
+        self.travel = abs(self.f('distance', 90)) / max(1.0, self.f('speed', 240))
 
     def press(self):
-        r = super().press()
-        if r == 'ok':
-            self.pos = 1 - self.pos
-        return r
+        if self.moving:
+            return 'busy'
+        if not self.master_ok():
+            self.locked += 1
+            return 'locked'
+        self.presses += 1
+        self.moving = True
+        up = self.pos == 0
+
+        def arrive():
+            self.pos = 1 if up else 0
+            self.moving = not self.toggle and up          # spring-return: busy until it is back home
+            if up and not self.toggle:
+                self.sim.later(self.sim.time + max(self.f('wait', 1), 0) + self.travel, home)
+            if up or self.toggle:
+                self.sim.fire(self.target, None, self, USE_TOGGLE, 0)
+
+        def home():
+            self.pos = 0; self.moving = False
+        self.sim.later(self.sim.time + self.travel, arrive)
+        return 'ok'
+
+    def use(self, act, caller, ut, value):
+        self.press()
 
 
 class Auto(SimEnt):
