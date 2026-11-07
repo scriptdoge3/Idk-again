@@ -180,7 +180,7 @@
     document.querySelectorAll('[data-speed]').forEach(b => b.addEventListener('click', () => setSpeed(+b.dataset.speed)));
     document.querySelectorAll('[data-go]').forEach(b => b.addEventListener('click', () => { const g = b.dataset.go; if (g === 'home') ROOM.home(); else ROOM.walkToCab(+g); if (window.innerWidth < 700) toggleMenu(false); }));
     document.querySelectorAll('[data-ic]').forEach(b => b.addEventListener('click', () => {
-      P.scenario(b.dataset.ic); syncFaultBoxes(); $('#inflow').value = String(Math.round(S.qinBase * 35.3147)); inflowLabel();
+      P.scenario(b.dataset.ic); syncFaultBoxes(); syncInflow();
     }));
     $('#inflow').addEventListener('input', () => { P.instructor.setInflow(+$('#inflow').value / 35.3147); inflowLabel(); });
     const ev = { flood: () => P.instructor.flood(22), debris: () => P.instructor.debris(), trip: () => P.instructor.gridOutage(false), outage: () => P.instructor.gridOutage(true), sag: () => P.instructor.sag(), fdip: () => P.instructor.freqDip() };
@@ -189,9 +189,10 @@
     $('#hintClose').addEventListener('click', () => { $('#hint').hidden = true; store.set('hint', false); });
     $('#hintBtn').addEventListener('click', () => { $('#hint').hidden = false; });
     window.addEventListener('keydown', e => { if (e.key === 'Escape') toggleMenu(false); });
-    inflowLabel();
+    syncInflow();
   }
   function inflowLabel() { $('#inflowV').textContent = `${$('#inflow').value} cfs`; }
+  function syncInflow() { $('#inflow').value = String(Math.round(S.qinBase * 35.3147)); inflowLabel(); }
   function syncFaultBoxes() { for (const id of Object.keys(P.FAULTS)) { const b = $('#f-' + id); if (b) b.checked = !!S.flt[id]; } }
   function toggleMenu(open) {
     const m = $('#menu'); const show = open === undefined ? m.hidden : open;
