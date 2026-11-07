@@ -6,39 +6,42 @@ The unit is run by hand from 13 controls, with round gauges and pistol-grip cont
 
 ## Controls
 
-| Panel | Control | What it does |
+The left cabinet runs the unit, the middle one is the annunciator with the PLC and AVR breakers, and
+the right one holds the auxiliary pumps and their gauges.
+
+| Cabinet | Control | What it does |
 |---|---|---|
-| 1 | LUBE OIL PUMP | Bearing lube oil. Turning the unit without it wipes the bearings in seconds (trip). |
-| 1 | COOLING WATER PUMP | Bearing and generator cooling. Without it the bearings heat up in about a minute (trip). |
-| 1 | SERVO OIL PUMP | Charges the gate servo accumulator. Every gate movement uses oil; below 220 psi the gate trips. |
-| 1 | AIR COMPRESSOR | Brake air. The brakes are spring-applied and need 50 psi to stay released. |
-| 2 | WICKET GATE handwheel | Opens or closes the gate (hold USE; each grab turns the other way, see the NEXT TURN lamps). |
-| 2 | BRAKES | APPLY / RELEASE. Apply them below 30 % speed when stopping. |
-| 2 | WICKET GATE TRIP (red) | The emergency stop: closes the gate fast and opens 41 and 52G. Protection turns it to TRIP by itself; turning it back to NORMAL resets (it trips again if the cause is still there). |
-| 2 | SYNCHROSCOPE | Switches the synchroscope and the sync check on. |
-| 2 | 52G SYNC BREAKER | Closes the generator onto the grid. Close it while the synchroscope pointer is in the green sector (the sync lamps go dark there). |
-| 3 | 41 FIELD BREAKER | Connects the thyristor exciter. Opening it lets the field decay. |
-| 3 | FIRING ANGLE knob | Sets the field (manual excitation). Off line it sets the voltage; on line it sets the kilovars. |
-| 3 | PLC GATE CONTROL | ON: the PLC runs the gate: it brings the unit up to speed once the brakes are released, and on line it holds the pond at 513.0 ft. |
-| 3 | AVR | AUTO: the AVR runs the field: 480 V off line, slightly lagging on line. |
+| Left | WICKET GATE TRIP (red, yellow plate) | The emergency stop: closes the gate fast and opens 41 and 52G. Protection turns it to TRIP by itself; turning it back to NORMAL resets (it trips again if the cause is still there). |
+| Left | SYNCHROSCOPE | Switches the synchroscope and the sync check on. |
+| Left | 52G SYNC BREAKER | Closes the generator onto the grid. Close it while the synchroscope pointer is in the green sector (the sync lamps go dark there). |
+| Left | 41 FIELD BREAKER | Connects the thyristor exciter. Opening it lets the field decay. |
+| Left | FIRING ANGLE dial | Sets the field (manual excitation). Off line it sets the voltage; on line it sets the kilovars. |
+| Left | WICKET GATE dial (handwheel) | Opens or closes the gate (hold USE; each grab turns the other way, see the NEXT TURN lamps). |
+| Left | BRAKES dial | APPLY / RELEASE. Apply them below 30 % speed when stopping. |
+| Middle | PLC | ON: the PLC runs the gate: it brings the unit up to speed once the brakes are released, and on line it holds the pond at 513.0 ft. |
+| Middle | AVR | AUTO: the AVR runs the field: 480 V off line, slightly lagging on line. |
+| Right | LUBE OIL PUMP | Bearing lube oil. Turning the unit without it wipes the bearings in seconds (trip). |
+| Right | COOLING WATER PUMP | Bearing and generator cooling. Without it the bearings heat up in about a minute (trip). |
+| Right | SERVO OIL PUMP | Charges the gate servo accumulator. Every gate movement uses oil; below 220 psi the gate trips. |
+| Right | AIR COMPRESSOR | Brake air. The brakes are spring-applied and need 50 psi to stay released. |
 
 The spillway gate runs by itself (it opens above 513.5 ft).
 
 ### Starting by hand
 
-1. Panel 1: start the lube oil pump, the cooling water pump, the servo oil pump and the air compressor.
+1. Right cabinet: start the lube oil pump, the cooling water pump, the servo oil pump and the air compressor.
    Wait for servo oil and brake air to come up (the SERVO OIL and BRAKE AIR windows go dark).
-2. Panel 2: BRAKES to RELEASE.
+2. Left cabinet: BRAKES dial to RELEASE.
 3. Open the wicket gate to about 30 %. As speed passes 80 %, bring the gate back to 10 %
    (speed-no-load): the unit settles at 100 rpm. More gate overspeeds it (trip at 140 %).
-4. Panel 3: close 41 and raise the field with the firing-angle knob until GEN VOLTS reads 480.
-5. Panel 2: SYNCHROSCOPE on. The pointer turns once every 6 s. Close 52G while it is in the green
-   sector. Anywhere else, off speed or at the wrong voltage, it's an out-of-phase close and the unit trips.
+4. Close 41 and raise the field with the firing-angle dial until GEN VOLTS reads 480.
+5. SYNCHROSCOPE on. The pointer turns once every 6 s. Close 52G while it is in the green sector.
+   Anywhere else, off speed or at the wrong voltage, it's an out-of-phase close and the unit trips.
 6. Open the gate to load the unit (about 200 kW at 60 % gate). Keep it above 10 %, or the reverse-power
    relay opens 52G. Keep the field up, or loss of field trips 52G.
 
 To stop: close the gate to 10 %, turn 52G to TRIP, open 41, close the gate, and apply the brakes below 30 %.
-With PLC ON and AVR AUTO, steps 3 and 4 happen by themselves.
+With the PLC ON and the AVR on AUTO (middle cabinet), steps 3 and 4 happen by themselves.
 
 ## How the "math" works
 
@@ -111,9 +114,9 @@ texture lights) on its own. Light levels can be changed with
 2. In Half-Life, turn on Options → Content → *Allow custom addon content*.
 3. Open the console and type `map sablecreek`.
 
-Press USE (E) on switches; hold it on the handwheel and the firing-angle knob.
+Press USE (E) on switches and the brake dial; hold it on the wicket gate handwheel and the firing-angle dial.
 
-The map has 1,112 entities (1,105 once the lights are compiled in), so it needs the 25th-anniversary
+The map has 1,109 entities (1,102 once the lights are compiled in), so it needs the 25th-anniversary
 engine: its limit is 1,200, the old limit was 900. The variables only get counters for values something
 listens for, and needles step coarsely away from their normal readings, to stay under it.
 

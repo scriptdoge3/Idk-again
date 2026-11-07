@@ -2,10 +2,10 @@
 Sable Creek Unit 1 for plain Half-Life: the plant as entity logic.
 
 The unit is run by hand from 13 controls:
-  panel 1 (aux)        lube oil pump, cooling water pump, gate servo oil pump, brake air compressor
-  panel 2 (unit)       52G sync breaker, synchroscope switch, brake release, wicket gate trip (the emergency
-                       stop), wicket gate handwheel
-  panel 3 (exc / ann)  41 exciter field breaker, firing-angle knob, PLC and AVR selectors
+  left (unit control)  wicket gate trip (the emergency stop), synchroscope, 41 field and 52G sync breakers,
+                       firing-angle dial, wicket gate dial, brake dial
+  middle (annunciator) PLC and AVR breakers
+  right (auxiliaries)  lube oil pump, cooling water pump, gate servo oil pump, brake air compressor
 With the PLC on it runs the gate (speed off line, pond level on line); with the AVR on it runs the field.
 
 Every number is a game_counter variable. A clock made of two multi_managers runs the rules; each rule is
@@ -291,7 +291,7 @@ def _build(L):
         L.relay('reset', W[i], USE_OFF)
 
     # ---------------------------------------------------------- brakes
-    cs('r_br', 'hbr', 'BRAKES', ('APPLY', 'RELEASE'))
+    selector('r_br', 'hbr', 'BRAKES', ('APPLY', 'RELEASE'))            # a rotary dial
     L.rule('T1', ['hbr', 'a_ge4', 'brake'], 'brake=0')
     L.rule('T1', ['!hbr', '!brake'], 'brake=1')
     L.rule('T1', ['!a_ge4', '!brake'], 'brake=1')
@@ -316,7 +316,7 @@ def _build(L):
     L.rule('T2', lc + ['!l_ge12', 'el_neg', 'g_ge4'], 'g_dn')
     L.rule('T8', lc + ['l_ge14', '!g_max'], 'g_up')
     L.rule('T8', lc + ['!l_ge11', 'g_ge4'], 'g_dn')
-    selector('r_plc', 'plc', 'PLC GATE CONTROL', ('OFF', 'ON'))
+    cs('r_plc', 'plc', 'PLC', ('OFF', 'ON'))
     L.relay('r_plc_ev', W[14], USE_TOGGLE)
 
     # ----------------------------------------------------------- excitation
@@ -331,7 +331,7 @@ def _build(L):
     L.rule('TS2', ['avr', 'exc', '!cb', 'x_ge21'], 'x_dn')
     L.rule('TS2', ['avr', 'exc', 'cb', '!x_ge21'], 'x_up')
     L.rule('TS2', ['avr', 'exc', 'x_ge22'], 'x_dn')
-    selector('r_avr', 'avr', 'AVR', ('MAN', 'AUTO'))
+    cs('r_avr', 'avr', 'AVR', ('MAN', 'AUTO'))
     L.relay('r_avr_ev', W[15], USE_TOGGLE)
     # off line the volts follow the field, limited by speed; on line the grid holds them
     L.rule('T1', ['!cb', 'dvn_pos', 'dvx_pos', '!v_max'], 'v_up')
@@ -392,7 +392,6 @@ def _build(L):
     lamp('LP_cb', 'cb', ('red', 'green'))
     lamp('LP_brake', 'brake', ('red', 'green'))
     lamp('LP_exc', 'exc', ('red', 'green'))
-    lamp('LP_sg', 'sg_gt0', ('red', 'green'))
     for i, flg, lit_when in [(1, 'tr', 1), (4, 'o_ge4', 0), (6, 'bt_ge8', 1),
                              (8, 'a_ge4', 0), (9, 'brake', 1), (10, 'rz', 1), (11, 'l_ge14', 1), (12, 'l_ok', 0),
                              (13, 'sg_gt0', 1)]:

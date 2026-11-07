@@ -198,10 +198,11 @@ class Door:
         x0, y0 = self.P(u - r, v - r); x1, y1 = self.P(u + r, v + r)
         self.d.ellipse([x0, y0, x1, y1], fill=fill, outline=outline)
 
-    def escutcheon(self, u, v, pos):
-        self.ring(u, v, 2.6, ESC, outline=(90, 90, 86, 255))
-        text(self.d, self.img, (u * PPU, (v - 2.0) * PPU), pos[0], 0.85 * PPU, (20, 20, 20, 255))
-        text(self.d, self.img, ((u + 2.05) * PPU, v * PPU), pos[1], 0.85 * PPU, (20, 20, 20, 255), anchor='mm')
+    def escutcheon(self, u, v, pos, r=2.6):
+        # position labels just outside the plate, so the pointer never covers the one it points at
+        self.ring(u, v, r, ESC, outline=(90, 90, 86, 255))
+        text(self.d, self.img, (u * PPU, (v - r - 0.6) * PPU), pos[0], 0.85 * PPU, (20, 20, 20, 255))
+        text(self.d, self.img, ((u + r + 0.3) * PPU, v * PPU), pos[1], 0.85 * PPU, (20, 20, 20, 255), anchor='lm')
 
     def tape(self, u, v, w, h, s):
         x0, y0 = self.P(u - w / 2, v - h / 2); x1, y1 = self.P(u + w / 2, v + h / 2)
@@ -507,8 +508,8 @@ def build_panels(dev):
     lamps = {lm['name']: lm for lm in dev['lamps']}
     rots = {r['name']: r for r in dev['rots']}
     knobs = {k['name']: k for k in dev['knobs']}
-    doors = [Door(0, 'UNIT 1 - AUXILIARY SYSTEMS', '+CP1'), Door(1, 'UNIT 1 - TURBINE / GENERATOR', '+CP2'),
-             Door(2, 'UNIT 1 - EXCITATION / ANNUNCIATOR / SPILLWAY', '+CP3')]
+    doors = [Door(0, 'UNIT 1 - UNIT CONTROL', '+CP1'), Door(1, 'UNIT 1 - ANNUNCIATOR / PLC / AVR', '+CP2'),
+             Door(2, 'UNIT 1 - AUXILIARIES', '+CP3')]
     E = []
     ndial = [0]
 
@@ -555,15 +556,22 @@ def build_panels(dev):
         else:
             D.plate(u, v + 2.2, 5.4, 1.5 if '|' not in labels[0] else 2.2, labels[0], px=0.62)
 
-    def rot(ci, u, v, name):                       # maintained selector switch (bar knob)
+    def rot(ci, u, v, name, dial=False):
+        """Maintained rotary switch, 90 degrees clockwise: a bar knob, or a bigger dial with a white pointer."""
         r = rots[name]
         x, z = door_xy(ci, u, v)
-        doors[ci].escutcheon(u, v, r['pos'])
-        doors[ci].plate(u, v - 4.1, 7.6, 1.4, r['label'], px=0.8)
+        k = 1.4 if dial else 1.0
+        doors[ci].escutcheon(u, v, r['pos'], r=2.6 * k)
+        doors[ci].plate(u, v - 2.6 * k - 2.3, 7.6, 1.4, r['label'], px=0.8)
+        if dial:
+            world.append(prism(ngon(x, z, 1.5), -1.4, -0.5, 'y', 'sc_metal'))
+            place = lambda poly: [(x + px * k, z + pz * k) for px, pz in poly]
+            brushes = [prism(place(BAR), -2.6, -1.4, 'y', 'sc_knob'), prism(place(BAR_TIP), -2.6, -1.4, 'y', 'sc_white')]
+        else:
+            brushes = [Box(x - 0.45, -1.6, z - 1.7, x + 0.45, -0.6, z + 1.7, tex='sc_knob')]
         E.append({'classname': 'func_rot_button', 'targetname': name, 'target': r['target'], 'spawnflags': str(128 + 32),
                   'distance': '90', 'speed': '240', 'wait': '-1', 'sounds': '21',
-                  '_brushes': [Box(x - 0.45, -1.6, z - 1.7, x + 0.45, -0.6, z + 1.7, tex='sc_knob'),
-                               Box(x - 0.5, -1.6, z - 0.5, x + 0.5, -0.6, z + 0.5, tex='ORIGIN')]})
+                  '_brushes': brushes + [Box(x - 0.5, -1.6, z - 0.5, x + 0.5, -0.6, z + 0.5, tex='ORIGIN')]})
 
     def cs_switch(ci, u, v, name, plate=None):
         """Control switch: pistol grip, left position = pos[0] (green), right = pos[1] (red).
@@ -637,79 +645,71 @@ def build_panels(dev):
         br.append(prism(ngon(x, z, 1.0), -2.8, -0.8, 'y', 'sc_metal'))
         br.append(prism([(x - 0.45, z + R - 0.2), (x + 0.45, z + R - 0.2), (x + 0.45, z + R + 0.7), (x - 0.45, z + R + 0.7)], -4.2, -1.8, 'y', 'sc_red'))
         rotor(name, br, x, -1.5, z, distance=3600, speed=180)
-        doors[ci].plate(u, v - R - 1.7, 11, 1.4, label, px=0.8)
+        doors[ci].plate(u, v - R - 2.6, 11, 1.4, label, px=0.8)          # clear of the handle on the rim
 
     hw_fmt = lambda x: f'{x:g}'
 
-    # ------------------------------------------------------- cabinet 1: aux
+    # ------------------------------------------- left: unit control (every control for running the unit)
     D = doors[0]
-    D.section(1.5, 6, 53, 42, 'BEARING LUBE OIL - COOLING WATER')
-    gauge(0, 8, 18, 'LUBE OIL', [(0, 60, 20, 10, 2, None)], 'PSI', ptr='p_lube', red=(0, 20), xr=5)
-    gauge(0, 18, 18, 'COOLING WATER', [(0, 100, 20, 20, 5, None)], 'GPM', ptr='p_cw', red=(0, 35), xl=5, xr=5)
-    gauge(0, 28, 18, 'BEARING TEMP', [(20, 120, 20, 20, 5, None)], 'DEG C', ptr='p_bt', red=(100, 120), xl=5)
-    cs_switch(0, 8, 37, 'r_lp'); cs_switch(0, 18, 37, 'r_wp')        # each pump under its own gauge
-    D.tape(42, 28, 18, 6.2, 'RUN LUBE OIL AND|COOLING WATER|BEFORE ROLLING')
-    D.section(1.5, 50, 53, 43, 'GATE SERVO OIL - BRAKE AIR')
-    gauge(0, 8, 62, 'SERVO OIL', [(0, 400, 100, 100, 20, None)], 'PSI', ptr='p_opu', red=(0, 220), xr=5)
-    gauge(0, 18, 62, 'BRAKE AIR', [(0, 150, 50, 50, 10, None)], 'PSI', ptr='p_air', red=(0, 50), xl=5)
-    cs_switch(0, 34, 62, 'r_hp'); cs_switch(0, 47, 62, 'r_ac')
-    D.tape(14, 80, 22, 4.2, 'GATE TRIPS BELOW 220 PSI|BRAKES RELEASE ABOVE 50 PSI')
-    D.tape(41, 80, 22, 4.2, 'SPRING-APPLIED BRAKES|AIR HOLDS THEM OFF')
-
-    # ------------------------------------------- cabinet 2: turbine / generator
-    D = doors[1]
-    D.section(1.5, 6, 53, 26, 'GENERATOR 300 kVA 480 V 60 Hz 72 POLE')
-    gauge(1, 7, 19, 'GEN VOLTS', [(0, 600, 200, 100, 20, None)], 'VOLTS AC', ptr='p_volts', xr=5)
-    gauge(1, 17, 19, 'KILOWATTS', [(0, 320, 80, 80, 20, None), (0, 400, 200, 100, 50, None)], 'kW|AMPS INNER',
+    D.section(1.5, 5, 53, 33, 'GENERATOR - SYNCHRONIZING')
+    gauge(0, 7, 16, 'GEN VOLTS', [(0, 600, 200, 100, 20, None)], 'VOLTS AC', ptr='p_volts', xr=5)
+    gauge(0, 17, 16, 'KILOWATTS', [(0, 320, 80, 80, 20, None), (0, 400, 200, 100, 50, None)], 'kW|AMPS INNER',
           ptr='p_kw', xl=5, xr=5)
-    gauge(1, 27, 19, 'KILOVARS', [(-200, 200, 200, 100, 25, lambda x: f'{x:+g}' if x else '0')], 'kvar', ptr='p_kvar', xl=5)
-    cs_switch(1, 39, 21, 'r_ss')
-    lampw(1, 50, 11, 'LP_cb', ('CLOSED', 'OPEN', '52G BREAKER'))
-    cs_switch(1, 50, 21, 'r_52')
-    D.tape(44.5, 30, 15, 3.0, 'SYNC CHECK: SCOPE ON|CLOSE IN THE GREEN')
-    D.section(1.5, 34, 53, 26, 'TURBINE - SYNCHRONIZING')
-    gauge(1, 7, 47, 'SPEED', [(0, 150, 50, 25, 5, None)], 'RPM', ptr='p_speed', red=(140, 150), xr=5)
-    gauge(1, 17, 47, 'WICKET GATE', [(0, 100, 50, 25, 5, None), (0, 90, 30, 30, 10, None)], '% OPEN|CFS INNER', ptr='p_gate', xl=5, xr=5)
-    gauge(1, 27, 47, 'SPIRAL CASE', [(0, 30, 10, 5, 1, None)], 'PSI', ptr='p_scase', xl=5, xr=5)
-    gauge(1, 37, 47, 'VIBRATION', [(0, 20, 10, 5, 1, None)], 'MILS P-P', ptr='p_vib', red=(12, 20), xl=5, xr=6.4)
-    synchroscope(1, 49, 47)
+    gauge(0, 27, 16, 'KILOVARS', [(-200, 200, 200, 100, 25, lambda x: f'{x:+g}' if x else '0')], 'kvar', ptr='p_kvar',
+          xl=5, xr=7.3)
+    synchroscope(0, 41, 16)
     E.append({'classname': 'func_wall', 'targetname': 'SYNCLAMPS', 'rendermode': '2', 'renderamt': '255',
-              '_brushes': [front_box(1, 49, 57, 5, 2, -1.2, -0.5, '+0slmp')]})
-    D.plate(42, 57, 6, 1.0, 'SYNC LAMPS', px=0.62)
-    D.section(1.5, 62, 53, 31, 'UNIT CONTROL')
-    wheel_panel(1, 12, 72, 'k_gate', 'WICKET GATE - OPEN / CLOSE')
-    lampw(1, 12, 81, 'L_k_gate', ('OPEN', 'CLOSE', 'NEXT TURN'))
-    cs_switch(1, 29, 74, 'r_gt')
-    D.plate(29, 84.5, 13, 2.0, 'EMERGENCY STOP|AND LOCKOUT RESET', style='red', px=0.7)
-    lampw(1, 45, 66, 'LP_brake', ('APPL', 'REL', 'BRAKES'))
-    cs_switch(1, 45, 76, 'r_br')
-    D.tape(45, 87, 14, 3.4, 'APPLY BRAKES|BELOW 30 % SPEED')
+              '_brushes': [front_box(0, 51.5, 15, 5, 2, -1.2, -0.5, '+0slmp')]})
+    D.plate(51.5, 17.4, 5.4, 1.0, 'SYNC LAMPS', px=0.62)
+    cs_switch(0, 33, 31, 'r_ss')
+    cs_switch(0, 45, 31, 'r_52')
+    lampw(0, 52, 30, 'LP_cb', ('CLSD', 'OPEN', '52G'))
+    D.section(1.5, 40, 53, 25, 'TURBINE - WICKET GATE - BRAKES')
+    gauge(0, 7, 51, 'SPEED', [(0, 150, 50, 25, 5, None)], 'RPM', ptr='p_speed', red=(140, 150), xr=5)
+    gauge(0, 17, 51, 'WICKET GATE', [(0, 100, 50, 25, 5, None), (0, 90, 30, 30, 10, None)], '% OPEN|CFS INNER',
+          ptr='p_gate', xl=5)
+    wheel_panel(0, 32, 52, 'k_gate', 'WICKET GATE')
+    lampw(0, 32, 61, 'L_k_gate', ('OPEN', 'CLOSE', 'NEXT TURN'))
+    rot(0, 46, 52, 'r_br', dial=True)
+    lampw(0, 46, 60, 'LP_brake', ('APPL', 'REL'))
+    D.section(1.5, 67, 53, 27, 'EXCITATION - UNIT TRIP')
+    gauge(0, 8, 78, 'EXCITER FIELD', [(0, 5, 1, 1, 0.2, None), (0, 150, 50, 50, 10, None)], 'AMPS DC|VOLTS INNER', ptr='p_exc')
+    knob_panel(0, 22, 78, 'k_fa', 'FIRING ANGLE')
+    lampw(0, 22, 84.5, 'L_k_fa', ('RAISE', 'LOWER'))
+    lampw(0, 35, 70.5, 'LP_exc', ('ON', 'OFF', 'FIELD'))
+    cs_switch(0, 35, 78, 'r_exc')
+    cs_switch(0, 48, 79, 'r_gt')
+    D.plate(48, 89, 11, 1.6, 'EMERGENCY STOP', style='red', px=0.8)
 
-    # ------------------------- cabinet 3: excitation / annunciator / spillway
-    D = doors[2]
-    x0, y0 = door_xy(2, 4, 6)
-    W(x0 - 0.5, -0.9, DOOR_TOP - 31.5, door_xy(2, 52, 0)[0] + 0.5, -0.5, DOOR_TOP - 5.0, tex='sc_black')
+    # ------------------------------------------- middle: the annunciator, the PLC and the AVR, nothing else
+    D = doors[1]
+    W(door_xy(1, 0.5, 0)[0], -0.9, DOOR_TOP - 37.5, door_xy(1, 55.5, 0)[0], -0.5, DOOR_TOP - 4.5, tex='sc_black')
     for i, label in enumerate(ANN):
         c, r = i % 4, i // 4
-        u, v = 10 + c * 12, 9.5 + r * 6.2
+        u, v = 7.75 + c * 13.5, 9 + r * 8
         lit0 = dev.get('ann_init', {}).get(i, 0)
         t0, t1 = ann_textures(i, label, lit0)
         E.append({'classname': 'func_wall', 'targetname': f'A{i:02d}', 'rendermode': '2', 'renderamt': '255',
-                  '_brushes': [front_box(2, u, v, 11.2, 5.6, -1.4, -0.9, t0)]})
-    D.plate(28, 4.6, 16, 1.2, 'ANNUNCIATOR', px=0.8)
-    rot(2, 16, 37, 'r_plc'); rot(2, 40, 37, 'r_avr')
-    D.section(1.5, 42, 53, 20, 'THYRISTOR EXCITATION')
-    gauge(2, 8, 52, 'EXCITER FIELD', [(0, 5, 1, 1, 0.2, None), (0, 150, 50, 50, 10, None)], 'AMPS DC|VOLTS INNER', ptr='p_exc')
-    knob_panel(2, 22, 52, 'k_fa', 'FIRING ANGLE')
-    lampw(2, 22, 59, 'L_k_fa', ('RAISE', 'LOWER'))
-    cs_switch(2, 35, 52, 'r_exc')
-    lampw(2, 48, 47, 'LP_exc', ('ON', 'OFF', 'FIELD'))
-    D.tape(48, 55, 11, 4.2, 'AVR AUTO|HOLDS 480 V')
-    D.section(1.5, 64, 53, 29, 'SPILLWAY - POND LEVEL')
-    gauge(2, 8, 76, 'HEADWATER', [(509, 515, 1, 1, 0.25, hw_fmt)], 'EL FT', ptr='p_hw', red=(514, 515), xr=5)
-    gauge(2, 18, 76, 'SPILL GATE', [(0, 4, 1, 1, 0.25, None)], 'FT OPEN', ptr='p_spill', xl=5)
-    lampw(2, 34, 71, 'LP_sg', ('OPEN', 'CLOSED', 'SPILL GATE'))
-    D.tape(41, 82, 22, 6.2, 'SPILLWAY IS AUTOMATIC|OPENS ABOVE 513.5 FT|PLC ON: GATE HOLDS 513.0 FT')
+                  '_brushes': [front_box(1, u, v, 12.6, 7.0, -1.4, -0.9, t0)]})
+    cs_switch(1, 17, 52, 'r_plc')
+    cs_switch(1, 39, 52, 'r_avr')
+
+    # ------------------------------------------- right: auxiliaries (the pumps and their gauges)
+    D = doors[2]
+    D.section(1.5, 5, 53, 35, 'LUBE OIL - COOLING WATER - BEARINGS')
+    gauge(2, 8, 16, 'LUBE OIL', [(0, 60, 20, 10, 2, None)], 'PSI', ptr='p_lube', red=(0, 20), xr=5)
+    gauge(2, 18, 16, 'COOLING WATER', [(0, 100, 20, 20, 5, None)], 'GPM', ptr='p_cw', red=(0, 35), xl=5, xr=5)
+    gauge(2, 28, 16, 'BEARING TEMP', [(20, 120, 20, 20, 5, None)], 'DEG C', ptr='p_bt', red=(100, 120), xl=5, xr=5)
+    gauge(2, 38, 16, 'VIBRATION', [(0, 20, 10, 5, 1, None)], 'MILS P-P', ptr='p_vib', red=(12, 20), xl=5)
+    cs_switch(2, 8, 31, 'r_lp'); cs_switch(2, 18, 31, 'r_wp')         # each pump under its own gauge
+    D.section(1.5, 42, 53, 32, 'GATE SERVO OIL - BRAKE AIR - SPIRAL CASE')
+    gauge(2, 8, 53, 'SERVO OIL', [(0, 400, 100, 100, 20, None)], 'PSI', ptr='p_opu', red=(0, 220), xr=5)
+    gauge(2, 18, 53, 'BRAKE AIR', [(0, 150, 50, 50, 10, None)], 'PSI', ptr='p_air', red=(0, 50), xl=5, xr=5)
+    gauge(2, 28, 53, 'SPIRAL CASE', [(0, 30, 10, 5, 1, None)], 'PSI', ptr='p_scase', xl=5)
+    cs_switch(2, 8, 67, 'r_hp'); cs_switch(2, 18, 67, 'r_ac')
+    D.section(1.5, 76, 53, 18, 'POND')
+    gauge(2, 8, 86, 'HEADWATER', [(509, 515, 1, 1, 0.25, hw_fmt)], 'EL FT', ptr='p_hw', red=(514, 515), xr=5)
+    gauge(2, 18, 86, 'SPILL GATE', [(0, 4, 1, 1, 0.25, None)], 'FT OPEN', ptr='p_spill', xl=5)
 
     # door tiles -> world brushes
     for ci, Dr in enumerate(doors):
@@ -768,8 +768,8 @@ def main():
     build_room()
     panel_ents = build_panels(dev)
     # sounds placed in the room
-    pos = {'s_turb': '0 10 20', 's_water': '0 20 10', 's_hum': '0 10 60', 's_horn': '50 10 116', 's_pump': '-60 10 20',
-           's_brk': '0 -2 60', 's_relay': '50 -2 80'}
+    pos = {'s_turb': '0 10 20', 's_water': '0 20 10', 's_hum': '0 10 60', 's_horn': '0 10 116', 's_pump': '60 10 20',
+           's_brk': '-60 -2 80', 's_relay': '0 -2 90'}
     snd = []
     for s in dev['sounds']:
         sf = 16 | (0 if s['loop'] else 32) | 4       # start silent, medium radius
