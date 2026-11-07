@@ -6,5 +6,5 @@ cd "$(dirname "$0")/out"
 "$TOOLS/sdHLCSG" -wadinclude sablecreek sablecreek
 "$TOOLS/sdHLBSP" sablecreek
 "$TOOLS/sdHLVIS" -full sablecreek
-"$TOOLS/sdHLRAD" -extra -lights lights.rad sablecreek
+"$TOOLS/sdHLRAD" -extra sablecreek
 echo "Done: out/sablecreek.bsp"

@@ -36,20 +36,25 @@ stop, E-stop and oil-pump failure through it.
 
 ## Building
 
+A compiled map is already included: `out/sablecreek.bsp`, and `sablecreek_valve_addon.zip` with the
+map and sounds in the right folders. To rebuild it:
+
 ```
-python3 build.py        # writes out/sablecreek.map, .wad, lights.rad and out/sound/sablecreek/*.wav
+python3 build.py        # writes out/sablecreek.map, .wad, .rad and out/sound/sablecreek/*.wav
 ```
 
 Then compile with SDHLT or VHLT: `compile.bat` (Windows) or `compile.sh` (Linux). Set `TOOLS`
 to the folder that holds the compile tools first. The textures are embedded in the .bsp
-(`-wadinclude`), so the WAD isn't needed to play.
+(`-wadinclude`), so the WAD isn't needed to play. RAD picks up `sablecreek.rad` (the ceiling
+texture lights) on its own. Light levels can be changed with
+`SC_LIGHTS="texlight front back panel" python3 build.py` (default `200 130 90 60`).
 
 ## Installing and playing
 
-1. Copy `out/sablecreek.bsp` to `Steam/steamapps/common/Half-Life/valve_addon/maps/`.
-2. Copy the folder `out/sound/sablecreek` to `Half-Life/valve_addon/sound/`.
-3. In Half-Life, turn on Options → Content → *Allow custom addon content*.
-4. Open the console and type `map sablecreek`.
+1. Unzip `sablecreek_valve_addon.zip` into `Steam/steamapps/common/Half-Life/`, so the map lands in
+   `valve_addon/maps/` and the sounds in `valve_addon/sound/sablecreek/`.
+2. In Half-Life, turn on Options → Content → *Allow custom addon content*.
+3. Open the console and type `map sablecreek`.
 
 The map has about 1,080 entities, so it needs the 25th-anniversary engine (its limit is 1,200; the old
 limit was 900).
@@ -66,6 +71,9 @@ Press USE (E) on buttons and selector switches:
 
 ## Status
 
-Not compiled or played yet. The .map, WAD and sounds are generated and the brush layout was checked in a
-browser preview. The entity logic was checked in `test_plant.py`'s simulator, which follows the Half-Life
-SDK's entity code, not in the engine.
+Compiled with SDHLT 1.3.1 (CSG, BSP, full VIS, RAD -extra) with no warnings or errors. The compiled
+.bsp was checked outside the game: entity and model counts, pointer travel from the compiled model bounds
+(14 units on every meter), lightmap levels, and a render of the BSP with its lightmaps.
+
+It has not been played in Half-Life yet. The entity logic was checked in `test_plant.py`'s simulator,
+which follows the Half-Life SDK's entity code, not in the engine itself.

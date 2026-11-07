@@ -6,7 +6,7 @@ cd /d "%~dp0out"
 "%TOOLS%\sdHLCSG.exe" -wadinclude sablecreek sablecreek || goto :fail
 "%TOOLS%\sdHLBSP.exe" sablecreek || goto :fail
 "%TOOLS%\sdHLVIS.exe" -full sablecreek || goto :fail
-"%TOOLS%\sdHLRAD.exe" -extra -lights lights.rad sablecreek || goto :fail
+"%TOOLS%\sdHLRAD.exe" -extra sablecreek || goto :fail
 echo.
 echo Done: out\sablecreek.bsp
 goto :eof

@@ -1,11 +1,11 @@
 """
 Build Sable Creek Hydro for plain Half-Life (GoldSrc).
 
-  python3 build.py            -> out/sablecreek.map, out/sablecreek.wad, out/lights.rad,
+  python3 build.py            -> out/sablecreek.map, out/sablecreek.wad, out/sablecreek.rad,
                                  out/sound/sablecreek/*.wav
 Then compile with any Half-Life compile tools (SDHLT / VHLT):
   hlcsg -wadinclude sablecreek sablecreek ; hlbsp sablecreek ; hlvis sablecreek ;
-  hlrad -lights lights.rad -extra sablecreek
+  hlrad -extra sablecreek
 and run  python3 build.py --patch out/sablecreek.bsp  to set pointer travel from the
 compiled model bounds (optional, the .map already assumes exact bounds).
 
@@ -26,6 +26,7 @@ PPU = 8                               # door art texels per unit
 CX0 = [-90, -30, 30]                  # cabinet left edges
 DOOR_TOP, DOOR_H, DOOR_W = 105, 96, 56
 TEX = {}
+TEXLIGHT, LIGHT_A, LIGHT_B, LIGHT_C = (int(x) for x in os.environ.get('SC_LIGHTS', '200 130 90 60').split())
 R = random.Random(7)
 
 
@@ -389,9 +390,9 @@ def build_room():
         W(x0 + 55.5, -1.6, 50, x0 + 56.6, -0.5, 60, tex='sc_metal')
     # lights
     for x in (-80, 0, 80):
-        ents.append({'classname': 'light', 'origin': f'{x} -60 130', '_light': '255 244 226 260'})
-        ents.append({'classname': 'light', 'origin': f'{x} -160 130', '_light': '255 244 226 200'})
-    ents.append({'classname': 'light', 'origin': '0 -30 100', '_light': '255 246 232 120'})
+        ents.append({'classname': 'light', 'origin': f'{x} -95 132', '_light': f'255 244 226 {LIGHT_A}'})
+        ents.append({'classname': 'light', 'origin': f'{x} -160 130', '_light': f'255 244 226 {LIGHT_B}'})
+    ents.append({'classname': 'light', 'origin': '0 -30 100', '_light': f'255 246 232 {LIGHT_C}'})
     ents.append({'classname': 'info_player_start', 'origin': '0 -185 36', 'angle': '90'})
 
 
@@ -467,7 +468,7 @@ def build_panels(dev):
         E.append({'classname': 'func_rot_button', 'targetname': name, 'target': r['target'], 'spawnflags': str(128 + 32),
                   'distance': '90', 'speed': '240', 'wait': '-1', 'sounds': '21',
                   '_brushes': [Box(x - 0.45, -1.6, z - 1.7, x + 0.45, -0.6, z + 1.7, tex='sc_knob'),
-                               Box(x - 0.25, -0.6, z - 0.25, x + 0.25, -0.5, z + 0.25, tex='ORIGIN')]})
+                               Box(x - 0.5, -1.6, z - 0.5, x + 0.5, -0.6, z + 0.5, tex='ORIGIN')]})
 
     # ------------------------------------------------------- cabinet 1: aux
     D = doors[0]
@@ -590,7 +591,7 @@ def build_panels(dev):
     r = rots['r_pfail']
     E.append({'classname': 'func_rot_button', 'targetname': 'r_pfail', 'target': r['target'], 'spawnflags': '32', 'distance': '90',
               'speed': '240', 'wait': '-1', 'sounds': '21',
-              '_brushes': [Box(103.3, -166.45, 44, 106.7, -165.55, 45.2, tex='sc_knob'), Box(104.75, -166.25, 44, 105.25, -165.75, 44.2, tex='ORIGIN')]})
+              '_brushes': [Box(103.3, -166.45, 44, 106.7, -165.55, 45.2, tex='sc_knob'), Box(104.5, -166.5, 44, 105.5, -165.5, 45, tex='ORIGIN')]})
     return E
 
 
@@ -654,7 +655,7 @@ def main():
     all_ents = ents + panel_ents + snd + logic
     write_map(os.path.join(OUT, 'sablecreek.map'), world, all_ents)
     write_wad(os.path.join(OUT, 'sablecreek.wad'), TEX)
-    open(os.path.join(OUT, 'lights.rad'), 'w').write('sc_light 255 244 226 700\n')
+    open(os.path.join(OUT, 'sablecreek.rad'), 'w').write(f'sc_light 255 244 226 {TEXLIGHT}\n')
     make_sounds(os.path.join(OUT, 'sound', 'sablecreek'))
     brush_models = sum(1 for e in all_ents if e.get('_brushes'))
     print(f'{len(all_ents)} entities ({len(logic)} logic, {brush_models} brush models, {len(snd)} sounds), '
