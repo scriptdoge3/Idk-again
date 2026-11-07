@@ -28,6 +28,7 @@ Difference variables (only their sign is needed):
   dvx = x - v             off line, the volts follow the field
   el  = river - g - 3 sg  pond balance
 """
+import math
 from hlogic import Logic, USE_ON, USE_OFF, USE_TOGGLE, vname
 
 # runner equilibrium speed (5 % steps) for each gate step: speed-no-load at 10 % gate, runaway near 175 %
@@ -222,6 +223,8 @@ def _build(L):
     display('g', ptr('p_vib'), lambda x: VIB[x] / 20, conds=['cb'])
     display('v', ptr('p_volts'), lambda x: x / 25, vals=[0, 4, 8, 12, 16, 18, 19, 20, 21, 22, 24])
     display('x', ptr('p_exc'), lambda x: x / 24, vals=list(range(0, 18, 2)) + list(range(18, 25)))
+    # thyristor firing angle: field current goes as cos(alpha); 90 deg = no field, 0 deg = full field (x = 24)
+    display('x', ptr('p_fa'), lambda x: math.degrees(math.acos(x / 24)) / 90, vals=list(range(0, 18, 2)) + list(range(18, 25)))
     display('x', ptr('p_kvar'), lambda x: 0.5 + (x - 20) / 16, vals=[12, 14, 16, 18, 19, 20, 21, 22, 24], conds=['cb'])
     display('o', ptr('p_opu'), lambda x: (200 + 10 * x) / 400)
     display('a', ptr('p_air'), lambda x: 12.5 * x / 150)
@@ -401,7 +404,7 @@ def _build(L):
         dev['ann_init'][i] = 1 - fi[flg]
 
     # --------------------------------------------------------------- init
-    L.display('init', 'p_kvar', 0.5); L.display('init', 'p_vib', 0.02)
+    L.display('init', 'p_kvar', 0.5); L.display('init', 'p_vib', 0.02); L.display('init', 'p_fa', 1.0)
     for var, p, fn in [('l', 'p_hw', lambda x: (1 + 0.25 * x) / 6), ('sg', 'p_spill', lambda x: x / 8),
                        ('h', 'p_scase', lambda x: (14.5 + x) / 30), ('bt', 'p_bt', lambda x: x / 10)]:
         L.display('init', p, fn(INIT[var]))

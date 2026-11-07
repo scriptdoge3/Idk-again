@@ -666,7 +666,8 @@ def build_panels(dev):
     gauge(0, 17, ROW2, 'WICKET GATE', [(0, 100, 50, 25, 5, None), (0, 90, 30, 30, 10, None)], '% OPEN|CFS INNER',
           ptr='p_gate', xl=5, xr=5)
     gauge(0, 27, ROW2, 'EXCITER FIELD', [(0, 5, 1, 1, 0.2, None), (0, 150, 50, 50, 10, None)], 'AMPS DC|VOLTS INNER',
-          ptr='p_exc', xl=5)
+          ptr='p_exc', xl=5, xr=5)
+    gauge(0, 37, ROW2, 'FIRING ANGLE', [(0, 90, 30, 15, 5, None)], 'DEGREES|LOWER = MORE FIELD', ptr='p_fa', xl=5)
     D.section(1.5, 40, 53, 44, 'CONTROLS')
     # breakers, with their lamps under the nameplates
     cs_switch(0, 8, CTL, 'r_ss')

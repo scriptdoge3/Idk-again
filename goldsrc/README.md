@@ -16,7 +16,7 @@ the breakers and dials in a band across the middle.
 | Left | SYNCHROSCOPE | Switches the synchroscope and the sync check on. |
 | Left | 52G SYNC BREAKER | Closes the generator onto the grid. Close it while the synchroscope pointer is in the green sector (the sync lamps go dark there). |
 | Left | 41 FIELD BREAKER | Connects the thyristor exciter. Opening it lets the field decay. |
-| Left | FIRING ANGLE dial | Sets the field (manual excitation). Off line it sets the voltage; on line it sets the kilovars. |
+| Left | FIRING ANGLE dial | Sets the field (manual excitation). Off line it sets the voltage; on line it sets the kilovars. The FIRING ANGLE gauge above shows the thyristor angle: field goes as cos α, so 90° is no field, about 34° is rated field and 0° is full field. |
 | Left | WICKET GATE dial (handwheel) | Opens or closes the gate (hold USE; each grab turns the other way, see the NEXT TURN lamps). |
 | Left | BRAKES dial | APPLY / RELEASE. Apply them below 30 % speed when stopping. |
 | Middle | PLC | ON: the PLC runs the gate: it brings the unit up to speed once the brakes are released, and on line it holds the pond at 513.0 ft. |
@@ -117,7 +117,7 @@ texture lights) on its own. Light levels can be changed with
 
 Press USE (E) on switches and the brake dial; hold it on the wicket gate handwheel and the firing-angle dial.
 
-The map has 1,109 entities (1,102 once the lights are compiled in), so it needs the 25th-anniversary
+The map has 1,128 entities (1,121 once the lights are compiled in), so it needs the 25th-anniversary
 engine: its limit is 1,200, the old limit was 900. The variables only get counters for values something
 listens for, and needles step coarsely away from their normal readings, to stay under it.
 
