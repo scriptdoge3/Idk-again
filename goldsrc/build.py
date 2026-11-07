@@ -14,7 +14,7 @@ import math, os, sys, random
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 from hlfiles import Box, Poly, prism, ngon, face_map, face_map_up, write_map, write_wad, write_wav
-from plant import build as build_logic, ANN, KW
+from plant import build as build_logic, ANN, KW, TRIP_WINDOWS
 
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'out')
 FONT_B = '/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf'
@@ -132,7 +132,6 @@ def room_textures():
     d.line([(128, 90), (128, 78)], fill=(20, 20, 20, 255), width=2); d.line([(128, 38), (128, 26)], fill=(20, 20, 20, 255), width=2)
     text(d, im, (190, 58), '500 kVA 480/12470', 8, (20, 20, 20, 255)); text(d, im, (128, 186), '300 kVA  480 V  72 POLE  100 RPM', 8, (20, 20, 20, 255))
     TEX['sc_sld'] = im.convert('RGB')
-    # instructor console top (drawn later once buttons are placed)
 
 
 # =================================================================== door art
@@ -266,7 +265,7 @@ def lamp_textures(lm):
 
 def ann_textures(i, label, lit0):
     names = (f'+0an{i:02d}', f'+aan{i:02d}')
-    trip = i < 5 or i in (8, 15)
+    trip = i in TRIP_WINDOWS
     for frame in (0, 1):
         lit = (frame == 1) != bool(lit0)
         im = Image.new('RGBA', (96, 48), (0, 0, 0, 255))
@@ -281,28 +280,25 @@ def ann_textures(i, label, lit0):
 
 
 def synchro_textures():
-    def face(angle):
-        im = Image.new('RGBA', (64, 64), (18, 18, 18, 255))
-        d = ImageDraw.Draw(im)
-        d.ellipse([3, 3, 60, 60], fill=(240, 236, 224, 255))
-        for k in range(12):
-            a = k / 12 * 2 * math.pi
-            d.line([(32 + 26 * math.sin(a), 32 - 26 * math.cos(a)), (32 + 22 * math.sin(a), 32 - 22 * math.cos(a))], fill=(20, 20, 20, 255), width=2)
-        d.polygon([(32, 4), (29, 10), (35, 10)], fill=(190, 30, 20, 255))
-        text(d, im, (18, 40), 'SLOW', 6, (20, 20, 20, 255)); text(d, im, (46, 40), 'FAST', 6, (20, 20, 20, 255))
-        d.line([(32, 32), (32 + 24 * math.sin(angle), 32 - 24 * math.cos(angle))], fill=(200, 30, 20, 255), width=3)
-        d.ellipse([29, 29, 35, 35], fill=(30, 30, 30, 255))
-        return im.convert('RGB')
-    TEX['+0sync'] = face(0)
-    for k, c in enumerate('abcdefghij'):
-        TEX[f'+{c}sync'] = face(k / 10 * 2 * math.pi)
-    TEX['+0slmp'] = Image.new('RGB', (80, 32), (26, 26, 26))
-    d = ImageDraw.Draw(TEX['+0slmp']); lens(d, (0, 0, 31, 31), LENS['white'][0], False); lens(d, (48, 0, 79, 31), LENS['white'][0], False)
-    for k, c in enumerate('abcdefghij'):
+    """Synchroscope dial (black, like the gauges; the pointer is a beam) and the dark-lamp sync lamps."""
+    S, c = 128, 64
+    P = lambda a, r: (c + r * math.sin(a), c - r * math.cos(a))
+    im = Image.new('RGBA', (S, S), (17, 17, 18, 255)); d = ImageDraw.Draw(im)
+    cream = (236, 230, 210, 255)
+    d.pieslice([c - 56, c - 56, c + 56, c + 56], -120, -60, fill=(30, 80, 40, 255))        # in-phase window, +-30 deg
+    for k in range(12):
+        a = k / 12 * 2 * math.pi
+        d.line([P(a, 56), P(a, 47 if k % 3 == 0 else 51)], fill=cream, width=3 if k % 3 == 0 else 2)
+    text(d, im, (c - 30, c + 26), 'SLOW', 9, cream); text(d, im, (c + 30, c + 26), 'FAST', 9, cream)
+    d.arc([c - 40, c - 40, c + 40, c + 40], 120, 160, fill=cream, width=2)
+    d.arc([c - 40, c - 40, c + 40, c + 40], 20, 60, fill=cream, width=2)
+    text(d, im, (c, c + 42), 'SYNCHROSCOPE', 7.5, cream)
+    d.ellipse([1, 1, S - 2, S - 2], outline=(160, 162, 158, 255), width=3)
+    TEX['sc_sync'] = im.convert('RGB')
+    for frame, lit in (('+0slmp', False), ('+aslmp', True)):
         im = Image.new('RGB', (80, 32), (26, 26, 26)); d = ImageDraw.Draw(im)
-        lit = k < 5
         lens(d, (0, 0, 31, 31), LENS['white'][1 if lit else 0], lit); lens(d, (48, 0, 79, 31), LENS['white'][1 if lit else 0], lit)
-        TEX[f'+{c}slmp'] = im
+        TEX[frame] = im
 
 
 def button_textures():
@@ -509,7 +505,6 @@ BAR_TIP = [(-0.5, 1.1), (0.5, 1.1), (0.4, 2.0), (-0.4, 2.0)]
 # =================================================================== panels
 def build_panels(dev):
     lamps = {lm['name']: lm for lm in dev['lamps']}
-    buttons = {b['name']: b for b in dev['buttons']}
     rots = {r['name']: r for r in dev['rots']}
     knobs = {k['name']: k for k in dev['knobs']}
     doors = [Door(0, 'UNIT 1 - AUXILIARY SYSTEMS', '+CP1'), Door(1, 'UNIT 1 - TURBINE / GENERATOR', '+CP2'),
@@ -560,17 +555,6 @@ def build_panels(dev):
         else:
             D.plate(u, v + 2.2, 5.4, 1.5 if '|' not in labels[0] else 2.2, labels[0], px=0.62)
 
-    def button(ci, u, v, name):                    # only the emergency stop is still a push button
-        b = buttons[name]
-        x, z = door_xy(ci, u, v)
-        size, depth, travel = 2.4, 2.0, 1.0
-        W(x - size / 2 - 0.5, -0.8, z - size / 2 - 0.5, x + size / 2 + 0.5, -0.5, z + size / 2 + 0.5, tex='sc_metal')
-        E.append({'classname': 'func_button', 'targetname': name, 'target': b['target'], 'angle': '90', 'speed': '40',
-                  'lip': f'{depth - travel:g}', 'wait': '0.6', 'sounds': '11', 'locked_sound': '10',
-                  '_brushes': [Box(x - size / 2, -0.8 - depth, z - size / 2, x + size / 2, -0.8, z + size / 2, tex='sc_estop')]})
-        doors[ci].ring(u, v, 4.2, (233, 182, 28, 255))
-        doors[ci].plate(u, v - 5.2, 9, 1.5, 'EMERGENCY STOP', style='red', px=0.85)
-
     def rot(ci, u, v, name):                       # maintained selector switch (bar knob)
         r = rots[name]
         x, z = door_xy(ci, u, v)
@@ -581,37 +565,50 @@ def build_panels(dev):
                   '_brushes': [Box(x - 0.45, -1.6, z - 1.7, x + 0.45, -0.6, z + 1.7, tex='sc_knob'),
                                Box(x - 0.5, -1.6, z - 0.5, x + 0.5, -0.6, z + 0.5, tex='ORIGIN')]})
 
-    def cs_switch(ci, u, v, name):
-        """Breaker control switch: pistol grip, left position = pos[0] (green), right = pos[1] (red).
+    def cs_switch(ci, u, v, name, plate=None):
+        """Control switch: pistol grip, left position = pos[0] (green), right = pos[1] (red).
         func_rot_button about the Y axis turns clockwise seen from the front: -45 -> +45 degrees."""
         r = rots[name]
         x, z = door_xy(ci, u, v); D = doors[ci]
-        D.ring(u, v, 5.0, ESC, outline=(90, 90, 86, 255))
+        D.ring(u, v, 4.4, (233, 182, 28, 255) if r.get('grip') == 'red' else ESC, outline=(90, 90, 86, 255))
         for sgn, lab, col in ((-1, r['pos'][0], (16, 110, 50, 255)), (1, r['pos'][1], (170, 26, 18, 255))):
-            text(D.d, D.img, ((u + sgn * 2.95) * PPU, (v - 2.75) * PPU), lab, 0.72 * PPU, col)
-        D.plate(u, v + 6.0, min(10.5, 0.55 * len(r['label']) + 1.6), 1.4, r['label'], px=0.8)
+            text(D.d, D.img, ((u + sgn * 2.45) * PPU, (v - 2.45) * PPU), lab, 0.6 * PPU, col)
+        lab = r['label']
+        D.plate(*(plate or (u, v + 5.6)), min(11.5, 0.5 * len(lab) + 1.6), 1.4, lab, px=0.75)
         world.append(prism(ngon(x, z, 1.35), -1.3, -0.5, 'y', 'sc_metal'))
         E.append({'classname': 'func_rot_button', 'targetname': name, 'target': r['target'], 'spawnflags': str(128 + 32),
                   'distance': str(r['distance']), 'speed': str(r['speed']), 'wait': '-1', 'sounds': '21',
-                  '_brushes': [prism(turned(PISTOL, x, z, 45), -2.9, -1.3, 'y', 'sc_knob'),
+                  '_brushes': [prism(turned(PISTOL, x, z, 45), -2.9, -1.3, 'y', 'sc_red' if r.get('grip') == 'red' else 'sc_knob'),
                                Box(x - 0.5, -2.6, z - 0.5, x + 0.5, -1.6, z + 0.5, tex='ORIGIN')]})
 
-    def twist_switch(ci, u, v, name, plate_at=None):
-        """Spring-return twist switch: turns 45 degrees clockwise, fires, springs back."""
-        r = rots[name]
-        x, z = door_xy(ci, u, v); D = doors[ci]
-        D.ring(u, v, 3.4, ESC, outline=(90, 90, 86, 255))
-        rr = 2.6 * PPU
-        D.d.arc([u * PPU - rr, v * PPU - rr, u * PPU + rr, v * PPU + rr], -90, -45, fill=(20, 20, 20, 255), width=2)
-        text(D.d, D.img, ((u + 1.75) * PPU, (v - 1.95) * PPU), r['pos'][1], 0.62 * PPU, (20, 20, 20, 255))
-        pu, pv = plate_at or (u, v + 4.4)
-        D.plate(pu, pv, max(6.0, 0.55 * len(r['label']) + 1.6), 1.4, r['label'], px=0.8)
-        world.append(prism(ngon(x, z, 1.0), -1.2, -0.5, 'y', 'sc_metal'))
-        E.append({'classname': 'func_rot_button', 'targetname': name, 'target': r['target'], 'spawnflags': '128',
-                  'distance': str(r['distance']), 'speed': str(r['speed']), 'wait': str(r['wait']), 'sounds': '21',
-                  '_brushes': [prism(turned(BAR, x, z, 0), -2.4, -1.2, 'y', 'sc_knob'),
-                               prism(turned(BAR_TIP, x, z, 0), -2.4, -1.2, 'y', 'sc_white'),
-                               Box(x - 0.5, -2.3, z - 0.5, x + 0.5, -1.3, z + 0.5, tex='ORIGIN')]})
+    def synchroscope(ci, u, v):
+        """Round dial with a full-turn pointer: a beam to a func_train that circles a hexagon of path_corners
+        hidden in the bezel. The corners at 11 and 1 o'clock fire the in-phase window."""
+        sc = dev['scope']
+        x, z = door_xy(ci, u, v)
+        world.extend(holed_plate(x, z, x - 5.7, x + 6.4, z - GPH, z + GPH, -1.7, -0.5))
+        W(x - GR - 0.3, -0.65, z - GR - 0.3, x + GR + 0.3, 0, z + GR + 0.3, tex='sc_black',
+          faces={FRONT: ('sc_sync', face_map(x - GR, z + GR, DIAL / (2 * GR)))})
+        world.append(prism(ngon(x, z, 0.55), -1.45, -0.65, 'y', 'sc_knob'))
+        n = len(sc['corners'])
+        for i, (ang, msg) in enumerate(sc['corners']):
+            a = math.radians(ang)
+            e = {'classname': 'path_corner', 'targetname': f'scc{i}', 'target': f'scc{(i + 1) % n}',
+                 'origin': f'{x + sc["R"] * math.sin(a):.3f} -1 {z + sc["R"] * math.cos(a):.3f}'}
+            if msg:
+                e['message'] = msg
+            E.append(e)
+        # the train's brushes are symmetric about its origin, so func_train puts the origin itself on each corner
+        E.append({'classname': 'func_train', 'targetname': 'SCOPE', 'target': 'scc0', 'speed': f'{sc["speed"]:g}',
+                  'rendermode': '2', 'renderamt': '0',
+                  '_brushes': [Box(x - 0.25, -2.3, z - 0.25, x + 0.25, -1.8, z + 0.25, tex='sc_black'),
+                               Box(x - 0.25, -0.2, z - 0.25, x + 0.25, 0.3, z + 0.25, tex='sc_black'),
+                               Box(x - 0.5, -1.5, z - 0.5, x + 0.5, -0.5, z + 0.5, tex='ORIGIN')]})
+        E.append({'classname': 'env_beam', 'targetname': 'nd_SCOPE', 'LightningStart': 'nd_SCOPE', 'LightningEnd': 'SCOPE',
+                  'origin': f'{x:g} -1 {z:g}', 'texture': 'sprites/laserbeam.spr', 'BoltWidth': '5', 'NoiseAmplitude': '0',
+                  'life': '0', 'StrikeTime': '0', 'damage': '0', 'TextureScroll': '0', 'framestart': '0', 'renderamt': '255',
+                  'rendercolor': '255 70 40', 'spawnflags': '1'})
+        doors[ci].plate(u, v + GPH + 1.3, 9, 1.4, 'SYNCHROSCOPE', px=0.8)
 
     def rotor(name, brushes, x, y, z, yaw=False, distance=3600, speed=120):
         """momentary_rot_button: hold USE to turn; the origin cube sits on whole units (hlcsg truncates it)."""
@@ -646,62 +643,48 @@ def build_panels(dev):
 
     # ------------------------------------------------------- cabinet 1: aux
     D = doors[0]
-    D.section(1.5, 6, 53, 27, 'GOVERNOR OIL PRESSURE UNIT')
-    gauge(0, 8, 19, 'PRESS TANK', [(0, 400, 100, 100, 20, None)], 'PSI', ptr='p_opu', red=(0, 250))
-    lampw(0, 21, 12, 'LP_p1', ('RUN', 'STOP', 'OIL PUMP 1 (LEAD)'))
-    lampw(0, 32, 12, 'LP_p2', ('RUN', 'STOP', 'OIL PUMP 2 (LAG)'))
-    lampw(0, 43, 12, 'L_opuok', ('OIL PRESS|NORMAL',))
-    twist_switch(0, 21, 24, 'r_air')
-    D.tape(39, 24.5, 13, 4.2, 'LEAD PUMP 270-300|LAG PUMP 250')
-    D.section(1.5, 35, 53, 27, 'COOLING WATER - HP LIFT - BRAKES')
-    gauge(0, 8, 48, 'COOLING WATER', [(0, 100, 20, 20, 5, None)], 'GPM', ptr='p_cw', red=(0, 35), xr=5)
-    gauge(0, 18, 48, 'HP LIFT OIL', [(0, 3000, 1000, 500, 100, None)], 'PSI', ptr='p_lift', xl=5)
-    lampw(0, 29, 41, 'LP_cw', ('RUN', 'STOP', 'CW PUMP'))
-    lampw(0, 41, 41, 'LP_lift', ('RUN', 'STOP', 'LIFT PUMP'))
-    lampw(0, 29, 53, 'LP_brake', ('APPL', 'REL', 'AIR BRAKES'))
-    D.tape(43, 54, 12, 4.2, 'BRAKES ON BELOW|25 % SPEED')
-    D.section(1.5, 64, 53, 20, 'STATION SERVICE - 125 VDC')
-    gauge(0, 8, 74, 'STATION 480 V', [(0, 600, 200, 100, 20, None)], 'VOLTS AC', static=0.8, xr=5)
-    gauge(0, 18, 74, '125 V BATTERY', [(0, 150, 50, 25, 5, None)], 'VOLTS DC', red=(0, 115), static=132 / 150, xl=5)
-    D.plate(38, 70, 20, 4.6, 'DANGER|480 VAC  125 VDC INSIDE', style='red', px=1.0)
-    D.plate(38, 77, 20, 3, 'DE-ENERGIZE BEFORE OPENING', style='yel', px=0.8)
+    D.section(1.5, 6, 53, 42, 'BEARING LUBE OIL - COOLING WATER')
+    gauge(0, 8, 18, 'LUBE OIL', [(0, 60, 20, 10, 2, None)], 'PSI', ptr='p_lube', red=(0, 20), xr=5)
+    gauge(0, 18, 18, 'COOLING WATER', [(0, 100, 20, 20, 5, None)], 'GPM', ptr='p_cw', red=(0, 35), xl=5, xr=5)
+    gauge(0, 28, 18, 'BEARING TEMP', [(20, 120, 20, 20, 5, None)], 'DEG C', ptr='p_bt', red=(100, 120), xl=5)
+    D.tape(45, 18, 15, 6.2, 'ONE LUBE PUMP AND|ONE WATER PUMP|BEFORE ROLLING')
+    for u, nm in ((8, 'r_lp1'), (21, 'r_lp2'), (34, 'r_wp1'), (47, 'r_wp2')):
+        cs_switch(0, u, 37, nm)
+    D.section(1.5, 50, 53, 43, 'GATE SERVO OIL - BRAKE AIR')
+    gauge(0, 8, 62, 'SERVO OIL', [(0, 400, 100, 100, 20, None)], 'PSI', ptr='p_opu', red=(0, 220), xr=5)
+    gauge(0, 18, 62, 'BRAKE AIR', [(0, 150, 50, 50, 10, None)], 'PSI', ptr='p_air', red=(0, 50), xl=5)
+    cs_switch(0, 34, 62, 'r_hp'); cs_switch(0, 47, 62, 'r_ac')
+    D.tape(14, 80, 22, 4.2, 'GATE TRIPS BELOW 220 PSI|BRAKES RELEASE ABOVE 50 PSI')
+    D.tape(41, 80, 22, 4.2, 'SPRING-APPLIED BRAKES|AIR HOLDS THEM OFF')
 
     # ------------------------------------------- cabinet 2: turbine / generator
     D = doors[1]
     D.section(1.5, 6, 53, 26, 'GENERATOR 300 kVA 480 V 60 Hz 72 POLE')
     gauge(1, 7, 19, 'GEN VOLTS', [(0, 600, 200, 100, 20, None)], 'VOLTS AC', ptr='p_volts', xr=5)
-    gauge(1, 17, 19, 'KILOWATTS', [(0, 320, 80, 80, 20, None), (0, 400, 200, 100, 50, None)], 'kW|A INNER  BLUE = SET',
-          ptr='p_kw', ptr2='p_kwsp', xl=5, xr=5)
-    gauge(1, 27, 19, 'KILOVARS', [(-200, 200, 200, 100, 25, lambda x: f'{x:+g}' if x else '0')], 'kvar', ptr='p_kvar', xl=5, xr=5)
-    gauge(1, 37, 19, 'FREQUENCY', [(54, 66, 6, 3, 1, None)], 'Hz', ptr='p_hz', xl=5)
-    lampw(1, 49, 11, 'LP_cb', ('CLOSED', 'OPEN', '52G BREAKER'))
-    cs_switch(1, 49, 21, 'r_52')
-    D.tape(49, 30, 12, 3.0, 'SYNC CHECK|ON CLOSE')
+    gauge(1, 17, 19, 'KILOWATTS', [(0, 320, 80, 80, 20, None), (0, 400, 200, 100, 50, None)], 'kW|AMPS INNER',
+          ptr='p_kw', xl=5, xr=5)
+    gauge(1, 27, 19, 'KILOVARS', [(-200, 200, 200, 100, 25, lambda x: f'{x:+g}' if x else '0')], 'kvar', ptr='p_kvar', xl=5)
+    cs_switch(1, 39, 21, 'r_ss')
+    lampw(1, 50, 11, 'LP_cb', ('CLOSED', 'OPEN', '52G BREAKER'))
+    cs_switch(1, 50, 21, 'r_52')
+    D.tape(44.5, 30, 15, 3.0, 'SYNC CHECK: SCOPE ON|CLOSE IN THE GREEN')
     D.section(1.5, 34, 53, 26, 'TURBINE - SYNCHRONIZING')
     gauge(1, 7, 47, 'SPEED', [(0, 150, 50, 25, 5, None)], 'RPM', ptr='p_speed', red=(140, 150), xr=5)
     gauge(1, 17, 47, 'WICKET GATE', [(0, 100, 50, 25, 5, None), (0, 90, 30, 30, 10, None)], '% OPEN|CFS INNER', ptr='p_gate', xl=5, xr=5)
     gauge(1, 27, 47, 'SPIRAL CASE', [(0, 30, 10, 5, 1, None)], 'PSI', ptr='p_scase', xl=5, xr=5)
-    gauge(1, 37, 47, 'VIBRATION', [(0, 20, 10, 5, 1, None)], 'MILS P-P', ptr='p_vib', red=(12, 20), xl=5)
-    E.append({'classname': 'func_wall', 'targetname': 'SYNCHRO', 'rendermode': '2', 'renderamt': '255',
-              '_brushes': [front_box(1, 49, 41, 7, 7, -1.0, -0.5, '+0sync')]})
-    D.plate(49, 45.6, 9, 1.3, 'SYNCHROSCOPE', px=0.8)
+    gauge(1, 37, 47, 'VIBRATION', [(0, 20, 10, 5, 1, None)], 'MILS P-P', ptr='p_vib', red=(12, 20), xl=5, xr=6.4)
+    synchroscope(1, 49, 47)
     E.append({'classname': 'func_wall', 'targetname': 'SYNCLAMPS', 'rendermode': '2', 'renderamt': '255',
-              '_brushes': [front_box(1, 49, 49, 5, 2, -1.2, -0.5, '+0slmp')]})
-    D.plate(49, 51.2, 7, 1.0, 'SYNC LAMPS', px=0.62)
-    rot(1, 49, 57, 'r_sync')
-    D.section(1.5, 62, 53, 31, 'GOVERNOR - UNIT CONTROL')
-    rot(1, 7, 69, 'r_gov')
-    lampw(1, 7, 75.5, 'L_govman', ('GOV IN|MANUAL',))
-    wheel_panel(1, 17, 71, 'k_gate', 'WICKET GATE - MAN')
-    lampw(1, 17, 79, 'L_k_gate', ('RAISE', 'LOWER', 'NEXT TURN'))
-    knob_panel(1, 31, 71, 'k_load', 'LOAD SETPOINT')
-    lampw(1, 31, 77, 'L_k_load', ('RAISE', 'LOWER', 'NEXT TURN'))
-    D.tape(46, 75, 14, 3.4, 'ROUGH ZONE BELOW|110 kW - AVOID')
-    lampw(1, 44, 67, 'L_lock', ('86|LOCKOUT',))
-    twist_switch(1, 51, 67, 'r_86')
-    button(1, 26, 86, 'b_estop')
-    cs_switch(1, 37, 84, 'r_run')
-    lampw(1, 46, 82, 'L_ready', ('READY',)); lampw(1, 52, 82, 'L_run', ('RUNNING',))
+              '_brushes': [front_box(1, 49, 57, 5, 2, -1.2, -0.5, '+0slmp')]})
+    D.plate(42, 57, 6, 1.0, 'SYNC LAMPS', px=0.62)
+    D.section(1.5, 62, 53, 31, 'UNIT CONTROL')
+    wheel_panel(1, 12, 72, 'k_gate', 'WICKET GATE - OPEN / CLOSE')
+    lampw(1, 12, 81, 'L_k_gate', ('OPEN', 'CLOSE', 'NEXT TURN'))
+    cs_switch(1, 29, 74, 'r_gt')
+    D.plate(29, 84.5, 13, 2.0, 'EMERGENCY STOP|AND LOCKOUT RESET', style='red', px=0.7)
+    lampw(1, 45, 66, 'LP_brake', ('APPL', 'REL', 'BRAKES'))
+    cs_switch(1, 45, 76, 'r_br')
+    D.tape(45, 87, 14, 3.4, 'APPLY BRAKES|BELOW 30 % SPEED')
 
     # ------------------------- cabinet 3: excitation / annunciator / spillway
     D = doors[2]
@@ -715,23 +698,19 @@ def build_panels(dev):
         E.append({'classname': 'func_wall', 'targetname': f'A{i:02d}', 'rendermode': '2', 'renderamt': '255',
                   '_brushes': [front_box(2, u, v, 11.2, 5.6, -1.4, -0.9, t0)]})
     D.plate(28, 4.6, 16, 1.2, 'ANNUNCIATOR', px=0.8)
-    twist_switch(2, 22, 36, 'r_ack', plate_at=(14, 36))
-    twist_switch(2, 34, 36, 'r_annrst', plate_at=(42.5, 36))
-    D.section(1.5, 39, 53, 21, 'BRUSHLESS EXCITATION - AVR')
-    gauge(2, 8, 50, 'EXCITER FIELD', [(0, 5, 1, 1, 0.2, None), (0, 150, 50, 50, 10, None)], 'AMPS DC|VOLTS INNER', ptr='p_exc')
-    D.vfd(30, 44, 16, 4, ['AVR  AUTO  SET 100.0%', 'PF CTRL  0.97 LAG'])
-    lampw(2, 21, 52, 'LP_exc', ('ON', 'OFF', 'EXCITATION'))
-    cs_switch(2, 33, 52, 'r_exc')
-    D.tape(47, 51, 9, 4.2, 'PF 0.97|PER UTIL')
-    D.section(1.5, 62, 53, 31, 'SPILLWAY - POND LEVEL CONTROL')
-    gauge(2, 8, 75, 'HEADWATER', [(509, 515, 1, 1, 0.25, hw_fmt)], 'EL FT', ptr='p_hw', red=(514, 515), xr=5)
-    gauge(2, 18, 75, 'SPILL GATE', [(0, 4, 1, 1, 0.25, None)], 'FT OPEN', ptr='p_spill', xl=5)
-    lampw(2, 29, 67, 'LP_sg', ('OPEN', 'CLOSED', 'SPILL GATE'))
-    rot(2, 29, 75, 'r_spa'); lampw(2, 36, 75, 'L_spa', ('SPILL AUTO',))
-    wheel_panel(2, 31, 86, 'k_spill', 'SPILL GATE - MAN')
-    lampw(2, 40, 87, 'L_k_spill', ('RAISE', 'LOWER', 'NEXT TURN'))
-    rot(2, 45, 69, 'r_ctl'); lampw(2, 45, 75, 'L_ctl', ('LEVEL CTL|ACTIVE',))
-    D.tape(47, 81, 14, 4.2, 'PLC HOLDS 512.75-513.25|SPILLS ABOVE 513.5')
+    rot(2, 16, 37, 'r_plc'); rot(2, 40, 37, 'r_avr')
+    D.section(1.5, 42, 53, 20, 'THYRISTOR EXCITATION')
+    gauge(2, 8, 52, 'EXCITER FIELD', [(0, 5, 1, 1, 0.2, None), (0, 150, 50, 50, 10, None)], 'AMPS DC|VOLTS INNER', ptr='p_exc')
+    knob_panel(2, 22, 52, 'k_fa', 'FIRING ANGLE')
+    lampw(2, 22, 59, 'L_k_fa', ('RAISE', 'LOWER'))
+    cs_switch(2, 35, 52, 'r_exc')
+    lampw(2, 48, 47, 'LP_exc', ('ON', 'OFF', 'FIELD'))
+    D.tape(48, 55, 11, 4.2, 'AVR AUTO|HOLDS 480 V')
+    D.section(1.5, 64, 53, 29, 'SPILLWAY - POND LEVEL')
+    gauge(2, 8, 76, 'HEADWATER', [(509, 515, 1, 1, 0.25, hw_fmt)], 'EL FT', ptr='p_hw', red=(514, 515), xr=5)
+    gauge(2, 18, 76, 'SPILL GATE', [(0, 4, 1, 1, 0.25, None)], 'FT OPEN', ptr='p_spill', xl=5)
+    lampw(2, 34, 71, 'LP_sg', ('OPEN', 'CLOSED', 'SPILL GATE'))
+    D.tape(41, 82, 22, 6.2, 'SPILLWAY IS AUTOMATIC|OPENS ABOVE 513.5 FT|PLC ON: GATE HOLDS 513.0 FT')
 
     # door tiles -> world brushes
     for ci, Dr in enumerate(doors):
@@ -740,45 +719,6 @@ def build_panels(dev):
         for t, nm in enumerate(names):
             zt = DOOR_TOP - t * 24
             W(x0, -0.5, zt - 24, x0 + DOOR_W, 0, zt, tex='sc_paintd', faces={FRONT: (nm, face_map(x0, zt, PPU))})
-
-    # instructor console on the desk: utility trip, river (flood) knob, oil pump failure; flood gauge behind
-    im = Image.new('RGBA', (320, 144), (40, 44, 46, 255)); d = ImageDraw.Draw(im)
-    cpx = lambda X, Y: ((X - 85) * 8, (-150 - Y) * 8)
-    text(d, im, (200, 9), 'INSTRUCTOR', 13, (233, 182, 28, 255))
-    # labels kept near the back edge so the knob index and handles don't hide them from a standing player
-    for (X, lines) in ((101, ('UTILITY', 'TRIP')), (111, ('RIVER', 'HOLD E')), (120, ('OIL PUMPS', 'OK / FAIL'))):
-        for i, ln in enumerate(lines):
-            text(d, im, (cpx(X, 0)[0], 24 + i * 11), ln, 10, (236, 234, 226, 255))
-    text(d, im, (cpx(111, 0)[0], 138), 'NEXT TURN', 8, (200, 198, 190, 255))
-    cx_, cy_ = cpx(101, -160); rr = 2.6 * 8
-    d.ellipse([cx_ - 3.2 * 8, cy_ - 3.2 * 8, cx_ + 3.2 * 8, cy_ + 3.2 * 8], fill=ESC)
-    d.arc([cx_ - rr, cy_ - rr, cx_ + rr, cy_ + rr], -90, -45, fill=(20, 20, 20, 255), width=2)
-    text(d, im, (cx_ + 1.75 * 8, cy_ - 1.95 * 8), 'TRIP', 6, (20, 20, 20, 255))
-    TEX['sc_console'] = im.convert('RGB')
-    W(85, -168, 40, 125, -150, 44, tex='sc_deskm', faces={UP: ('sc_console', face_map_up(85, -150, 8))})
-    r = rots['r_util']
-    world.append(prism(ngon(101, -160, 1.0), 44, 44.5, 'z', 'sc_metal'))
-    E.append({'classname': 'func_rot_button', 'targetname': 'r_util', 'target': r['target'], 'spawnflags': '2',   # yaw, clockwise
-              'distance': str(r['distance']), 'speed': str(r['speed']), 'wait': str(r['wait']), 'sounds': '21',
-              '_brushes': [prism(turned(BAR, 101, -160, 0), 44.5, 45.9, 'z', 'sc_knob'),
-                           prism(turned(BAR_TIP, 101, -160, 0), 44.5, 45.9, 'z', 'sc_white'),
-                           Box(100.5, -160.5, 44, 101.5, -159.5, 45, tex='ORIGIN')]})
-    r = rots['r_pfail']
-    E.append({'classname': 'func_rot_button', 'targetname': 'r_pfail', 'target': r['target'], 'spawnflags': '32', 'distance': '90',
-              'speed': '240', 'wait': '-1', 'sounds': '21',
-              '_brushes': [Box(118.3, -160.45, 44, 121.7, -159.55, 45.2, tex='sc_knob'), Box(119.5, -160.5, 44, 120.5, -159.5, 45, tex='ORIGIN')]})
-    # river knob: absolute, normal flow at its start stop, full flood (+140 cfs) at the other; yaw axis
-    body = prism(ngon(111, -160, 1.8), 44, 45.6, 'z', 'sc_knob')
-    idx = prism([(110.7, -159.6), (111.3, -159.6), (111.3, -158.3), (110.7, -158.3)], 45.6, 46.1, 'z', 'sc_white')
-    rotor('k_river', [body, idx], 111, -160, 44.5, yaw=True, distance=300, speed=100)
-    (t0, t1), _ = lamp_textures(lamps['L_k_river'])
-    E.append({'classname': 'func_wall', 'targetname': 'L_k_river', 'rendermode': '2', 'renderamt': '255',
-              '_brushes': [Box(108.5, -166, 44, 113.5, -164, 44.8, tex='sc_black', faces={UP: (t0, face_map_up(108.5, -164, 16))})]})
-    # flood gauge in a small case behind the console; the knob drives its slider directly, so its scale is
-    # printed where the needle really points for each knob position
-    W(84, -150.5, 40, 98, -146, 57.5, tex='sc_deskm')
-    gauge_at(91, 51, -150.5, [(0, 140, 35, 35, 7, None)], 'CFS|FLOOD INFLOW', ptr=knobs['k_river']['target'],
-             angle_of=lambda f: math.atan((2 * f - 1) * math.tan(GTH)))
     return E
 
 

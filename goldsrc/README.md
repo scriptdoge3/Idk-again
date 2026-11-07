@@ -2,19 +2,57 @@
 
 The same plant as the web simulator, as a map for plain Half-Life: no mod, no DLL,
 no scripting. The physics is faked with stock `hl.dll` entities used as variables.
+The unit is run by hand from 15 controls, with round gauges and pistol-grip control switches.
+
+## Controls
+
+| Panel | Control | What it does |
+|---|---|---|
+| 1 | LUBE OIL PUMP 1, 2 | Bearing lube oil. Turning the unit with neither running wipes the bearings in seconds (trip). |
+| 1 | COOLING WATER PUMP 1, 2 | Bearing and generator cooling. Without either, the bearings heat up in about a minute (trip). |
+| 1 | SERVO OIL PUMP | Charges the gate servo accumulator. Every gate movement uses oil; below 220 psi the gate trips. |
+| 1 | AIR COMPRESSOR | Brake air. The brakes are spring-applied and need 50 psi to stay released. |
+| 2 | WICKET GATE handwheel | Opens or closes the gate (hold USE; each grab turns the other way, see the NEXT TURN lamps). |
+| 2 | BRAKES | APPLY / RELEASE. Apply them below 30 % speed when stopping. |
+| 2 | WICKET GATE TRIP (red) | The emergency stop: closes the gate fast and opens 41 and 52G. Protection turns it to TRIP by itself; turning it back to NORMAL resets (it trips again if the cause is still there). |
+| 2 | SYNCHROSCOPE | Switches the synchroscope and the sync check on. |
+| 2 | 52G SYNC BREAKER | Closes the generator onto the grid. Close it while the synchroscope pointer is in the green sector (the sync lamps go dark there). |
+| 3 | 41 FIELD BREAKER | Connects the thyristor exciter. Opening it lets the field decay. |
+| 3 | FIRING ANGLE knob | Sets the field (manual excitation). Off line it sets the voltage; on line it sets the kilovars. |
+| 3 | PLC GATE CONTROL | ON: the PLC runs the gate: it brings the unit up to speed once the brakes are released, and on line it holds the pond at 513.0 ft. |
+| 3 | AVR | AUTO: the AVR runs the field: 480 V off line, slightly lagging on line. |
+
+The spillway gate runs by itself (it opens above 513.5 ft).
+
+### Starting by hand
+
+1. Panel 1: start a lube oil pump, a cooling water pump, the servo oil pump and the air compressor.
+   Wait for servo oil and brake air to come up (the SERVO OIL and BRAKE AIR windows go dark).
+2. Panel 2: BRAKES to RELEASE.
+3. Open the wicket gate to about 30 %. As speed passes 80 %, bring the gate back to 10 %
+   (speed-no-load): the unit settles at 100 rpm. More gate overspeeds it (trip at 140 %).
+4. Panel 3: close 41 and raise the field with the firing-angle knob until GEN VOLTS reads 480.
+5. Panel 2: SYNCHROSCOPE on. The pointer turns once every 6 s. Close 52G while it is in the green
+   sector. Anywhere else, off speed or at the wrong voltage, it's an out-of-phase close and the unit trips.
+6. Open the gate to load the unit (about 200 kW at 60 % gate). Keep it above 10 %, or the reverse-power
+   relay opens 52G. Keep the field up, or loss of field trips 52G.
+
+To stop: close the gate to 10 %, turn 52G to TRIP, open 41, close the gate, and apply the brakes below 30 %.
+With PLC ON and AVR AUTO, steps 3 and 4 happen by themselves.
 
 ## How the "math" works
 
 | Idea | Entities |
 |---|---|
-| Integer variable | One `game_counter` per value of interest, all with the same name. A `trigger_relay` sends USE_ON (+1) or USE_OFF (−1); each counter fires `<var>_eq<v>` when the value lands on its number. |
+| Integer variable | One `game_counter` per value something listens for, all with the same name. A `trigger_relay` sends USE_ON (+1) or USE_OFF (−1); each counter fires `<var>_eq<v>` when the value lands on its number. |
 | True/false flag | `env_global` state (and its opposite `n<flag>`), read by `multisource` masters. `env_global` "Set Initial State" seeds them at spawn. |
 | Rule (if A and B then do X) | A chain of `game_counter_set` entities, each locked by a `multisource` master. Rules with the same leading conditions share links. |
 | Clock | Two `multi_manager`s that trigger each other every 0.05 s; `game_counter`s with "reset on fire" divide it to 0.1, 0.2, 0.5, 1, 4 and 8 s. |
 | Gauge needle | `game_counter_set` sends USE_SET with a fraction to an invisible `momentary_door` (the slider) hidden in the gauge bezel. The needle is an `env_beam` from the dial centre to the slider, so it swings as the slider moves. The same USE_SET trick sets `ambient_generic` pitch. |
-| Breaker control switch | `func_rot_button` with a pistol-grip handle, maintained in two positions. Each turn toggles a flag and runs the command. The logic also turns the handle itself, so it always agrees with the plant. |
+| Synchroscope | A `func_train` circling a hexagon of `path_corner`s behind the bezel, with a beam from the centre as the pointer. The corners at 11 and 1 o'clock fire the in-phase window, so the sync check uses exactly what you see. |
+| Control switch | `func_rot_button` with a pistol-grip handle, maintained in two positions. Each turn toggles a flag. The logic can turn the handle itself, so the 52G, 41 and gate-trip handles always agree with the plant. |
 | Lamp, annunciator window | `func_wall` with `+0` / `+A` textures, switched explicitly on or off by `trigger_relay`. |
-| Analog knob, handwheel | `momentary_rot_button`: while it turns it fires its target every frame. That sets a "moving" flag; a rule steps the variable once per 0.1 or 0.2 s while the flag is set, then clears it. A counter on the 0.05 s base tick notices 0.1 s without movement (when the button itself reverses) and flips the direction flag. |
+| Knob, handwheel | `momentary_rot_button`: while it turns it fires its target every frame. That sets a "moving" flag; a rule steps the variable every 0.2 s while the flag is set. A counter on the 0.05 s tick notices 0.1 s without movement (when the button itself reverses), flips the direction flag and drops any step still pending. |
 
 ### Round gauges
 
@@ -28,52 +66,28 @@ invisible tab in front of the bezel. Without it the slider would sit entirely in
 the server would never send it to the client, and the needle would not be drawn.
 
 Beams are additive (they glow), so the dials are black with cream scales and an orange needle. The
-kilowatt meter has a second, blue needle for the load setpoint. The kW, wicket gate and exciter field
-gauges have a second scale inside the first (amperes, discharge in cfs, field volts).
+kilowatt, wicket gate and exciter field gauges have a second scale inside the first (amperes,
+discharge in cfs, field volts).
 
-### Breaker control switches
+## The model
 
-The 52G breaker, unit START/STOP and 41 field breaker are pistol-grip control switches. Use one and it
-turns to the other side: right is CLOSE / START / ON, left is TRIP / STOP / OFF. If the plant does
-something by itself (the auto-synchronizer closes the breaker, a trip opens it, a close is refused),
-the logic turns the handle to match within half a second. A refused close looks like a spring
-return. PUMP TEST, annunciator ACK and RESET, 86 RESET and the instructor's UTILITY TRIP are
-spring-return twist switches: they turn 45°, act, and spring back. EMERGENCY STOP stays a red
-mushroom push button, as it would be in a real plant.
+`plant.py` is the whole model; `hlogic.py` compiles it into entities and contains a simulator that
+reproduces how those entities behave in `hl.dll`; `test_plant.py` runs it by hand through the simulator:
+a manual start and synchronization, loading, the emergency stop, an out-of-phase close, a start with the
+PLC and AVR, the PLC holding the pond, a lube oil failure and a brake air failure.
 
-### Analog controls
-
-The load setpoint, wicket gate (governor in MAN), spill gate and the instructor's river inflow are
-`momentary_rot_button`s rather than raise/lower buttons. Hold USE on one and it turns; the longer
-you hold it, the further the value goes. Like every `momentary_rot_button`, it turns the other way
-each time you let go and grab it again, so each control has an amber NEXT TURN lamp (RAISE / LOWER)
-showing which way the next turn will go. Grabbing it again within a tenth of a second keeps the
-same direction.
-
-The river knob is absolute: its position is the flood inflow (0 to +140 cfs). It also drives the
-FLOOD INFLOW gauge behind it directly (that gauge's scale is printed where the needle really points), and its direction lamp resets when it reaches the top stop.
-The other three are relative: they nudge the value up or down and stop at its limits. The knob
-spins freely past the limit, but the value stays put.
-
-The plant state lives in eight variables (speed, gate, voltage, load setpoint, governor oil
-pressure, headwater, spill gate, water hammer) plus four difference variables whose sign drives
-the rules:
+Speed, gate, voltage, field, servo oil, brake air, bearing temperature, headwater, spill gate and water
+hammer are integer variables. Four difference variables carry only their sign:
 
 - **speed error** = T(gate) − speed, where T is the speed the runner would settle at for that gate
-  (speed-no-load at 10 % gate, runaway near 175 %). Off line, speed steps toward T every tick, so a
-  breaker trip at full load overspeeds the unit until the governor's closing catches up (about 130 %).
-- **gate error** = (gate − 2) − setpoint, so on line the governor walks the gate to the load setpoint.
-- **voltage error** = speed − voltage: excited, the voltage follows speed up to 100 %.
-- **pond balance** = river − gate − 3 × spill gate: the headwater integrates it, the PLC trims the
-  load setpoint to hold 513 ft, and the spillway opens only when the unit is full.
+  (speed-no-load at 10 % gate, runaway near 175 %). Off line, speed steps toward T every tick.
+- **volts per hertz** = speed − voltage and **field** = field − voltage: off line the voltage follows the
+  field but can't exceed what the speed allows. On line the grid holds the voltage and the field sets
+  the kilovars.
+- **pond balance** = river − gate − 3 × spill gate: the headwater integrates it.
 
-Gate movements draw oil from the pressure tank; the lead and lag pumps cut in at 270 and 250 psi.
-Closing gates fast raises spiral-case pressure (water hammer). On line between 20 and 45 % gate the
-draft-tube vortex rope shows on the vibration meter and annunciator.
-
-`plant.py` is the whole model. `hlogic.py` compiles it into entities and contains a simulator that
-reproduces how those entities behave in `hl.dll`; `test_plant.py` runs start, load rejection, normal
-stop, E-stop and oil-pump failure through it.
+Gate movements draw servo oil; closing the gate fast raises spiral-case pressure (water hammer); on line
+between 20 and 45 % gate the draft-tube vortex rope shows on the vibration gauge and annunciator.
 
 ## Building
 
@@ -97,19 +111,11 @@ texture lights) on its own. Light levels can be changed with
 2. In Half-Life, turn on Options → Content → *Allow custom addon content*.
 3. Open the console and type `map sablecreek`.
 
-The map has 1,175 entities, so it needs the 25th-anniversary engine (its limit is 1,200; the old
-limit was 900).
+Press USE (E) on switches; hold it on the handwheel and the firing-angle knob.
 
-Press USE (E) on switches; hold it on knobs and handwheels:
-
-- **Panel 2:** UNIT START/STOP and 52G BREAKER control switches, EMERGENCY STOP, 86 RESET (only at
-  standstill), GOVERNOR and SYNC MODE selectors, the WICKET GATE handwheel (works with the governor in
-  MAN) and the LOAD SETPOINT knob (the blue needle on the kW gauge).
-- **Panel 3:** annunciator ACK and RESET, the 41 FIELD BREAKER control switch, LEVEL CONTROL and SPILLWAY
-  selectors, and the SPILL GATE handwheel (works with the spillway selector in MAN).
-- **Panel 1:** OIL PUMP TEST.
-- **Instructor console on the desk:** UTILITY TRIP (load rejection), the RIVER knob with its FLOOD INFLOW
-  gauge, and an oil pump failure switch.
+The map has 1,158 entities (1,151 once the lights are compiled in), so it needs the 25th-anniversary
+engine: its limit is 1,200, the old limit was 900. The variables only get counters for values something
+listens for, and needles step coarsely away from their normal readings, to stay under it.
 
 ## Status
 
@@ -119,11 +125,11 @@ Compiled with SDHLT 1.3.1 (CSG, BSP, full VIS, RAD -extra) with no warnings or e
 - entity and model counts;
 - for every needle, that the beam finds its own slider;
 - slider travel from the compiled model bounds (12 units, allowing for the engine's 1-unit bounds padding);
-- that each slider's tab is in an open leaf the player can see from the start;
+- that every slider tab, and the synchroscope train's, is in an open leaf the player can see from the start;
+- that the train's bounds are centred on its origin, so it parks the pointer exactly on each corner;
 - that switch, knob and handwheel pivots come out on whole units;
 - a render of the BSP with its lightmaps, with the needles drawn where the beams would be.
 
 It has not been played in Half-Life yet. The entity logic was checked in `test_plant.py`'s simulator,
-which follows the Half-Life SDK's entity code, not in the engine itself. The beam needles are the part
-most worth checking in game: their width and glow come from the engine's beam renderer, which the
-render above only imitates.
+which follows the Half-Life SDK's entity code, not in the engine itself. The beam needles and the
+synchroscope train are the parts most worth checking in game.

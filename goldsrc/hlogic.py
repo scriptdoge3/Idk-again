@@ -42,7 +42,8 @@ class Logic:
     Rules with a common head and common leading conditions share gates (a trie).
     """
 
-    def __init__(self, used=None):
+    def __init__(self, used=None, events=None):
+        self.events = events        # event names something listens for (from pass 1), or None
         self.ents = []
         self.flags = {}
         self.vars = {}
@@ -109,7 +110,9 @@ class Logic:
 
     # --------------------------------------------------------- variables
     def var(self, name, lo, hi, init, values=None):
+        """Counters only for the values something listens for (pass 2 knows them from pass 1)."""
         vals = values if values is not None else range(lo, hi + 1)
+        vals = [v for v in vals if self.events is None or vname(name, v) in self.events]
         self.vars[name] = {'lo': lo, 'hi': hi, 'init': init, 'vals': list(vals)}
         for v in vals:
             self.add('game_counter', targetname=f'{name}_c', frags=init, health=v, target=vname(name, v))
@@ -201,6 +204,7 @@ class Logic:
                     ent = dict(ent); ent['targetname'] = fan
                     self.ents.append(ent)
                 self.relay(fan, f'{name}_c', st)
+        self.listened = {e.get('targetname') for e in self.ents}
         return self.ents
 
 
@@ -229,7 +233,11 @@ class Relay(SimEnt):
     def use(self, act, caller, ut, value):
         st = int(self.kv.get('triggerstate', 1))
         t = {0: USE_OFF, 2: USE_TOGGLE}.get(st, USE_ON)
-        self.sim.fire(self.target, act, self, t, 0)
+        d = self.f('delay')
+        if d > 0:                                   # CBaseDelay: a DelayedUse entity fires it later
+            self.sim.later(self.sim.time + d, lambda: self.sim.fire(self.target, act, self, t, 0))
+        else:
+            self.sim.fire(self.target, act, self, t, 0)
 
 
 class Counter(SimEnt):
@@ -448,7 +456,54 @@ class MomentaryRot(SimEnt):
             t += frame
 
 
-CLASSES = {'trigger_relay': Relay, 'game_counter': Counter, 'game_counter_set': CounterSet, 'env_global': EnvGlobal,
+class Train(SimEnt):
+    """func_train on a loop of path_corners: a use starts or stops it (it resumes toward the corner it was
+    heading for); arriving at a corner fires the corner's message. Corners are given as (name, message, length)."""
+    def __init__(self, sim, kv):
+        super().__init__(sim, kv)
+        self.speed = self.f('speed', 100)
+        self.moving = False
+        self.at = 0                     # index of the corner it last reached (or sits at)
+        self.done = 0.0                 # distance covered on the current leg
+        self.t0 = 0.0
+        self.token = 0
+
+    def corners(self):
+        return self.sim.train_path[self.name]
+
+    def _leg(self):
+        return self.corners()[(self.at + 1) % len(self.corners())][2]
+
+    def use(self, act, caller, ut, value):
+        if self.moving:
+            self.done += (self.sim.time - self.t0) * self.speed
+            self.moving = False; self.token += 1
+        else:
+            self.moving = True; self.t0 = self.sim.time; self._schedule()
+
+    def _schedule(self):
+        tok = self.token
+        left = max(0.0, self._leg() - self.done)
+        self.sim.later(self.sim.time + left / self.speed, lambda: self._arrive(tok))
+
+    def _arrive(self, tok):
+        if tok != self.token or not self.moving:
+            return
+        self.at = (self.at + 1) % len(self.corners()); self.done = 0.0; self.t0 = self.sim.time
+        msg = self.corners()[self.at][1]
+        if msg:
+            self.sim.fire(msg, None, self, USE_TOGGLE, 0)
+        self._schedule()
+
+    def angle(self):
+        """pointer angle in degrees clockwise from 12 o'clock (corners are evenly spaced around the loop)"""
+        c = self.corners(); n = len(c)
+        d = self.done + ((self.sim.time - self.t0) * self.speed if self.moving else 0.0)
+        frac = min(1.0, d / self._leg())
+        return (c[self.at][3] + frac * 360.0 / n) % 360
+
+
+CLASSES = {'trigger_relay': Relay, 'func_train': Train, 'game_counter': Counter, 'game_counter_set': CounterSet, 'env_global': EnvGlobal,
            'multisource': Multisource, 'multi_manager': MultiManager, 'func_wall_toggle': WallToggle, 'func_wall': Wall,
            'momentary_door': MomentaryDoor, 'ambient_generic': Ambient, 'func_button': Button, 'func_rot_button': RotButton,
            'trigger_auto': Auto, 'momentary_rot_button': MomentaryRot}
@@ -465,6 +520,7 @@ class Sim:
         self.fired = defaultdict(int)
         self.ents = []
         self.byname = defaultdict(list)
+        self.train_path = {}                      # train name -> [(corner, message, leg length, angle)]
         for kv in ents:
             cls = CLASSES.get(kv['classname'])
             if not cls:
