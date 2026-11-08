@@ -56,7 +56,7 @@ RIVER0 = 75                     # river flow at the start, % of full-gate discha
 INIT = dict(n=0, g=0, v=0, x=0, o=0, a=0, bt=2, l=12, sg=5, rq=2)
 VARS = dict(n=(0, 145), g=(0, 100), v=(0, 120), x=(0, 120), o=(0, 10), a=(0, 10), bt=(0, 10), l=(0, 20), sg=(0, 8), rq=(0, 4))
 ANN = ['OVERSPEED|TRIP', 'WICKET GATE|TRIPPED', 'OUT OF PHASE|CLOSE', 'GEN BREAKER|PROT TRIP',
-       'SERVO OIL|PRESS LOW', 'LUBE OIL|PUMP OFF', 'BEARING|TEMP HIGH', 'COOLING WATER|PUMP OFF',
+       'HYDRAULIC|PRESS LOW', 'OIL PUMP|OFF', 'BEARING|TEMP HIGH', 'WATER PUMP|OFF',
        'BRAKE AIR|PRESS LOW', 'BRAKES|APPLIED', 'DRAFT TUBE|PULSATION', 'RIVER DEPTH|HIGH',
        'RIVER DEPTH|LOW', 'SPILLWAY|GATE OPEN', 'PLC OFF|GATE MANUAL', 'AVR OFF|FIELD MANUAL']
 TRIP_WINDOWS = (0, 1, 2, 3, 4, 5, 6, 7, 8)   # red windows: trips and things that will cause one
@@ -316,8 +316,8 @@ def _build(L):
     L.relay(vname('v', 1), 's_hum', USE_ON); L.relay(vname('v', 0), 's_hum', USE_OFF)
 
     # ---------------------------------------------- panel 1: auxiliaries
-    for nm, flg, label in (('r_lp', 'lube', 'LUBE OIL PUMP'), ('r_wp', 'cool', 'COOLING WATER PUMP'),
-                           ('r_hp', 'hhp', 'SERVO OIL PUMP'), ('r_ac', 'hac', 'AIR COMPRESSOR')):
+    for nm, flg, label in (('r_lp', 'lube', 'OIL PUMP'), ('r_wp', 'cool', 'WATER PUMP'),
+                           ('r_hp', 'hhp', 'HYDRAULIC PUMP'), ('r_ac', 'hac', 'AIR COMPRESSOR')):
         cs(nm, flg, label, ('STOP', 'RUN'))          # a maintained pump switch: the handle shows the state
     L.relay('r_hp_ev', 's_pump', USE_TOGGLE)
     L.relay('r_lp_ev', W[5], USE_TOGGLE); L.relay('r_wp_ev', W[7], USE_TOGGLE)    # PUMP OFF windows

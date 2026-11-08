@@ -16,7 +16,7 @@ middle. The spillway gate has its own panel on the left wall, beside the fire ex
 
 | Cabinet | Control | What it does |
 |---|---|---|
-| Left | WICKET GATE TRIP (red, yellow plate) | The emergency stop: closes the gate fast and opens 41 and 52G. Protection turns it to TRIP by itself; turning it back to NORMAL resets (it trips again if the cause is still there). |
+| Left | WICKET GATE TRIP (red grip, yellow plate) | The emergency stop: closes the gate fast and opens 41 and 52G. Protection turns it to TRIP by itself; turning it back to NORMAL resets (it trips again if the cause is still there). |
 | Left | SYNCHROSCOPE | Shows the phase between the generator and the grid, and puts the sync check (25) in service. The phase is there whether the switch is on or not, while the field is on and the unit is within 5 % of 60 Hz; the switch only shows it (pointer and sync lamps). The phase turns at the slip: anticlockwise (SLOW) when the unit is slower than the grid, clockwise (FAST) when faster, quicker the further off. At exactly 100 % speed it stands still wherever it is. The sync lamps are dark at 12 o'clock and brightest at 6. The green SYNC OK lamp lights while a close would be allowed: phase in the green sector, speed at 100 % and volts within 5 % (456–504 V). |
 | Left | 52G SYNC BREAKER | Closes the generator onto the grid, on the real phase. In phase (what SYNC OK shows) it closes, switch on or off. Out of phase with the synchroscope on, the sync check refuses and the handle springs back; with the synchroscope off nothing stops it and the unit trips as out of phase. Once closed the unit is locked to the grid and the phase stops. |
 | Left | 41 FIELD BREAKER | Connects the thyristor exciter. Opening it lets the field decay. |
@@ -25,9 +25,9 @@ middle. The spillway gate has its own panel on the left wall, beside the fire ex
 | Left | BRAKES dial | APPLY / RELEASE. Apply them below 30 % speed when stopping. |
 | Middle | PLC | ON: the PLC runs the gate: it brings the unit up to speed once the brakes are released, and on line it holds the river at 7.0 m deep at the intake, so the unit follows the river's flow. |
 | Middle | AVR | AUTO: the AVR runs the field: 480 V off line, slightly lagging on line. |
-| Right | LUBE OIL PUMP | Bearing lube oil. Turning the unit without it wipes the bearings in seconds (trip). |
-| Right | COOLING WATER PUMP | Bearing and generator cooling. Without it the bearings heat up in about a minute (trip). |
-| Right | SERVO OIL PUMP | Charges the gate servo accumulator. Every gate movement uses oil; below 220 psi the gate trips. |
+| Right | OIL PUMP | Bearing lube oil. Turning the unit without it wipes the bearings in seconds (trip). |
+| Right | WATER PUMP | Bearing and generator cooling. Without it the bearings heat up in about a minute (trip). |
+| Right | HYDRAULIC PUMP | Charges the gate servo accumulator. Every gate movement uses oil; below 220 psi the gate trips. |
 | Right | AIR COMPRESSOR | Brake air. The brakes are spring-applied and need 50 psi to stay released. |
 | Spillway | CONTROL (AUTO / MANUAL) | AUTO: the spillway gate opens when the river is deeper than 7.5 m and still rising, and closes below 7.25 m (with the PLC on, on line, it gives the water to the unit first). MANUAL: the gate only moves on the dials. |
 | Spillway | GATE LOWER and RAISE dials | In MANUAL, hold to move the spillway gate 0.15 m a second (it opens 1.2 m). Spring-return, like the wicket gate dials. |
@@ -46,8 +46,8 @@ and up), so the same field gives a lower power factor at light load.
 
 ### Starting by hand
 
-1. Right cabinet: start the lube oil pump, the cooling water pump, the servo oil pump and the air compressor.
-   Wait for servo oil and brake air to come up (the SERVO OIL and BRAKE AIR windows go dark).
+1. Right cabinet: start the oil pump, the water pump, the hydraulic pump and the air compressor.
+   Wait for hydraulic pressure and brake air to come up (the HYDRAULIC and BRAKE AIR windows go dark).
 2. Left cabinet: BRAKES dial to RELEASE.
 3. Hold RAISE to open the wicket gate to about 25 %. As speed passes 80 %, hold LOWER to bring it
    back to 15 % (speed-no-load): the unit settles at 100 rpm. Each 1 % of gate around there moves the speed about 5 %
@@ -92,9 +92,7 @@ needle angle is linear in the value and the scales are printed evenly. The slide
 invisible tab in front of the bezel. Without it the slider would sit entirely inside solid brushes,
 the server would never send it to the client, and the needle would not be drawn.
 
-Beams are additive (they glow), so the dials are black with cream scales and an orange needle. The
-kilowatt, wicket gate and exciter field gauges have a second scale inside the first (amperes,
-discharge in cfs, field volts). On the spillway panel the frame is turned 90 degrees: its sliders
+Beams are additive (they glow), so the dials are black with cream scales and an orange needle.  On the spillway panel the frame is turned 90 degrees: its sliders
 run along Y.
 
 ## The model
@@ -105,7 +103,7 @@ a manual start on the gate dials (and that the spring-back of a dial adds no ste
 SLOW and FAST as the speed settles and standing still at 100 % (and its in-phase window agreeing with
 where the pointer is), nudging it into the window and synchronizing, closes with the synchroscope off
 both in and out of phase, the power factor at three loads and two field settings, the emergency stop, an
-out-of-phase close, a start with the PLC and AVR, the PLC following the river for 400 s, the lube oil pump stopping
+out-of-phase close, a start with the PLC and AVR, the PLC following the river for 400 s, the oil pump stopping
 on line, a brake air failure and the spillway in MANUAL and back in AUTO. The simulated
 `func_tracktrain` follows the SDK's `CPathTrack::LookAhead()`, so it reverses the way the game does.
 

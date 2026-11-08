@@ -737,7 +737,7 @@ def build_panels(dev):
     D = doors[0]
     D.section(1.5, 5.5, 53, 32.5, 'METERS')
     gauge(0, 7, ROW1, 'GEN VOLTS', [(0, 600, 200, 100, 20, None)], 'VOLTS AC', ptr='p_volts', xr=5)
-    gauge(0, 17, ROW1, 'KILOWATTS', [(0, 320, 80, 80, 20, None), (0, 400, 200, 100, 50, None)], 'kW|AMPS INNER',
+    gauge(0, 17, ROW1, 'KILOWATTS', [(0, 320, 80, 80, 20, None)], 'kW',
           ptr='p_kw', xl=5, xr=5)
     gauge(0, 27, ROW1, 'POWER FACTOR', None, None, ptr='p_pf', xl=5, xr=7.3, tex=pf_texture('scg_pf'))
     synchroscope(0, 41, ROW1)
@@ -749,21 +749,20 @@ def build_panels(dev):
     D.plate(51.5, ROW1 + 1.4, 5.4, 1.0, 'SYNC LAMPS', px=0.62)
     lampw(0, 51.5, ROW1 + 5, 'L_perm', ('SYNC OK',))        # sync check permissive: close 52G while it is lit
     gauge(0, 7, ROW2, 'SPEED', [(0, 150, 50, 25, 5, None)], 'RPM', ptr='p_speed', red=(140, 150), xr=5)
-    gauge(0, 17, ROW2, 'WICKET GATE', [(0, 100, 50, 25, 5, None), (0, 90, 30, 30, 10, None)], '% OPEN|CFS INNER',
+    gauge(0, 17, ROW2, 'WICKET GATE', [(0, 100, 50, 25, 5, None)], '% OPEN',
           ptr='p_gate', xl=5, xr=5)
-    gauge(0, 27, ROW2, 'EXCITER FIELD', [(0, 5, 1, 1, 0.2, None), (0, 150, 50, 50, 10, None)], 'AMPS DC|VOLTS INNER',
+    gauge(0, 27, ROW2, 'EXCITER FIELD', [(0, 5, 1, 1, 0.2, None)], 'AMPS DC',
           ptr='p_exc', xl=5, xr=5)
-    gauge(0, 37, ROW2, 'FIRING ANGLE', [(0, 90, 30, 15, 5, None)], 'DEGREES|LOWER = MORE FIELD', ptr='p_fa', xl=5)
+    gauge(0, 37, ROW2, 'FIRING ANGLE', [(0, 90, 30, 15, 5, None)], 'DEGREES', ptr='p_fa', xl=5)
     D.section(1.5, 40, 53, 44, 'CONTROLS')
     # breakers, with their lamps under the nameplates
     cs_switch(0, 8, CTL, 'r_ss')
     cs_switch(0, 21, CTL, 'r_52'); lampw(0, 21, CTL + 9, 'LP_cb', ('CLSD', 'OPEN'))
     cs_switch(0, 34, CTL, 'r_exc'); lampw(0, 34, CTL + 9, 'LP_exc', ('ON', 'OFF'))
-    cs_switch(0, 47, CTL, 'r_gt'); D.plate(47, CTL + 9, 11, 1.6, 'EMERGENCY STOP', style='red', px=0.8)
+    cs_switch(0, 47, CTL, 'r_gt')
     # dials
     D.plate(11, CTL + 15.6, 13, 1.4, 'WICKET GATE', px=0.8)
     spring_dial(0, 6, CTL + 21, 'k_gl'); spring_dial(0, 16, CTL + 21, 'k_gr')
-    D.tape(11, CTL + 29, 14, 2.6, 'HOLD TO MOVE|1 % EVERY 0.1 S')
     rot(0, 30, CTL + 21, 'r_br', dial=True)
     lampw(0, 30, CTL + 28.5, 'LP_brake', ('APPL', 'REL'))
     knob_panel(0, 45, CTL + 21, 'k_fa', 'FIRING ANGLE')
@@ -780,18 +779,18 @@ def build_panels(dev):
         E.append({'classname': 'func_wall', 'targetname': f'A{i:02d}', 'rendermode': '2', 'renderamt': '255',
                   '_brushes': [front_box(1, u, v, 12.6, 5.8, -1.4, -0.9, t0)]})
     gauge(1, 22, 37, 'GEN FREQUENCY', [(54, 66, 3, 1, 0.2, None)], 'Hz', ptr='p_hz', xr=6)
-    gauge(1, 34, 37, 'STATION FREQUENCY', [(54, 66, 3, 1, 0.2, None)], 'Hz|GRID', ptr='p_sfreq', xl=6)
+    gauge(1, 34, 37, 'STATION FREQUENCY', [(54, 66, 3, 1, 0.2, None)], 'Hz', ptr='p_sfreq', xl=6)
     cs_switch(1, 17, CTL, 'r_plc')
     cs_switch(1, 39, CTL, 'r_avr')
 
     # ------------------------------------------- right: auxiliaries (the pumps and the gauges)
     D = doors[2]
     D.section(1.5, 5.5, 53, 32.5, 'METERS')
-    gauge(2, 7, ROW1, 'LUBE OIL', [(0, 60, 20, 10, 2, None)], 'PSI', ptr='p_lube', red=(0, 20), xr=5)
-    gauge(2, 17, ROW1, 'COOLING WATER', [(0, 100, 20, 20, 5, None)], 'GPM', ptr='p_cw', red=(0, 35), xl=5, xr=5)
+    gauge(2, 7, ROW1, 'OIL', [(0, 60, 20, 10, 2, None)], 'PSI', ptr='p_lube', red=(0, 20), xr=5)
+    gauge(2, 17, ROW1, 'WATER', [(0, 100, 20, 20, 5, None)], 'GPM', ptr='p_cw', red=(0, 35), xl=5, xr=5)
     gauge(2, 27, ROW1, 'BEARING TEMP', [(20, 120, 20, 20, 5, None)], 'DEG C', ptr='p_bt', red=(100, 120), xl=5, xr=5)
     gauge(2, 37, ROW1, 'VIBRATION', [(0, 20, 10, 5, 1, None)], 'MILS P-P', ptr='p_vib', red=(12, 20), xl=5)
-    gauge(2, 7, ROW2, 'SERVO OIL', [(0, 400, 100, 100, 20, None)], 'PSI', ptr='p_opu', red=(0, 220), xr=5)
+    gauge(2, 7, ROW2, 'HYDRAULIC', [(0, 400, 100, 100, 20, None)], 'PSI', ptr='p_opu', red=(0, 220), xr=5)
     gauge(2, 17, ROW2, 'BRAKE AIR', [(0, 150, 50, 50, 10, None)], 'PSI', ptr='p_air', red=(0, 50), xl=5)
     D.section(1.5, 40, 53, 22, 'PUMPS')
     for u, nm in ((8, 'r_lp'), (21, 'r_wp'), (34, 'r_hp'), (47, 'r_ac')):
@@ -800,13 +799,12 @@ def build_panels(dev):
     # ------------------------------------------- spillway panel, on the wall beside the extinguisher
     w0, e0 = len(world), len(E)
     D = doors[SP]
-    gauge(SP, 7, 12, 'RIVER DEPTH', [(0, 10, 2, 1, 0.25, None)], 'M|7.0 NORMAL', ptr='p_hw', red=(9, 10), xl=5.5, xr=5)
-    gauge(SP, 20, 12, 'RIVER FLOW', [(0, 120, 40, 20, 5, None)], 'CFS|FULL GATE 90', ptr='p_rq', xl=5, xr=5)
-    gauge(SP, 33, 12, 'SPILL GATE', [(0, 1.2, 0.4, 0.2, 0.05, None)], 'M OPEN', ptr='p_spill', xl=5, xr=5.5)
+    gauge(SP, 7, 12, 'RIVER DEPTH', [(0, 10, 2, 1, 0.25, None)], 'M', ptr='p_hw', red=(9, 10), xl=5.5, xr=6.5)
+    gauge(SP, 20, 12, 'RIVER FLOW', [(0, 120, 40, 20, 5, None)], 'CFS', ptr='p_rq', xl=6.5, xr=6.5)
+    gauge(SP, 33, 12, 'SPILL GATE', [(0, 1.2, 0.4, 0.2, 0.05, None)], 'M OPEN', ptr='p_spill', xl=6.5, xr=5.5)
     rot(SP, 8, 32, 'r_sp', dial=True)
     D.plate(27.5, 26.6, 13, 1.4, 'GATE', px=0.8)
     spring_dial(SP, 22, 32, 'k_sl', ccw=True); spring_dial(SP, 33, 32, 'k_sr', ccw=True)
-    D.tape(20, 43, 30, 2.6, 'MANUAL: HOLD LOWER OR RAISE, 0.15 M A SECOND|AUTO: OPENS ABOVE 7.5 M DEEP')
     W(-1, 0, SP_TOP - SP_H - 1, SP_W + 1, 6, SP_TOP + 1, tex='sc_paintd', scale=0.5)       # the box, against the wall
     for t, nm in enumerate(D.tiles('scsp')):
         zt = SP_TOP - t * 24

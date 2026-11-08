@@ -79,7 +79,7 @@ print('river flow, % every 32 s for 10 min (the unit stopped):', [65 + 5 * q for
 print('try to release brakes with no air:', flip('r_br', 2), ' brake', G('brake'))
 for sw in ('r_lp', 'r_wp', 'r_hp', 'r_ac'):
     flip(sw, 0.5)
-tt = run_until(lambda: C('o') >= 10 and C('a') >= 6, 30); print(f'aux running, servo oil and air charged after {tt} s'); show('aux')
+tt = run_until(lambda: C('o') >= 10 and C('a') >= 6, 30); print(f'aux running, hydraulic and air charged after {tt} s'); show('aux')
 sim.run(1); print('brakes released:', G('brake') == 0)
 # manual run-up: open the gate, then back to speed-no-load as speed comes up
 k = sim.ent('k_gr'); k.hold(1.0); g_rel = C('g'); sim.run(0.15); g_015 = C('g'); sim.run(1.5)
@@ -169,7 +169,7 @@ flip('r_ss', 1)
 run_until(lambda: C('n') <= 30, 200); flip('r_br'); run_until(lambda: C('n') == 0, 120); flip('r_br', 0.5); flip('r_gt', 1)
 print('reset: tr', G('tr'), 'OUT OF PHASE lit', sim.ent('A02').on)
 
-# PLC/AVR on line, then lose the lube oil pump
+# PLC/AVR on line, then lose the oil pump
 run_until(lambda: C('n') == 100, 120); flip('r_exc'); run_until(lambda: C('v') == 100, 30)
 flip('r_ss', 1); run_until(lambda: G('pok') == 1, 30, 0.05); a_try = scope.angle()
 sim.press('r_52'); sim.run(1); print(f'52G closed blind with the synchroscope off but the phase at {a_try:.0f} deg: closed {G("cb")}, tr {G("tr")}')
@@ -183,9 +183,9 @@ show('PLC level')
 print(f'  PLC following the river for 400 s: river flow {65 + 5 * min(h[2] for h in hist)}-{65 + 5 * max(h[2] for h in hist)} %, '
       f'river depth {4 + 0.25 * min(h[0] for h in hist)}-{4 + 0.25 * max(h[0] for h in hist)} m, gate {min(h[1] for h in hist)}-{max(h[1] for h in hist)} %, '
       f'spill gate {min(h[3] for h in hist)}-{max(h[3] for h in hist)}, still on line {G("cb")}')
-flip('r_lp'); tt = run_until(lambda: G('tr') == 1, 60); print(f'lube oil pump stopped: bearing trip after {tt} s, bt={C("bt")}'); show('lube trip')
+flip('r_lp'); tt = run_until(lambda: G('tr') == 1, 60); print(f'oil pump stopped: bearing trip after {tt} s, bt={C("bt")}'); show('lube trip')
 flip('r_lp'); run_until(lambda: C('n') == 0, 400)
-flip('r_gt', 1); print('lube oil pump restarted, reset: tr', G('tr'))
+flip('r_gt', 1); print('oil pump restarted, reset: tr', G('tr'))
 flip('r_ac'); tt = run_until(lambda: G('brake') == 1 and G('hbr') == 1, 120)
 print(f'compressor off, brakes released: air fell and the brakes re-applied after {tt} s (a={C("a")})')
 
