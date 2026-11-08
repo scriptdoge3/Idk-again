@@ -138,8 +138,9 @@ class VmfWriter:
     tex(name) -> (material, u factor, v factor): the factors rescale texture offsets and scales when
     the Source texture has a different size than the art was laid out for."""
 
-    def __init__(self, tex):
+    def __init__(self, tex, lightmapscale=16):
         self.tex = tex
+        self.lms = lightmapscale
         self.n = 0
 
     def id(self):
@@ -163,7 +164,7 @@ class VmfWriter:
                     f'\t\t\t"material" "{mat}"',
                     f'\t\t\t"uaxis" "[{_fmt(u[0])} {_fmt(u[1])} {_fmt(u[2])} {_fmt(u[3])}] {_fmt(sx)}"',
                     f'\t\t\t"vaxis" "[{_fmt(v[0])} {_fmt(v[1])} {_fmt(v[2])} {_fmt(v[3])}] {_fmt(sy)}"',
-                    '\t\t\t"rotation" "0"', '\t\t\t"lightmapscale" "16"', '\t\t\t"smoothing_groups" "0"', '\t\t}']
+                    '\t\t\t"rotation" "0"', f'\t\t\t"lightmapscale" "{self.lms}"', '\t\t\t"smoothing_groups" "0"', '\t\t}']
         out.append('\t}')
         return '\n'.join(out)
 

@@ -11,10 +11,45 @@ the console. The textures and sounds are packed inside the BSP, and no launch op
 
 ## Entities
 
-The map has 725 entities, and only 71 of them use network slots: the needles, switches, dials, lamps,
-annunciator windows and sounds. All the plant logic (643 entities: `math_counter`, `math_remap`,
+The map has about 1,030 entities, and only 72 of them use network slots: the needles, switches, dials,
+lamps, annunciator windows and sounds. All the plant logic (955 entities: `math_counter`, `math_remap`,
 `logic_relay`, `logic_timer`, `logic_auto`) is server-only and uses no network slots. Half-Life 2 allows
-2048 networked entities, so the old limit is gone.
+2048 networked entities and 2048 server-only ones, so there's room to spare.
+
+## The physics
+
+The plant is a per-unit machine model, the kind used in hydro studies:
+
+- **Runner:** Francis turbine torque falls with speed (stall torque 1.8 pu at full gate, runaway 160 %).
+  The head is the river's: it rises and falls with the depth at the intake (12.2 m at 7.0 m), and power
+  goes with it.
+- **Water column:** the flow takes about a second to follow the gate (water starting time 1 s). Open the
+  gate fast and the power dips before it rises; close it fast and it kicks up.
+- **Rotor:** mechanical starting time 6 s, friction and windage, air brakes. Off line the speed settles
+  where the gate's torque meets the losses (speed-no-load at 15 % gate). Coasting down with the gate shut
+  takes minutes, so the brakes matter.
+- **On line:** the rotor is tied to the grid through the generator's reactance. The load angle sets the
+  kilowatts and the field sets the vars. Closing 52G makes the rotor swing into step (the kW meter rocks
+  for a second or two), and losing too much field makes it slip poles.
+- **Generator volts:** off line they follow the open-circuit curve (saturating above rated field) times
+  speed. On line the grid holds them, raised slightly by the vars through the step-up transformer.
+- **Exciter:** static and fed from the generator's own terminals, so its ceiling is 1.4 times the volts.
+  With no volts it can't build the field: closing 41 flashes the field from the station battery until
+  the volts pass 40 %. The field current follows the exciter through the winding (1.5 s).
+- **AVR:** PI control. Off line it holds 480 V; on line it holds 0.95 power factor lagging, as small hydro
+  units on a distribution grid do. In MAN it tracks the knob, so switching to AUTO is bumpless. When 41
+  opens, the manual setting goes back to the no-load field.
+- **PLC governor:** PID speed control. The gate is limited to 25 % while starting, and the integrator waits
+  at the speed-no-load gate until 90 % speed, so start-up overshoots only about 2 %. On a full load
+  rejection the speed peaks around 126 % and comes back to speed-no-load without tripping. With the PLC off
+  nothing catches it, and 12 overspeed trips at 140 %.
+- **Auxiliaries:** the hydraulic pump runs on its pressure switch (on below 270 psi, off at 300) and the
+  air compressor on its own (100 / 125 psi); you hear them start and stop. Bearings warm with speed and
+  load over about a minute (52-60 C with cooling water); without it they head for 120 C, and without lube
+  oil they wipe in seconds.
+- **Sound:** the turbine's pitch follows its speed and its loudness the water through it; the water noise
+  follows the flow; the generator hums louder with volts and load.
+- **Light:** the ceiling troffers light the room (texture lights), with finer lightmaps on the panels.
 
 ## Controls
 
@@ -24,7 +59,7 @@ The cabinets and the spillway panel are laid out as in the GoldSrc map. These th
 |---|---|
 | Meters | Switchboard meters with a 250-degree scale. The needles move smoothly to any value. |
 | WICKET GATE LOWER / RAISE | Spring-return dials. Held, they move the gate 0.25 %/s for the first second, 2.5 %/s for the next two, then 10 %/s. Short taps trim the speed finely for synchronizing. |
-| FIRING ANGLE | The knob's position is the firing angle: left stop 90 degrees (no field), right stop 0 degrees (full field). Like every Source wheel, each new grab turns the other way. With the AVR on AUTO the knob follows the AVR, so switching back to MAN doesn't bump the field. |
+| FIRING ANGLE | The knob's position is the firing angle: left stop 90 degrees (no field), right stop 0 degrees (the exciter's ceiling, 140 % field). Like every Source wheel, each new grab turns the other way. With the AVR on AUTO the knob follows the AVR, so switching back to MAN doesn't bump the field. |
 | SYNCHROSCOPE | The pointer is the real phase angle. It turns at the slip (216 degrees a second per 1 % of speed off 100 %, at most one turn a second): clockwise when fast, anticlockwise when slow. The sync lamps are dark at 12 o'clock. |
 | Spillway GATE dials | Turn clockwise, like the others. |
 
@@ -33,14 +68,17 @@ The cabinets and the spillway panel are laid out as in the GoldSrc map. These th
 1. OIL PUMP, WATER PUMP, HYDRAULIC PUMP and AIR COMPRESSOR to RUN. Wait about 15 s for HYDRAULIC
    PRESS to reach 300 psi (the gate won't open below 230 psi).
 2. BRAKES to RELEASE.
-3. Either turn the PLC ON (it opens the gate and holds speed-no-load, a hair fast), or by hand: hold
-   RAISE to about 25 % gate, and once speed passes 80 % hold LOWER back to about 15 %.
-4. AVR to AUTO, then 41 FIELD BREAKER to CLOSE (it closes from 90 % speed). The volts come up to 480 V.
+3. Either turn the PLC ON (it brings the unit to speed in about 20 s and settles it a hair fast about
+   15 s later), or by hand: hold RAISE to about 25 % gate, and once speed passes 80 % hold LOWER back to
+   about 15 %.
+4. AVR to AUTO, then 41 FIELD BREAKER to CLOSE (it closes from 90 % speed). The field flashes and the
+   volts come up to 480 V in a few seconds.
 5. SYNCHRONIZING ON. Close 52G while the SYNC CHECK lamp is lit: phase within 10 degrees of 12 o'clock,
    speed within 0.33 % (0.2 Hz slip) and volts within 5 %. By hand, trim the speed with short taps on
-   RAISE / LOWER until the pointer creeps.
+   RAISE / LOWER until the pointer creeps. Each tap takes 15-20 s to show fully in the speed, so tap,
+   wait, and tap again.
 6. Load: with the PLC on, it opens the gate to pass the river and holds the depth at 7.0 m (never below
-   17 % gate). By hand, hold RAISE.
+   17 % gate). By hand, hold RAISE. Watch the kW needle dip as the gate starts moving fast.
 
 ## Protection
 
@@ -52,8 +90,8 @@ is still there.
 |---|---|
 | 12 OVERSPEED | 140 % speed |
 | 52G CLOSED OUT OF PHASE | 52G closed with the synchronizing switch off and not in phase (with it on, the sync check refuses the close and the handle springs back) |
-| 32 REVERSE POWER | on line with the gate under 13 % for 8 s |
-| 40 LOSS OF FIELD | on line with the field under 60 % |
+| 32 REVERSE POWER | on line and motoring (the gate under speed-no-load) for 8 s |
+| 40 LOSS OF FIELD | on line with the field under 60 %, or the rotor slipping poles |
 | 59 GEN OVERVOLTAGE | off line at 115 % volts |
 | 38 BRG TEMP HIGH-HIGH | bearing at 90 C (no lube oil wipes it in seconds, no cooling water cooks it in about a minute) |
 | (lockout only) | hydraulic oil under 210 psi with the gate open; river under 4.75 m with the unit turning |
@@ -74,9 +112,10 @@ windows, sounds and the handles the logic turns hang off 0/1 counters (`OnHitMax
 
 `srcsim.py` simulates those entities as the Source SDK code does: the event queue, the reverse order
 of an output's actions, the relays, timers rounded to ticks, the buttons and wheels, 32-bit floats.
-`python3 test_hydro.py` runs start-up by hand and by PLC, synchronizing, loading, a trip and reset,
-the out-of-phase close, the refused close and overspeed, and checks that every two-value node got its
-values in order on every tick.
+`python3 test_hydro.py` runs start-up by hand and by PLC, synchronizing (and the swing after it),
+loading (and the water-hammer dip), the power factor on line, a trip and reset, a load rejection with the
+PLC on, the out-of-phase close, the refused close and overspeed, and checks that every two-value node got
+its values in order on every tick.
 
 ## Building
 

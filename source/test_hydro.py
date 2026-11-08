@@ -1,5 +1,6 @@
 """Runs the plant in the Source entity simulator: start-up, synchronizing, loading, trips."""
 import sys
+import hydro
 from hydro import build
 from srcsim import Sim
 
@@ -57,14 +58,19 @@ def to_speed_no_load(s):
     return t
 
 
-def trim(s, lo=100.0, hi=100.2):
-    for _ in range(60):
+def trim(s, lo=100.03, hi=100.25):
+    """short taps on RAISE / LOWER, waiting for the speed to settle after each (it takes 15-20 s)"""
+    for _ in range(40):
+        s.run(20.0)
         n = V(s, 'n')
         if lo <= n <= hi:
             return True
-        s.hold('k_gr' if n < lo else 'k_gl', 0.35)
-        s.run(6.0)
+        s.hold('k_gr' if n < lo else 'k_gl', 0.3 if abs(n - 100.1) < 1 else 0.6)
     return False
+
+
+def kw(s):
+    return hydro.PBASE * s.value('cb') * 0.02 * s.value('x') * __import__('math').sin(__import__('math').radians(s.value('dl')))
 
 
 def start_aux(s):
@@ -84,7 +90,7 @@ def scenario_idle():
     check(set(lit) == {'HYD OIL|PRESS LOW', 'OIL PUMP|STOPPED', 'WATER PUMP|STOPPED', 'BRAKE AIR|PRESS LOW',
                        'SPILLWAY GATE|OPEN', 'PLC|OFF', 'AVR IN|MANUAL'}, f'windows lit at rest: {lit}')
     check(not s['s_horn'].playing, 'no horn at start')
-    check(abs(s['k_fa'].pos() - 0.627) < 0.01, 'firing-angle knob at rated field')
+    check(abs(s['k_fa'].pos() - hydro.KNOB0) < 0.01, 'firing-angle knob at rated no-load field')
 
 
 def scenario_manual_start():
@@ -98,8 +104,10 @@ def scenario_manual_start():
     flip(s, 'r_avr')                   # AVR AUTO
     flip(s, 'r_exc')                   # 41 close
     check(V(s, 'exc') == 1, '41 closes above 90 % speed')
-    s.run(8)
-    check(abs(V(s, 'v') - 100) < 1.5, f"AVR brings the volts to 480 V ({V(s, 'v') * 4.8:.0f} V)")
+    peak = 0
+    for _ in range(int(12 / 0.06)):
+        s.run(0.06); peak = max(peak, V(s, 'v'))
+    check(abs(V(s, 'v') - 100) < 1.5 and peak < 108, f"field flashing, the AVR brings the volts to 480 V ({V(s, 'v') * 4.8:.0f} V, peak {peak * 4.8:.0f} V)")
     flip(s, 'r_ss')
     ok = trim(s)
     check(ok, f"trimmed by hand to {V(s, 'n'):.3f} %")
@@ -108,13 +116,25 @@ def scenario_manual_start():
     # wait for the window and close
     t = wait_for(s, lambda: V(s, 'perm') == 1, 120)
     check(V(s, 'perm') == 1, f'SYNC CHECK lamp lit after {t:.1f} s')
-    flip(s, 'r_52', 0.4)
-    check(V(s, 'cb') == 1, '52G closes in phase')
+    flip(s, 'r_52', 0.3)
+    check(V(s, 'cb') == 1, f"52G closes in phase (at {V(s, 'dl'):.1f} deg)")
     check(s['LP_cb_1'].on and not s['LP_cb_0'].on, 'CLOSED lamp lit')
-    s.hold('k_gr', 6)
-    s.run(1)
-    kw = s['p_kw'].pos() * 320
-    check(kw > 100, f"loads by hand: gate {V(s, 'g'):.0f} %, {kw:.0f} kW")
+    # the rotor swings into step: the power rocks and settles
+    ks = []
+    for _ in range(int(6 / 0.06)):
+        s.run(0.06); ks.append(kw(s))
+    swing = max(ks[:30]) - min(ks[:30]); late = max(ks[-20:]) - min(ks[-20:])
+    check(swing > 3 and late < 1, f'the power swings after closing ({swing:.1f} kW peak to peak) and settles ({late:.2f} kW)')
+    # load by hand: the water column makes the power dip as the gate starts opening fast
+    k0 = kw(s); ks = []
+    s.holding.add('k_gr')
+    for _ in range(int(6 / 0.06)):
+        s.run(0.06); ks.append(kw(s))
+    s.holding.discard('k_gr'); s.run(3)
+    dip = min(ks[50:70]) if len(ks) > 70 else 0
+    rises = [b - a for a, b in zip(ks, ks[1:])]
+    check(any(r < -0.2 for r in rises[50:70]), f'water hammer: the power dips when the gate speeds up ({min(rises):.2f} kW/tick)')
+    check(kw(s) > 100, f"loads by hand: gate {V(s, 'g'):.0f} %, {kw(s):.0f} kW, field {V(s, 'x'):.0f} %")
     check(V(s, 'tr') == 0, 'no trip')
     return s
 
@@ -127,7 +147,7 @@ def scenario_plc_start():
     t = wait_for(s, lambda: V(s, 'n') > 90, 60)
     check(15 < t < 40, f'PLC brings the unit to 90 % in {t:.1f} s')
     flip(s, 'r_exc')
-    s.run(15)
+    s.run(30)
     n = V(s, 'n')
     check(100.0 < n < 100.2, f'PLC holds a hair fast: {n:.3f} %')
     flip(s, 'r_ss')
@@ -138,8 +158,21 @@ def scenario_plc_start():
     flip(s, 'r_52', 0.4)
     check(V(s, 'cb') == 1, f'52G closed {t:.1f} s after the switch went on')
     s.run(120)
-    check(V(s, 'g') > 50, f"PLC on line passes the river: gate {V(s, 'g'):.1f} %, river {V(s, 'q'):.1f} %, depth {V(s, 'l'):.2f} m")
+    check(V(s, 'g') > 50, f"PLC on line passes the river: gate {V(s, 'g'):.1f} %, river {V(s, 'q'):.1f} %, depth {V(s, 'l'):.2f} m, {kw(s):.0f} kW")
     check(abs(V(s, 'l') - 7.0) < 0.3, 'depth held near 7.0 m')
+    pfa = __import__('math').degrees(__import__('math').atan2(0.02 * V(s, 'x') * __import__('math').cos(__import__('math').radians(V(s, 'dl'))) - 2, kw(s) / hydro.PBASE))
+    check(15 < pfa < 22, f"AVR holds 0.95 power factor lagging ({__import__('math').cos(__import__('math').radians(pfa)):.3f}, field {V(s, 'x'):.0f} %)")
+    return s
+
+
+def scenario_load_rejection(s):
+    print('52G opened at load with the PLC on: load rejection')
+    flip(s, 'r_52', 0.1)
+    peak = 0
+    for _ in range(int(40 / 0.06)):
+        s.run(0.06); peak = max(peak, V(s, 'n'))
+    check(V(s, 'tr') == 0 and 115 < peak < 140, f'the governor catches it: peak {peak:.1f} %, no trip')
+    check(abs(V(s, 'n') - 100) < 1.5, f"back at speed-no-load: {V(s, 'n'):.2f} %, gate {V(s, 'g'):.1f} %")
     return s
 
 
@@ -207,6 +240,8 @@ if __name__ == '__main__':
     scenario_overspeed(s)
     s = scenario_plc_start()
     scenario_trip(s)
+    s = scenario_plc_start()
+    scenario_load_rejection(s)
     scenario_blind_close()
     print('FAILED:' if FAILS else 'all passed', *FAILS, sep='\n  ')
     sys.exit(1 if FAILS else 0)

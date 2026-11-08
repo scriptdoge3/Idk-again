@@ -33,6 +33,8 @@ GX = 6
 DIAL = 256                    # dial textures: 32 texels per unit
 SWEEP = 125                   # meters sweep 250 degrees: -125 .. +125 from 12 o'clock
 CREAM, BLUE = (236, 230, 210, 255), (150, 205, 225, 255)
+LIGHT_TEX = os.environ.get('SC_TEXLIGHT', '400')     # troffer brightness (texture light)
+LIGHT_FILL = os.environ.get('SC_FILL', '12')
 UNLIT = set()                 # textures drawn full bright (lit lenses, windows, needles, troffers)
 ADDITIVE = set()
 
@@ -397,11 +399,9 @@ def build_panels(m, dev):
 def build_room():
     gb.build_room()
     gb.ents[:] = [e for e in gb.ents if e['classname'] == 'worldspawn']
-    for x in (-80, 0, 80):
-        for y in (-40, -150):
-            E.append(('light', {'origin': f'{x} {y} 136', '_light': '255 244 226 90'}, [], []))
-    E.append(('light', {'origin': '0 -60 70', '_light': '255 246 232 40'}, [], []))
-    E.append(('light', {'origin': '-120 -120 80', '_light': '255 246 232 25'}, [], []))
+    # the troffers light the room themselves (texture lights, out/sablecreek.rad); two dim fills
+    E.append(('light', {'origin': '0 -60 70', '_light': '255 246 232 ' + LIGHT_FILL}, [], []))
+    E.append(('light', {'origin': '-120 -120 80', '_light': '255 246 232 ' + LIGHT_FILL}, [], []))
     E.append(('info_player_start', {'origin': '0 -185 1', 'angles': '0 90 0'}, [], []))
     UNLIT.add('sc_light')
     solid_tex('sc_ndl', (255, 104, 44), unlit=True)
@@ -414,6 +414,11 @@ def make_sounds(dirpath):
     rng = np.random.default_rng(5)
     click = rng.standard_normal(len(t)) * np.exp(-t * 90) + 0.6 * np.sin(2 * np.pi * 900 * t) * np.exp(-t * 60)
     write_wav(os.path.join(dirpath, 'switch.wav'), click * 0.5, sr)
+    # air compressor: a two-cylinder piston compressor thumping at 12 Hz over motor whine
+    t = np.arange(int(sr * 2.0)) / sr
+    thump = np.maximum(0, np.sin(2 * np.pi * 12 * t)) ** 6
+    comp = 0.6 * thump * np.sin(2 * np.pi * 70 * t) + 0.15 * np.sin(2 * np.pi * 240 * t) + 0.12 * rng.standard_normal(len(t)) * thump
+    write_wav(os.path.join(dirpath, 'compressor.wav'), comp[:sr] * 0.6, sr, loop=True)
 
 
 
@@ -468,7 +473,7 @@ def main():
     build_room()
     build_panels(m, dev)
     pos = {'s_turb': '0 10 20', 's_water': '0 20 10', 's_hum': '0 10 60', 's_horn': '0 10 116', 's_pump': '60 10 20',
-           's_brk': '-60 -2 80', 's_relay': '0 -2 90', 's_click': '0 -10 60'}
+           's_brk': '-60 -2 80', 's_relay': '0 -2 90', 's_click': '0 -10 60', 's_comp': '70 12 12'}
     for nm, e in dev['sounds'].items():
         e.kv['origin'] = pos[nm]
 
@@ -513,7 +518,7 @@ def main():
         print('  small brush', *x)
     print(f'{len(bad)} brushes under 1.1 cubic units')
     vmf = os.path.join(OUT, f'{NAME}.vmf')
-    VmfWriter(tex).write(vmf, {'skyname': 'sky_day01_01', 'message': 'Sable Creek Hydro - Unit 1'}, world, ents)
+    VmfWriter(tex, lightmapscale=8).write(vmf, {'skyname': 'sky_day01_01', 'message': 'Sable Creek Hydro - Unit 1'}, world, ents)
     net = sum(1 for e in m.ents if e.brushes or e.cls == 'ambient_generic')
     print(f'{len(ents)} entities: {len(m.ents) - net} logic (no network slot), {net} networked, '
           f'{len(E)} lights and start; {len(world)} world brushes, {len(factors)} materials')
@@ -526,6 +531,7 @@ def main():
     run = lambda *a: subprocess.run(a, cwd=maps, check=True, capture_output=True, text=True).stdout
     out = run(os.path.join(gbsp, 'gbsp'), '-game', game, f'{NAME}.vmf')
     print('\n'.join(l for l in out.splitlines() if 'eak' in l or 'entities' in l or 'wrote' in l or 'arning' in l)[:2000])
+    open(os.path.join(maps, f'{NAME}.rad'), 'w').write(f'sablecreek/sc_light 255 244 226 {LIGHT_TEX}\n')
     run(os.path.join(gbsp, 'gvis'), NAME)
     run(os.path.join(gbsp, 'grad'), NAME)
     bsp = os.path.join(OUT, f'{NAME}.bsp')
