@@ -88,8 +88,8 @@ def scenario_idle():
     check(not s.errors, f'two-input nodes always got their first value first ({len(s.errors)} errors)')
     check(abs(V(s, 'l') - 7.0) < 0.1, f"river depth holds at 7.0 m ({V(s, 'l'):.2f})")
     lit = [w['legend'] for w in dev['windows'] if s[w['ent'].name].on]
-    check(set(lit) == {'GOV OIL|PRESS LOW', 'LUBE OIL|PRESS LOW', 'COOLING WATER|FLOW LOW', 'BRAKE AIR|PRESS LOW',
-                       'SPILLWAY GATE|OPEN', 'GOVERNOR|IN MANUAL', 'VOLT REG|IN MANUAL'}, f'windows lit at rest: {lit}')
+    check(set(lit) == {'HPU PRESS|LO', 'LUBE OIL|PRESS LO', 'CW FLOW|LO', 'BRAKE AIR|PRESS LO',
+                       'SPILL GATE|OPEN', 'GOV|IN MAN', 'AVR|IN MAN'}, f'windows lit at rest: {lit}')
     check(not s['s_horn'].playing, 'no horn at start')
     check(abs(s['k_fa'].pos() - hydro.KNOB0) < 0.01, 'firing-angle knob at rated no-load field')
 

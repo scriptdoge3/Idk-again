@@ -189,9 +189,48 @@ def build_panels(m, dev):
     dl = dev['dials']
     lamps = dev['lamps']
     doors = [gb.Door(0, 'UNIT 1 GENERATOR CONTROL', 'CP-1'), gb.Door(1, 'UNIT 1 ANNUNCIATOR', 'CP-2'),
-             gb.Door(2, 'UNIT 1 AUXILIARIES', 'CP-3'), gb.Door(gb.SP, 'SPILLWAY GATE CONTROL', 'SP-1', w=gb.SP_W, h=gb.SP_H, louvres=False)]
+             gb.Door(2, 'UNIT 1 AUXILIARIES', 'CP-3'), gb.Door(gb.SP, 'SPILLWAY GATE', 'SP-1', w=gb.SP_W, h=gb.SP_H, louvres=False)]
     nd = [0]
     door_xy = gb.door_xy
+    holes = {ci: [] for ci in (0, 1, 2, gb.SP)}
+    HIT_FRONT, CLIP_FRONT, CLIP_BACK = -3.5, -3.9, -2.75
+
+    def hit(ci, u, v, r):
+        """Invisible disc (player clip) over a control's whole plate, part of the control's own entity, so the
+        player's use trace (a thin line from the crosshair) lands on it anywhere over the control. The
+        clip layer in front of the panel gets a hole here (see clip_layer)."""
+        x, z = door_xy(ci, u, v)
+        # the hole reaches further up: you look down at the panel, so the sight line to the top of a control
+        # passes the clip layer above it
+        holes[ci].append((math.floor(u - r - 1.0), math.floor(v - r - 3.0), math.ceil(u + r + 1.0), math.ceil(v + r + 0.6)))
+        return prism(ngon(x, z, r, 16), HIT_FRONT, -0.6, 'y', 'PCLIP')      # clip: a solid one would hide the knob's faces
+
+    def clip_layer(ci, w, h):
+        """Player clip over the panel face, just in front of the controls, with a hole over each one. When
+        the use line misses, HL2 sweeps 32-unit boxes down from the eye and takes the first usable thing they
+        touch (usually the control below the one you aimed at); the boxes hit this layer first instead."""
+        hs = [(max(0, a), max(0, b), min(w, c), min(h, d)) for a, b, c, d in holes[ci]]
+        us = sorted({0, w} | {a for a, _, _, _ in hs} | {c for _, _, c, _ in hs})
+        vs = sorted({0, h} | {b for _, b, _, _ in hs} | {d for _, _, _, d in hs})
+        free = lambda u0, v0: not any(a <= u0 < c and b <= v0 < d for a, b, c, d in hs)
+        strips = []
+        for j in range(len(vs) - 1):
+            i = 0
+            while i < len(us) - 1:
+                if not free(us[i], vs[j]):
+                    i += 1; continue
+                k = i
+                while k + 1 < len(us) - 1 and free(us[k + 1], vs[j]):
+                    k += 1
+                strips.append([us[i], vs[j], us[k + 1], vs[j + 1]]); i = k + 1
+        merged = []                                       # join strips that line up with the one above
+        for st in strips:
+            up = next((m_ for m_ in merged if m_[0] == st[0] and m_[2] == st[2] and m_[3] == st[1]), None)
+            if up: up[3] = st[3]
+            else: merged.append(st)
+        for u0, v0, u1, v1 in merged:
+            x0, z0 = door_xy(ci, u0, v0); x1, z1 = door_xy(ci, u1, v1)
+            world.append(Box(min(x0, x1), CLIP_FRONT, min(z0, z1), max(x0, x1), CLIP_BACK, max(z0, z1), tex='PCLIP'))
 
     def meter_case(x, z, Y0, tex, xl, xr):
         """Meter: the dial face in a rectangular case with a deep frame round it. (A round cut-out would put
@@ -249,6 +288,7 @@ def build_panels(m, dev):
             brushes = [prism(pl(gb.BAR), -2.6, -1.4, 'y', 'sc_knob'), prism(pl(gb.BAR_TIP), -2.6, -1.4, 'y', 'sc_white')]
         else:
             brushes = [Box(x - 0.45, -1.6, z - 1.7, x + 0.45, -0.6, z + 1.7, tex='sc_knob')]
+        brushes.append(hit(ci, u, v, 2.6 * k + 0.2))
         place(r['ent'], brushes + [Box(x - 0.5, -1.6, z - 0.5, x + 0.5, -0.6, z + 0.5, tex='ORIGIN')])
 
     def cs_switch(ci, u, v, name):
@@ -261,7 +301,7 @@ def build_panels(m, dev):
         D.plate(u, v + 5.6, min(11.5, 0.5 * len(r['label']) + 1.6), 1.4, r['label'], px=0.75)
         world.append(prism(ngon(x, z, 1.35), -1.3, -0.5, 'y', 'sc_metal'))
         place(r['ent'], [prism(gb.turned(gb.PISTOL, x, z, 45), -2.9, -1.3, 'y', 'sc_red' if r['grip'] == 'red' else 'sc_knob'),
-                         Box(x - 0.5, -2.6, z - 0.5, x + 0.5, -1.6, z + 0.5, tex='ORIGIN')])
+                         hit(ci, u, v, 4.2), Box(x - 0.5, -2.6, z - 0.5, x + 0.5, -1.6, z + 0.5, tex='ORIGIN')])
 
     def synchroscope(ci, u, v):
         x, z = door_xy(ci, u, v)
@@ -277,7 +317,7 @@ def build_panels(m, dev):
         body = prism(ngon(x, z, 1.9), -2.3, -0.8, 'y', 'sc_knob')
         idx = prism([(x - 0.3, z + 0.4), (x + 0.3, z + 0.4), (x + 0.3, z + 1.7), (x - 0.3, z + 1.7)], -2.8, -1.3, 'y', 'sc_white')
         start = -150 + 300 * hydro.KNOB0
-        place(dl[name]['ent'], [body, idx, Box(x - 0.5, -2.0, z - 0.5, x + 0.5, -1.0, z + 0.5, tex='ORIGIN')],
+        place(dl[name]['ent'], [body, idx, hit(ci, u, v, 2.8), Box(x - 0.5, -2.0, z - 0.5, x + 0.5, -1.0, z + 0.5, tex='ORIGIN')],
               angles=f'{start:.2f} 0 0')
         D.plate(u, v - 3.7, 9.5, 1.4, label, px=0.8)
         # scale: LOWER at the left stop, RAISE at the right
@@ -286,19 +326,18 @@ def build_panels(m, dev):
             p0 = ((u + 3.0 * math.sin(a)) * gb.PPU, (v - 3.0 * math.cos(a)) * gb.PPU)
             p1 = ((u + (3.6 if k % 5 == 0 else 3.3) * math.sin(a)) * gb.PPU, (v - (3.6 if k % 5 == 0 else 3.3) * math.cos(a)) * gb.PPU)
             D.d.line([p0, p1], fill=(24, 24, 24, 255), width=2)
-        gb.text(D.d, D.img, ((u - 3.2) * gb.PPU, (v + 3.3) * gb.PPU), 'LOWER', 0.55 * gb.PPU, (24, 24, 24, 255))
-        gb.text(D.d, D.img, ((u + 3.2) * gb.PPU, (v + 3.3) * gb.PPU), 'RAISE', 0.55 * gb.PPU, (24, 24, 24, 255))
+        gb.text(D.d, D.img, ((u - 3.2) * gb.PPU, (v + 3.3) * gb.PPU), '90', 0.55 * gb.PPU, (24, 24, 24, 255))
+        gb.text(D.d, D.img, ((u + 3.2) * gb.PPU, (v + 3.3) * gb.PPU), '0', 0.55 * gb.PPU, (24, 24, 24, 255))
 
     def spring_dial(ci, u, v, name):
         """spring-return dial: held, it turns 60 degrees clockwise to its stop; let go, it springs back"""
         x, z = door_xy(ci, u, v); D = doors[ci]
         D.ring(u, v, 2.7, gb.ESC, outline=(90, 90, 86, 255))
-        D.arrow(u, v, 3.4, False)
         world.append(prism(ngon(x, z, 1.5), -1.1, -0.5, 'y', 'sc_metal'))
         body = prism(ngon(x, z, 1.9), -2.4, -1.1, 'y', 'sc_knob')
         bar = prism([(x - 0.35, z - 1.7), (x + 0.35, z - 1.7), (x + 0.35, z + 1.7), (x - 0.35, z + 1.7)], -3.1, -2.4, 'y', 'sc_knob')
         tip = prism([(x - 0.4, z + 0.5), (x + 0.4, z + 0.5), (x + 0.4, z + 1.8), (x - 0.4, z + 1.8)], -3.4, -2.2, 'y', 'sc_white')
-        place(dl[name]['ent'], [body, bar, tip, Box(x - 0.5, -2.0, z - 0.5, x + 0.5, -1.0, z + 0.5, tex='ORIGIN')])
+        place(dl[name]['ent'], [body, bar, tip, hit(ci, u, v, 3.0), Box(x - 0.5, -2.0, z - 0.5, x + 0.5, -1.0, z + 0.5, tex='ORIGIN')])
         D.plate(u, v + 4.4, 5.6, 1.4, dl[name]['label'], px=0.8)
 
     def pushbutton(ci, u, v, name, tex):
@@ -307,17 +346,23 @@ def build_panels(m, dev):
         x, z = door_xy(ci, u, v); D = doors[ci]
         world.append(prism(ngon(x, z, 1.9), -1.1, -0.5, 'y', 'sc_metal'))
         b = dev['buttons'][name]
-        place(b['ent'], [prism(ngon(x, z, 1.35), -2.6, 1.4, 'y', tex)], lip=0.8)
+        place(b['ent'], [prism(ngon(x, z, 1.35), -2.6, 1.4, 'y', tex), hit(ci, u, v, 2.4)], lip=f'{(1.4 - HIT_FRONT) - 2 - 1.2:.2f}')
         D.plate(u, v + 3.2, 9.5, 1.4, b['label'], px=0.8)
+
+    def frame(D, u0, v0, w, h):
+        """grouping line round a block of meters or controls (no label)"""
+        x0, y0 = D.P(u0, v0); x1, y1 = D.P(u0 + w, v0 + h)
+        D.d.rounded_rectangle([x0, y0, x1, y1], radius=6, outline=(70, 74, 70, 255), width=2)
+        D.d.rounded_rectangle([x0 + 2, y0 + 2, x1 + 2, y1 + 2], radius=6, outline=(205, 208, 204, 255), width=1)
 
     ROW1, ROW2, CTL = 13, 29, 50
 
     # ------------------------------------------- left: unit control
     D = doors[0]
-    D.section(1.5, 5.5, 53, 32.5, 'METERS')
-    gauge(0, 7, ROW1, 'GENERATOR VOLTS', [(0, 600, 100, 100, 20, None)], 'AC VOLTS', 'p_volts', xr=5)
-    gauge(0, 17, ROW1, 'KILOWATTS', [(0, 320, 80, 40, 10, None)], 'KW', 'p_kw', xl=5, xr=5)
-    gauge(0, 27, ROW1, 'POWER FACTOR', None, None, 'p_pf', xl=5, xr=7.3, tex=pf_texture('scg_pf'))
+    frame(D, 1.5, 5.5, 53, 32.5)
+    gauge(0, 7, ROW1, 'GEN VOLTS', [(0, 600, 100, 100, 20, None)], 'AC VOLTS', 'p_volts', xr=5)
+    gauge(0, 17, ROW1, 'GEN KW', [(0, 320, 80, 40, 10, None)], 'KW', 'p_kw', xl=5, xr=5)
+    gauge(0, 27, ROW1, 'GEN PF', None, None, 'p_pf', xl=5, xr=7.3, tex=pf_texture('scg_pf'))
     synchroscope(0, 41, ROW1)
     world.append(gb.front_box(0, 51.5, ROW1 - 1, 5, 2, -1.0, -0.5, lens_texture('sc_slmp0', ('white', 'white'), (False, False))))
     sl = Image.new('RGB', (160, 64), (0, 0, 0)); d = ImageDraw.Draw(sl)
@@ -326,13 +371,12 @@ def build_panels(m, dev):
     TEX['sc_slmp1'] = sl; UNLIT.add('sc_slmp1'); ADDITIVE.add('sc_slmp1')
     E.append(('func_brush', {'targetname': 'SYNCLAMPS', 'rendermode': '5', 'renderamt': '0', 'Solidity': '1'}, [],
               [gb.front_box(0, 51.5, ROW1 - 1, 5, 2, -1.3, -1.0, 'sc_slmp1')]))
-    D.plate(51.5, ROW1 + 1.4, 5.4, 1.0, 'SYNC LAMPS', px=0.62)
-    lampw(0, 51.5, ROW1 + 5, 'L_perm', ('SYNC CHECK',))
-    gauge(0, 7, ROW2, 'UNIT SPEED', [(0, 150, 25, 25, 5, None)], 'RPM', 'p_speed', red=(140, 150), xr=5)
-    gauge(0, 17, ROW2, 'GATE POSITION', [(0, 100, 20, 10, 2, None)], 'PERCENT OPEN', 'p_gate', xl=5, xr=5)
-    gauge(0, 27, ROW2, 'FIELD CURRENT', [(0, 60, 10, 10, 2, None)], 'DC AMPS', 'p_exc', xl=5, xr=5)
-    gauge(0, 37, ROW2, 'FIRING ANGLE', [(0, 90, 15, 15, 5, None)], 'DEGREES', 'p_fa', xl=5)
-    D.section(1.5, 40, 53, 44, 'CONTROLS')
+    lampw(0, 51.5, ROW1 + 5, 'L_perm', ('25 PERM',))
+    gauge(0, 7, ROW2, 'SPEED', [(0, 150, 25, 25, 5, None)], 'RPM', 'p_speed', red=(140, 150), xr=5)
+    gauge(0, 17, ROW2, 'GATE POS', [(0, 100, 20, 10, 2, None)], 'PERCENT', 'p_gate', xl=5, xr=5)
+    gauge(0, 27, ROW2, 'FIELD AMPS', [(0, 60, 10, 10, 2, None)], 'DC AMPS', 'p_exc', xl=5, xr=5)
+    gauge(0, 37, ROW2, 'FIRING ANGLE', [(0, 90, 15, 15, 5, None)], 'DEG', 'p_fa', xl=5)
+    frame(D, 1.5, 40, 53, 44)
     cs_switch(0, 8, CTL, 'r_ss')
     cs_switch(0, 21, CTL, 'r_52'); lampw(0, 21, CTL + 9, 'LP_cb', ('CLOSED', 'OPEN'))
     cs_switch(0, 34, CTL, 'r_exc'); lampw(0, 34, CTL + 9, 'LP_exc', ('CLOSED', 'OPEN'))
@@ -351,28 +395,31 @@ def build_panels(m, dev):
         u, v = 6.55 + c * 10.725, 8 + r * 6.2
         world.append(gb.front_box(1, u, v, 10.3, 5.8, -1.4, -0.9, window_texture(f'scw{i:02d}d', w['legend'], w['kind'], False)))
         place(w['ent'], [gb.front_box(1, u, v, 10.3, 5.8, -1.7, -1.4, window_texture(f'scw{i:02d}l', w['legend'], w['kind'], True))])
-    gauge(1, 22, 37, 'GEN FREQUENCY', [(54, 66, 2, 1, 0.2, None)], 'HERTZ', 'p_hz', xr=6)
-    gauge(1, 34, 37, 'BUS FREQUENCY', [(54, 66, 2, 1, 0.2, None)], 'HERTZ', 'p_sfreq', xl=6)
+    gauge(1, 22, 37, 'GEN FREQ', [(54, 66, 2, 1, 0.2, None)], 'Hz', 'p_hz', xr=6)
+    gauge(1, 34, 37, 'BUS FREQ', [(54, 66, 2, 1, 0.2, None)], 'Hz', 'p_sfreq', xl=6)
     cs_switch(1, 17, CTL, 'r_plc')
     cs_switch(1, 39, CTL, 'r_avr')
     # annunciator pushbuttons: ACKNOWLEDGE (amber), RESET and TEST (black)
-    D.section(1.5, 58.5, 53, 11, 'ANNUNCIATOR')
+    frame(D, 1.5, 58.5, 53, 11)
     for u, nm, tex in ((14, 'b_ack', 'sc_btn_a'), (28, 'b_rst', 'sc_btn_k'), (42, 'b_test', 'sc_btn_k')):
         pushbutton(1, u, 63, nm, tex)
 
     # ------------------------------------------- right: auxiliaries
     D = doors[2]
-    D.section(1.5, 5.5, 53, 32.5, 'METERS')
+    frame(D, 1.5, 5.5, 53, 32.5)
     gauge(2, 7, ROW1, 'LUBE OIL PRESS', [(0, 60, 10, 10, 2, None)], 'PSI', 'p_lube', red=(0, 20), xr=5)
-    gauge(2, 17, ROW1, 'COOLING WATER', [(0, 100, 20, 10, 5, None)], 'GPM', 'p_cw', red=(0, 35), xl=5, xr=5)
+    gauge(2, 17, ROW1, 'CW FLOW', [(0, 100, 20, 10, 5, None)], 'GPM', 'p_cw', red=(0, 35), xl=5, xr=5)
     gauge(2, 27, ROW1, 'THRUST BRG TEMP', [(20, 100, 20, 10, 5, None)], 'DEG C', 'p_bt', red=(76, 100), xl=5, xr=5)
-    gauge(2, 37, ROW1, 'SHAFT VIBRATION', [(0, 20, 5, 5, 1, None)], 'MILS P-P', 'p_vib', red=(12, 20), xl=5)
-    gauge(2, 7, ROW2, 'GOV OIL PRESS', [(0, 400, 100, 50, 10, None)], 'PSI', 'p_opu', red=(0, 220), xr=5)
+    gauge(2, 37, ROW1, 'SHAFT VIB', [(0, 20, 5, 5, 1, None)], 'MILS P-P', 'p_vib', red=(12, 20), xl=5)
+    gauge(2, 7, ROW2, 'HPU PRESS', [(0, 400, 100, 50, 10, None)], 'PSI', 'p_opu', red=(0, 220), xr=5)
     gauge(2, 17, ROW2, 'BRAKE AIR PRESS', [(0, 150, 25, 25, 5, None)], 'PSI', 'p_air', red=(0, 50), xl=5, xr=5)
-    gauge(2, 27, ROW2, 'NET HEAD', [(0, 60, 10, 10, 2, None)], 'FEET', 'p_head', xl=5)
-    D.section(1.5, 40, 53, 22, 'AUXILIARY MOTORS')
+    gauge(2, 27, ROW2, 'NET HEAD', [(0, 60, 10, 10, 2, None)], 'FT', 'p_head', xl=5)
+    frame(D, 1.5, 40, 53, 22)
     for u, nm in ((8, 'r_lp'), (21, 'r_wp'), (34, 'r_hp'), (47, 'r_ac')):
         cs_switch(2, u, CTL, nm)
+
+    for ci in (0, 1, 2):
+        clip_layer(ci, gb.DOOR_W, gb.DOOR_H)
 
     # ------------------------------------------- spillway panel, on the wall beside the extinguisher
     w0 = len(world)
@@ -380,15 +427,16 @@ def build_panels(m, dev):
     D = doors[gb.SP]
     for nm in ('p_hw', 'p_rq', 'p_spill', 'r_sp', 'k_sl', 'k_sr'):
         wall_ents.append(m[nm])
-    gauge(gb.SP, 7, 12, 'HEADWATER LEVEL', [(0, 10, 1, 1, 0.25, None)], 'METERS', 'p_hw', red=(9, 10), xl=5.5, xr=6.5)
-    gauge(gb.SP, 20, 12, 'RIVER FLOW', [(0, 120, 20, 20, 5, None)], 'CFS', 'p_rq', xl=6.5, xr=6.5)
-    gauge(gb.SP, 33, 12, 'GATE OPENING', [(0, 1.2, 0.2, 0.2, 0.05, lambda v: f'{v:.1f}')], 'METERS', 'p_spill', xl=6.5, xr=5.5)
+    gauge(gb.SP, 7, 12, 'HW LEVEL', [(0, 10, 1, 1, 0.25, None)], 'M', 'p_hw', red=(9, 10), xl=5.5, xr=6.5)
+    gauge(gb.SP, 20, 12, 'INFLOW', [(0, 120, 20, 20, 5, None)], 'CFS', 'p_rq', xl=6.5, xr=6.5)
+    gauge(gb.SP, 33, 12, 'GATE POS', [(0, 1.2, 0.2, 0.2, 0.05, lambda v: f'{v:.1f}')], 'M', 'p_spill', xl=6.5, xr=5.5)
     rot(gb.SP, 8, 32, 'r_sp', dial=True)
     D.plate(27.5, 26.6, 13, 1.4, 'GATE', px=0.8)
     spring_dial(gb.SP, 22, 32, 'k_sl'); spring_dial(gb.SP, 33, 32, 'k_sr')
     W(-1, 0, gb.SP_TOP - gb.SP_H - 1, gb.SP_W + 1, 6, gb.SP_TOP + 1, tex='sc_paintd', scale=0.5)
     TEX['scdsp'] = D.img.convert('RGB')
     W(0, -0.5, gb.SP_TOP - gb.SP_H, gb.SP_W, 0, gb.SP_TOP, tex='sc_paintd', faces={FRONT: ('scdsp', face_map(0, gb.SP_TOP, gb.PPU))})
+    clip_layer(gb.SP, gb.SP_W, gb.SP_H)
     world[w0:] = [gb.to_wall(b) for b in world[w0:]]
     for e in wall_ents:
         e.brushes = [gb.to_wall(b) for b in e.brushes]
@@ -544,17 +592,15 @@ def build_details():
 
     # ------------------------------------------------ right wall (x = 160): procedures, first aid, calendar
     procedure_sheet('sc_proc1', 'UNIT 1 START-UP', [
-        ('BEFORE STARTING', ['LUBE OIL PUMP, COOLING WATER PUMP: ON', 'GOVERNOR OIL PUMP, AIR COMPRESSOR: AUTO',
-                             'WAIT FOR GOV OIL PRESS 300 PSI', 'BRAKES: RELEASE']),
-        ('TO SPEED-NO-LOAD', ['GOVERNOR: AUTO  (OPENS GATE, HOLDS SPEED)', 'OR IN MAN: WICKET GATE RAISE TO 25 %,',
-                              '   LOWER TO ABOUT 15 % PAST 80 % SPEED']),
-        ('EXCITATION', ['VOLTAGE REGULATOR: AUTO', '41 FIELD BREAKER: CLOSE ABOVE 90 % SPEED', 'CHECK GENERATOR VOLTS 480 V'])])
-    procedure_sheet('sc_proc2', 'SYNCHRONIZING / SHUTDOWN', [
-        ('SYNCHRONIZING', ['SYNCHRONIZING: ON', 'SET SPEED SO THE POINTER CREEPS CLOCKWISE',
-                           '52G: CLOSE WHILE SYNC CHECK IS LIT', 'SYNCHRONIZING: OFF']),
-        ('NORMAL SHUTDOWN', ['LOWER THE GATE TO ABOUT 15 %', '52G: TRIP, THEN 41: TRIP', 'GOVERNOR: MAN, LOWER THE GATE TO 0 %',
-                             'BRAKES: APPLY BELOW 30 % SPEED']),
-        ('ALARMS', ['ACKNOWLEDGE, FIND AND CORRECT THE CAUSE,', 'THEN RESET. TRIPS: RESET THE 86 UNIT', 'LOCKOUT FIRST.'])])
+        ('PREREQUISITES', ['LUBE OIL PUMP ON, CW PUMP ON', 'HPU PUMP AUTO, AIR COMP AUTO', 'HPU PRESS 300 PSI',
+                           'BRAKES RELEASE']),
+        ('ROLL TO SNL', ['GOV MODE AUTO', 'GOV MAN: GATE 25 %, 15 % AT N > 80 %']),
+        ('EXCITATION', ['AVR MODE AUTO', '41 CLOSE AT N > 90 %', 'GEN VOLTS 480 V'])])
+    procedure_sheet('sc_proc2', 'SYNC / SHUTDOWN', [
+        ('SYNC', ['25 SYNC ON', 'SCOPE SLOW IN FAST DIRECTION', 'V MATCHED WITHIN 5 %',
+                  '52G CLOSE NEAR 12, 25 PERM LIT', '25 SYNC OFF']),
+        ('SHUTDOWN', ['UNLOAD TO SNL', '52G TRIP, 41 TRIP', 'GOV MODE MAN, GATE 0 %', 'BRAKES APPLY AT N < 30 %']),
+        ('ALARMS', ['ACK, CLEAR CAUSE, RESET', 'TRIPS: RESET 86U FIRST'])])
     for (y0, y1), tex in (((-8, 20), 'sc_proc1'), ((-42, -14), 'sc_proc2')):    # start-up on the left as you face the wall
         W(159, y0 - 1, 47, 160, y1 + 1, 88, tex='sc_wood')                       # board
         on_wall_mx(y0, y1, 48.5, 87, tex, depth=1.6)
@@ -581,15 +627,14 @@ def build_details():
     im, d = tex_img('sc_whiteboard', (512, 256), (246, 247, 248))
     d.rectangle([0, 0, 511, 255], outline=(150, 150, 150), width=6)
     gb.text(d, im, (256, 30), 'SHIFT LOG  -  UNIT 1', 26, (20, 40, 120), squeeze=0.95)
-    log = ['06:00  TOOK OVER. UNIT 1 AVAILABLE.', '07:15  RIVER RISING - WATCH THE SPILLWAY.',
-           '09:40  GOV OIL PUMP CYCLING (270 / 300 PSI).', '11:05  52G CLOSED, HEADWATER HELD AT 7.0 M.',
-           '13:30  THRUST BRG 55 C. VIBRATION NORMAL.', 'NOTE: AVOID 25-50 % GATE ON LINE (ROUGH ZONE).']
+    log = ['0600  RELIEVED NIGHTS. U1 AVAIL.', '0715  HW RISING, SPILL GATE AUTO.', '0940  HPU CYCLING 270 / 300 PSI.',
+           '1105  U1 SYNC. GOV AUTO, HW 7.0 M.', '1330  THRUST BRG 55 C, VIB 3 MILS.']
     lines_text(d, im, 22, 76, log, 18, (30, 30, 40), gap=1.5, bold=False, squeeze=0.82)
     finish('sc_whiteboard', im)
     W(-82, -232, 44, -8, -231, 92, tex='sc_metal')
     on_wall_py(-80, -10, 46, 90, 'sc_whiteboard', depth=1.6, side='sc_metal')
     W(-80, -232, 42, -10, -228, 44, tex='sc_metal')                            # marker tray
-    safety_sign('sc_sign_ear', 'WARNING', (250, 160, 20), (20, 20, 20), ['HEARING PROTECTION', 'REQUIRED IN', 'GENERATOR ROOM'], (256, 192))
+    safety_sign('sc_sign_ear', 'WARNING', (250, 160, 20), (20, 20, 20), ['HEARING PROTECTION', 'REQUIRED'], (256, 192))
     on_wall_py(-150, -132, 70, 84, 'sc_sign_ear', depth=0.5, side='sc_white')
     im, d = tex_img('sc_filing', (128, 256), (120, 124, 120))
     for k in range(4):
@@ -605,7 +650,7 @@ def build_details():
 
     # ------------------------------------------------ the operator's desk: HMI, keyboard, log book, phone, mug
     im, d = tex_img('sc_hmi', (512, 384), (10, 22, 48), unlit=True)
-    d.rectangle([0, 0, 511, 28], fill=(40, 60, 110)); gb.text(d, im, (10, 14), 'SABLE CREEK HYDRO - UNIT 1 OVERVIEW', 16, (255, 255, 255), anchor='lm')
+    d.rectangle([0, 0, 511, 28], fill=(40, 60, 110)); gb.text(d, im, (10, 14), 'SABLE CREEK  -  U1 OVERVIEW', 16, (255, 255, 255), anchor='lm')
     blue, wht, grn = (70, 160, 255), (220, 230, 240), (60, 220, 120)
     d.rectangle([20, 70, 120, 110], outline=blue, width=3); gb.text(d, im, (70, 90), 'RIVER', 14, wht)
     d.line([(120, 90), (190, 90)], fill=blue, width=6); d.ellipse([190, 70, 230, 110], outline=wht, width=3); gb.text(d, im, (210, 90), 'T', 16, wht)
@@ -616,7 +661,7 @@ def build_details():
     d.rectangle([20, 150, 492, 360], outline=(60, 80, 120), width=2)
     for k in range(1, 6):
         d.line([(20, 150 + k * 35), (492, 150 + k * 35)], fill=(30, 45, 80))
-    gb.text(d, im, (30, 165), 'TREND  -  KW  /  HEADWATER LEVEL', 12, wht, anchor='lm')
+    gb.text(d, im, (30, 165), 'TREND  -  KW  /  HW LEVEL', 12, wht, anchor='lm')
     pts = [(20 + i * 6, 300 - 90 * (1 - math.exp(-i / 18)) + 6 * math.sin(i / 3)) for i in range(79)]
     d.line(pts, fill=grn, width=3)
     d.line([(20 + i * 6, 250 + 12 * math.sin(i / 9)) for i in range(79)], fill=blue, width=2)
@@ -634,7 +679,7 @@ def build_details():
     d.line([(128, 0), (128, 191)], fill=(150, 140, 120), width=3)
     for k in range(10):
         d.line([(10, 24 + k * 16), (118, 24 + k * 16)], fill=(170, 190, 220)); d.line([(138, 24 + k * 16), (246, 24 + k * 16)], fill=(170, 190, 220))
-    lines_text(d, im, 12, 20, ['UNIT 1', 'GATE 65 %', 'HW LEVEL 7.0', 'ALL NORMAL'], 11, (30, 40, 110), gap=1.45, bold=False)
+    lines_text(d, im, 12, 20, ['U1', 'GATE 65 %', 'HW 7.0 M', 'NORMAL'], 11, (30, 40, 110), gap=1.45, bold=False)
     finish('sc_logbook', im)
     top_art(116, 132, -172, -160, 40, 41.2, 'sc_logbook', side='sc_white')
     im, d = tex_img('sc_phone', (64, 64), (34, 34, 36))
@@ -760,6 +805,7 @@ def main():
           '   game+mod "|gameinfo_path|."\n  }\n }\n}\n', pak=False)
     C.tool('tools/toolsorigin', ['%compileorigin'])
     C.tool('tools/toolsnodraw', ['%compilenodraw', '%compilenolight'])
+    C.tool('tools/toolsplayerclip', ['%compileplayerclip'])
     # materials: every texture, at power-of-two sizes; offsets and scales are rescaled to match
     factors = {}
     for name, img in TEX.items():
@@ -778,6 +824,8 @@ def main():
     def tex(name):
         if name == 'ORIGIN':
             return 'TOOLS/TOOLSORIGIN', 1, 1
+        if name in ('NODRAW', 'PCLIP'):
+            return {'NODRAW': 'TOOLS/TOOLSNODRAW', 'PCLIP': 'TOOLS/TOOLSPLAYERCLIP'}[name], 1, 1
         fu, fv = factors[name]
         return f'SABLECREEK/{name.upper()}', fu, fv
     snd = os.path.join(game, 'sound', 'sablecreek')

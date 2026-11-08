@@ -25,7 +25,7 @@ times entities. The plant therefore runs as four loops, started on different ser
 | fast | 0.03 s | gate travel, runner and water column, rotor speed and swing, phase, 52G closing, the speed, gate, kW, power factor, net head, frequency and synchroscope needles |
 | medium | 0.12 s | gate commands (dials, governor, headwater control), excitation and voltage regulator, protection and trips, brakes, the volts, field and firing-angle needles, sound pitch and loudness |
 | slow | 0.24 s | river and spillway, pumps and compressor, bearings, their meters |
-| annunciator | 0.24 s (half a period after slow) | the 20 windows' alarm sequence, horn, ACKNOWLEDGE / RESET / TEST |
+| annunciator | 0.24 s (half a period after slow) | the 20 windows' alarm sequence, horn, ACK / RESET / TEST |
 
 In all they handle about 18,000 events a second, at most about 640 in one server tick. Sine and cosine are short formulas instead of tables, sibling `math_remap`s
 fed by the same value share one name (one event reaches them all), and node names are one to three
@@ -76,69 +76,52 @@ The cabinets and the spillway panel are laid out as in the GoldSrc map. These th
 
 | Control | Now |
 |---|---|
-| Meters | Switchboard meters with a 250-degree scale. Each needle's speed is matched to how often its loop updates it, so it glides between values like a damped movement. New: NET HEAD (auxiliaries panel). |
-| ACKNOWLEDGE / RESET / TEST | Pushbuttons under the GOVERNOR and VOLTAGE REGULATOR switches (see the annunciator below). |
-| WICKET GATE LOWER / RAISE | Spring-return dials. Held, they move the gate 0.25 %/s for the first second, 2.5 %/s for the next two, then 10 %/s. Short taps trim the speed finely for synchronizing. |
-| MANUAL FIELD ADJUST | The knob's position is the exciter's firing angle (FIRING ANGLE meter): left stop 90 degrees (no field), right stop 0 degrees (the exciter's ceiling, 140 % field). Like every Source wheel, each new grab turns the other way. With the voltage regulator on AUTO the knob follows it, so switching back to MAN doesn't bump the field. |
-| SYNCHROSCOPE | The pointer is the real phase angle. It turns at the slip (216 degrees a second per 1 % of speed off 100 %, at most one turn a second): clockwise when fast, anticlockwise when slow. The sync lamps are dark at 12 o'clock. |
-| Spillway GATE dials | Turn clockwise, like the others. |
+| Meters | 250-degree switchboard meters; needle speed matched to its loop's update rate. |
+| ACK / RESET / TEST | Pushbuttons under GOV MODE and AVR MODE. |
+| WICKET GATE LOWER / RAISE | Spring-return. Held: 0.25 %/s for 1 s, 2.5 %/s for 2 s, then 10 %/s. |
+| FIRING ANGLE knob | Position = firing angle, 90 deg (left stop) to 0 deg (right stop, 140 % field). Each new grab reverses direction (Source wheel). Tracks the AVR in AUTO for a bumpless transfer. |
+| SYNCHROSCOPE | Real phase angle; 216 deg/s per 1 % slip, max 1 rev/s. Sync lamps dark at 12 o'clock. |
+| Hit areas | Each control has an invisible player-clip disc over its plate, and a clip layer in front of each panel has a hole over each control. E takes the control under the crosshair; between controls it does nothing. |
 
 ## Nameplates
 
-The panels are engraved the way a small US hydro plant's are: protective relays and breakers by their IEEE
-C37.2 device numbers (12 overspeed, 32 reverse power, 38 bearing, 39 vibration, 40 loss of field, 41 field
-breaker, 52G generator breaker, 59 overvoltage, 86 lockout relay), and alarms on the process condition
-(LUBE OIL PRESS LOW, COOLING WATER FLOW LOW, GOV OIL PRESS LOW) instead of on a pump being stopped. The
-cabinets are CP-1 (UNIT 1 GENERATOR CONTROL), CP-2 (UNIT 1 ANNUNCIATOR), CP-3 (UNIT 1 AUXILIARIES) and
-SP-1 (SPILLWAY GATE CONTROL). Pumps that run on a pressure switch have OFF / AUTO switches, and the others
-have OFF / ON. The river level at the intake is the HEADWATER LEVEL, the grid side of 52G is the BUS
-FREQUENCY, and the field current reads in amps (0-60 A, 50 A at rated no-load field).
+IEEE C37.2 device numbers for relays and breakers (12, 25, 32, 38, 39, 40, 41, 52G, 59, 86U). Cabinets
+CP-1 (generator control), CP-2 (annunciator), CP-3 (auxiliaries), SP-1 (spillway gate). HPU = governor
+hydraulic power unit, CW = cooling water, HW = headwater, SNL = speed-no-load, OOP = out of phase,
+LOF = loss of field, OV = overvoltage. Field current reads 0-60 A (50 A at rated no-load field).
 
 ## Starting the unit
 
-1. LUBE OIL PUMP and COOLING WATER PUMP to ON, GOVERNOR OIL PUMP and AIR COMPRESSOR to AUTO. Wait
-   about 15 s for GOV OIL PRESS to reach 300 psi (the gate won't open below 230 psi).
-2. BRAKES to RELEASE.
-3. Either turn the GOVERNOR to AUTO (it brings the unit to speed in about 20 s and settles it a hair fast about
-   15 s later), or by hand: hold RAISE to about 25 % gate, and once speed passes 80 % hold LOWER back to
-   about 15 %.
-4. VOLTAGE REGULATOR to AUTO, then 41 FIELD BREAKER to CLOSE (it closes from 90 % speed). The field flashes and the
-   volts come up to 480 V in a few seconds.
-5. SYNCHRONIZING ON. Close 52G while the SYNC CHECK lamp is lit: phase within 10 degrees of 12 o'clock,
-   speed within 0.33 % (0.2 Hz slip) and volts within 5 %. By hand, trim the speed with short taps on
-   RAISE / LOWER until the pointer creeps. Each tap takes 15-20 s to show fully in the speed, so tap,
-   wait, and tap again.
-6. Load: with the governor in AUTO, it opens the gate to pass the river and holds the headwater at 7.0 m (never below
-   17 % gate). By hand, hold RAISE. Watch the kW needle dip as the gate starts moving fast.
+1. LUBE OIL PUMP ON, CW PUMP ON, HPU PUMP AUTO, AIR COMP AUTO. HPU PRESS to 300 psi in about 15 s (gate
+   blocked below 230 psi).
+2. BRAKES RELEASE.
+3. GOV MODE AUTO: 90 % speed in about 20 s, settles slightly fast. GOV MODE MAN: RAISE to 25 % gate,
+   LOWER to about 15 % past 80 % speed.
+4. AVR MODE AUTO, 41 CLOSE (permissive at 90 % speed). Field flashes, 480 V in a few seconds.
+5. 25 SYNC ON. 52G CLOSE with 25 PERM lit: within 10 deg, 0.33 % slip (0.2 Hz), 5 % volts. In MAN, trim
+   with short taps; each tap takes 15-20 s to show in the speed.
+6. Load: GOV AUTO opens the gate to pass the river and holds HW at 7.0 m (17 % gate minimum). In MAN,
+   hold RAISE; the kW dips as the gate starts moving fast.
 
 ## Protection
 
-Any trip operates the 86 unit lockout relay: it shuts the wicket gate at once, opens 52G and 41, turns the
-governor and the voltage regulator to MAN, and turns the 86 UNIT LOCKOUT handle to TRIP. Turning the
-handle to TRIP by hand trips the unit too. Turn it back to RESET to reset; it trips again if the cause is
-still there.
+A trip operates 86U: wicket gate shut, 52G and 41 open, GOV and AVR to MAN, 86U handle to TRIP. Turning
+the handle to TRIP trips the unit. RESET it to reset; it trips again if the cause remains.
 
 | Trip | Cause |
 |---|---|
 | 12 OVERSPEED | 140 % speed |
-| 52G CLOSED OUT OF PHASE | 52G closed with the synchronizing switch off and not in phase (with it on, the sync check refuses the close and the handle springs back) |
-| 32 REVERSE POWER | on line and motoring (the gate under speed-no-load) for 8 s |
-| 40 LOSS OF FIELD | on line with the field under 60 %, or the rotor slipping poles |
-| 59 GEN OVERVOLTAGE | off line at 115 % volts |
-| 38 BRG TEMP HIGH-HIGH | bearing at 90 C (no lube oil wipes it in seconds, no cooling water cooks it in about a minute) |
-| (lockout only) | governor oil under 210 psi with the gate open; headwater under 4.75 m with the unit turning |
+| 52G OOP CLOSE | 52G closed with 25 SYNC off and out of phase (with 25 on, the close is refused) |
+| 32 REV PWR | on line, gate under SNL for 8 s |
+| 40 LOF | on line, field under 60 %, or pole slip |
+| 59 OV | off line, 115 % volts |
+| 38 BRG TEMP HH | 90 C (no lube oil: seconds; no CW: about a minute) |
+| (86U only) | HPU under 210 psi with the gate open; HW under 4.75 m with the unit turning |
 
-The annunciator has the GoldSrc map's 20 windows and works like a real one (ISA-18.1 manual reset):
-
-1. A new alarm or trip flashes its window, the horn sounds and a relay clicks.
-2. ACKNOWLEDGE: every flashing window goes steady and the horn stops.
-3. When the condition has cleared, RESET puts its window out. A window whose condition is still there
-   stays lit. Trip windows show the protective relays' targets, which stay up until you reset the
-   lockout with the 86 UNIT LOCKOUT handle, so reset the handle first, then RESET.
-4. TEST lights every window for a few seconds.
-
-GOVERNOR IN MANUAL, VOLT REG IN MANUAL, BRAKES APPLIED and SPILLWAY GATE OPEN are status windows: lit while true, no
-flashing or horn. The alarms standing when the map loads start acknowledged.
+Annunciator: 20 windows, ISA-18.1 manual reset. New alarm: window flashes, horn, relay click. ACK: steady,
+horn off. RESET: clears windows whose condition has cleared (trip targets stay until 86U is reset).
+TEST: all windows on. BRAKES APPLIED, SPILL GATE OPEN, GOV IN MAN and AVR IN MAN are status windows (no
+flash, no horn). Alarms standing at map load start acknowledged.
 
 ## The room
 
