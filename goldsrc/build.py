@@ -14,7 +14,7 @@ import math, os, sys, random
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 from hlfiles import Box, Poly, prism, ngon, face_map, face_map_up, write_map, write_wad, write_wav
-from plant import build as build_logic, ANN, KW, TRIP_WINDOWS
+from plant import build as build_logic, ANN, ANN_KIND, KW
 
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'out')
 FONT_B = '/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf'
@@ -277,18 +277,25 @@ def lamp_textures(lm):
     return names, pair
 
 
+ANN_COLOURS = {  # kind: (lit window, dark window, dark legend)
+    'trip': ((255, 92, 76), (62, 30, 27), (150, 108, 102)),
+    'alarm': ((255, 186, 60), (64, 48, 22), (150, 132, 98)),
+    'status': ((255, 246, 222), (62, 60, 54), (150, 148, 138))}
+
+
 def ann_textures(i, label, lit0):
+    """Annunciator window: an engraved legend on a translucent window, lit from behind; red for trips,
+    amber for alarms, white for status."""
     names = (f'+0an{i:02d}', f'+aan{i:02d}')
-    trip = i in TRIP_WINDOWS
+    on_c, off_c, off_fg = ANN_COLOURS[ANN_KIND[i]]
     for frame in (0, 1):
         lit = (frame == 1) != bool(lit0)
-        im = Image.new('RGBA', (96, 48), (0, 0, 0, 255))
+        im = Image.new('RGBA', (128, 64), (0, 0, 0, 255))
         d = ImageDraw.Draw(im)
-        base = ((255, 96, 80) if trip else (255, 244, 214)) if lit else ((60, 30, 28) if trip else (62, 60, 54))
-        d.rectangle([2, 2, 93, 45], fill=base + (255,))
-        fg = (30, 12, 8, 255) if lit else ((150, 110, 104, 255) if trip else (150, 148, 138, 255))
+        d.rectangle([3, 3, 124, 60], fill=(on_c if lit else off_c) + (255,))
+        fg = (24, 14, 10, 255) if lit else off_fg + (255,)
         a, b = label.split('|')
-        text(d, im, (48, 16), a, 13, fg); text(d, im, (48, 32), b, 13, fg)
+        text(d, im, (64, 21), a, 16, fg); text(d, im, (64, 43), b, 16, fg)
         TEX[names[frame]] = im.convert('RGB')
     return names
 
@@ -592,7 +599,7 @@ def build_panels(dev):
     lamps = {lm['name']: lm for lm in dev['lamps']}
     rots = {r['name']: r for r in dev['rots']}
     knobs = {k['name']: k for k in dev['knobs']}
-    doors = [Door(0, 'UNIT 1 - UNIT CONTROL', '+CP1'), Door(1, 'UNIT 1 - ANNUNCIATOR / PLC / AVR', '+CP2'),
+    doors = [Door(0, 'UNIT 1 - UNIT CONTROL', '+CP1'), Door(1, 'UNIT 1 - ANNUNCIATOR', '+CP2'),
              Door(2, 'UNIT 1 - AUXILIARIES', '+CP3'), Door(SP, 'SPILLWAY GATE', '+SP1', w=SP_W, h=SP_H, louvres=False)]
     E = []
     ndial = [0]
@@ -736,8 +743,8 @@ def build_panels(dev):
     # ------------------------------------------- left: unit control
     D = doors[0]
     D.section(1.5, 5.5, 53, 32.5, 'METERS')
-    gauge(0, 7, ROW1, 'GEN VOLTS', [(0, 600, 200, 100, 20, None)], 'VOLTS AC', ptr='p_volts', xr=5)
-    gauge(0, 17, ROW1, 'KILOWATTS', [(0, 320, 80, 80, 20, None)], 'kW',
+    gauge(0, 7, ROW1, 'GENERATOR VOLTS', [(0, 600, 200, 100, 20, None)], 'AC VOLTS', ptr='p_volts', xr=5)
+    gauge(0, 17, ROW1, 'KILOWATTS', [(0, 320, 80, 80, 20, None)], 'KW',
           ptr='p_kw', xl=5, xr=5)
     gauge(0, 27, ROW1, 'POWER FACTOR', None, None, ptr='p_pf', xl=5, xr=7.3, tex=pf_texture('scg_pf'))
     synchroscope(0, 41, ROW1)
@@ -747,24 +754,24 @@ def build_panels(dev):
     E.append({'classname': 'func_wall_toggle', 'targetname': 'SLCOVER',             # dark lenses while the switch is off
               '_brushes': [front_box(0, 51.5, ROW1 - 1, 5, 2, -1.5, -1.25, 'sc_slmp0')]})
     D.plate(51.5, ROW1 + 1.4, 5.4, 1.0, 'SYNC LAMPS', px=0.62)
-    lampw(0, 51.5, ROW1 + 5, 'L_perm', ('SYNC OK',))        # sync check permissive: close 52G while it is lit
-    gauge(0, 7, ROW2, 'SPEED', [(0, 150, 50, 25, 5, None)], 'RPM', ptr='p_speed', red=(140, 150), xr=5)
-    gauge(0, 17, ROW2, 'WICKET GATE', [(0, 100, 50, 25, 5, None)], '% OPEN',
+    lampw(0, 51.5, ROW1 + 5, 'L_perm', ('SYNC CHECK',))        # sync check permissive: close 52G while it is lit
+    gauge(0, 7, ROW2, 'UNIT SPEED', [(0, 150, 50, 25, 5, None)], 'RPM', ptr='p_speed', red=(140, 150), xr=5)
+    gauge(0, 17, ROW2, 'GATE POSITION', [(0, 100, 50, 25, 5, None)], 'PERCENT OPEN',
           ptr='p_gate', xl=5, xr=5)
-    gauge(0, 27, ROW2, 'EXCITER FIELD', [(0, 5, 1, 1, 0.2, None)], 'AMPS DC',
+    gauge(0, 27, ROW2, 'FIELD CURRENT', [(0, 5, 1, 1, 0.2, None)], 'DC AMPS',
           ptr='p_exc', xl=5, xr=5)
     gauge(0, 37, ROW2, 'FIRING ANGLE', [(0, 90, 30, 15, 5, None)], 'DEGREES', ptr='p_fa', xl=5)
     D.section(1.5, 40, 53, 44, 'CONTROLS')
     # breakers, with their lamps under the nameplates
     cs_switch(0, 8, CTL, 'r_ss')
-    cs_switch(0, 21, CTL, 'r_52'); lampw(0, 21, CTL + 9, 'LP_cb', ('CLSD', 'OPEN'))
-    cs_switch(0, 34, CTL, 'r_exc'); lampw(0, 34, CTL + 9, 'LP_exc', ('ON', 'OFF'))
+    cs_switch(0, 21, CTL, 'r_52'); lampw(0, 21, CTL + 9, 'LP_cb', ('CLOSED', 'OPEN'))
+    cs_switch(0, 34, CTL, 'r_exc'); lampw(0, 34, CTL + 9, 'LP_exc', ('CLOSED', 'OPEN'))
     cs_switch(0, 47, CTL, 'r_gt')
     # dials
     D.plate(11, CTL + 15.6, 13, 1.4, 'WICKET GATE', px=0.8)
     spring_dial(0, 6, CTL + 21, 'k_gl'); spring_dial(0, 16, CTL + 21, 'k_gr')
     rot(0, 30, CTL + 21, 'r_br', dial=True)
-    lampw(0, 30, CTL + 28.5, 'LP_brake', ('APPL', 'REL'))
+    lampw(0, 30, CTL + 28.5, 'LP_brake', ('APPLIED', 'RELEASED'))
     knob_panel(0, 45, CTL + 21, 'k_fa', 'FIRING ANGLE')
     lampw(0, 45, CTL + 27.5, 'L_k_fa', ('RAISE', 'LOWER'))
 
@@ -772,12 +779,12 @@ def build_panels(dev):
     D = doors[1]
     W(door_xy(1, 0.5, 0)[0], -0.9, DOOR_TOP - 30.5, door_xy(1, 55.5, 0)[0], -0.5, DOOR_TOP - 4.5, tex='sc_black')
     for i, label in enumerate(ANN):
-        c, r = i % 4, i // 4
-        u, v = 7.75 + c * 13.5, 8 + r * 6.2
+        c, r = i % 5, i // 5
+        u, v = 6.55 + c * 10.725, 8 + r * 6.2
         lit0 = dev.get('ann_init', {}).get(i, 0)
         t0, t1 = ann_textures(i, label, lit0)
         E.append({'classname': 'func_wall', 'targetname': f'A{i:02d}', 'rendermode': '2', 'renderamt': '255',
-                  '_brushes': [front_box(1, u, v, 12.6, 5.8, -1.4, -0.9, t0)]})
+                  '_brushes': [front_box(1, u, v, 10.3, 5.8, -1.4, -0.9, t0)]})
     gauge(1, 22, 37, 'GEN FREQUENCY', [(54, 66, 3, 1, 0.2, None)], 'Hz', ptr='p_hz', xr=6)
     gauge(1, 34, 37, 'STATION FREQUENCY', [(54, 66, 3, 1, 0.2, None)], 'Hz', ptr='p_sfreq', xl=6)
     cs_switch(1, 17, CTL, 'r_plc')
@@ -786,12 +793,12 @@ def build_panels(dev):
     # ------------------------------------------- right: auxiliaries (the pumps and the gauges)
     D = doors[2]
     D.section(1.5, 5.5, 53, 32.5, 'METERS')
-    gauge(2, 7, ROW1, 'OIL', [(0, 60, 20, 10, 2, None)], 'PSI', ptr='p_lube', red=(0, 20), xr=5)
-    gauge(2, 17, ROW1, 'WATER', [(0, 100, 20, 20, 5, None)], 'GPM', ptr='p_cw', red=(0, 35), xl=5, xr=5)
+    gauge(2, 7, ROW1, 'OIL PRESSURE', [(0, 60, 20, 10, 2, None)], 'PSI', ptr='p_lube', red=(0, 20), xr=5)
+    gauge(2, 17, ROW1, 'WATER FLOW', [(0, 100, 20, 20, 5, None)], 'GPM', ptr='p_cw', red=(0, 35), xl=5, xr=5)
     gauge(2, 27, ROW1, 'BEARING TEMP', [(20, 100, 20, 20, 5, None)], 'DEG C', ptr='p_bt', red=(76, 100), xl=5, xr=5)
     gauge(2, 37, ROW1, 'VIBRATION', [(0, 20, 10, 5, 1, None)], 'MILS P-P', ptr='p_vib', red=(12, 20), xl=5)
-    gauge(2, 7, ROW2, 'HYDRAULIC', [(0, 400, 100, 100, 20, None)], 'PSI', ptr='p_opu', red=(0, 220), xr=5)
-    gauge(2, 17, ROW2, 'BRAKE AIR', [(0, 150, 50, 50, 10, None)], 'PSI', ptr='p_air', red=(0, 50), xl=5)
+    gauge(2, 7, ROW2, 'HYDRAULIC PRESS', [(0, 400, 100, 100, 20, None)], 'PSI', ptr='p_opu', red=(0, 220), xr=5)
+    gauge(2, 17, ROW2, 'BRAKE AIR PRESS', [(0, 150, 50, 50, 10, None)], 'PSI', ptr='p_air', red=(0, 50), xl=5)
     D.section(1.5, 40, 53, 22, 'PUMPS')
     for u, nm in ((8, 'r_lp'), (21, 'r_wp'), (34, 'r_hp'), (47, 'r_ac')):
         cs_switch(2, u, CTL, nm)
@@ -799,9 +806,9 @@ def build_panels(dev):
     # ------------------------------------------- spillway panel, on the wall beside the extinguisher
     w0, e0 = len(world), len(E)
     D = doors[SP]
-    gauge(SP, 7, 12, 'RIVER DEPTH', [(0, 10, 2, 1, 0.25, None)], 'M', ptr='p_hw', red=(9, 10), xl=5.5, xr=6.5)
+    gauge(SP, 7, 12, 'RIVER DEPTH', [(0, 10, 2, 1, 0.25, None)], 'METERS', ptr='p_hw', red=(9, 10), xl=5.5, xr=6.5)
     gauge(SP, 20, 12, 'RIVER FLOW', [(0, 120, 40, 20, 5, None)], 'CFS', ptr='p_rq', xl=6.5, xr=6.5)
-    gauge(SP, 33, 12, 'SPILL GATE', [(0, 1.2, 0.4, 0.2, 0.05, None)], 'M OPEN', ptr='p_spill', xl=6.5, xr=5.5)
+    gauge(SP, 33, 12, 'GATE OPENING', [(0, 1.2, 0.4, 0.2, 0.05, None)], 'METERS', ptr='p_spill', xl=6.5, xr=5.5)
     rot(SP, 8, 32, 'r_sp', dial=True)
     D.plate(27.5, 26.6, 13, 1.4, 'GATE', px=0.8)
     spring_dial(SP, 22, 32, 'k_sl', ccw=True); spring_dial(SP, 33, 32, 'k_sr', ccw=True)

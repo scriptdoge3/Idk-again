@@ -20,6 +20,7 @@ devs.append({'classname': 'func_wall_toggle', 'targetname': 'SLCOVER'})
 sim = Sim(ents + devs)
 sim.train_nodes['SCOPE'] = [(msg, sc['R'] * math.sin(math.radians(a)), sc['R'] * math.cos(math.radians(a))) for a, msg in sc['nodes']]
 G = lambda k: sim.globals.get(k)
+win_lit = lambda key: sim.ent(f"A{dev['ann_idx'][key]:02d}").on != bool(dev['ann_init'].get(dev['ann_idx'][key], 0))
 depth = lambda: 4 + 0.25 * sim.counter('l')          # river depth, m
 C = sim.counter
 S = lambda: dict(t=round(sim.time, 1), n=C('n'), g=C('g'), v=C('v'), x=C('x'), o=C('o'), a=C('a'), bt=C('bt'), l=C('l'), sg=C('sg'),
@@ -69,11 +70,11 @@ def pf_reading():
 def flip(name, settle=0.6):
     r = sim.press(name); sim.run(settle); return r
 def windows():
-    return [dev['ann'][i].replace('|', ' ') for i, w in enumerate(dev['walls'][:16]) if sim.ent(w).on != bool(dev['ann_init'].get(i, 0))]
+    return [dev['ann'][i].replace('|', ' ') for i, w in enumerate(dev['walls'][:len(dev['ann'])]) if sim.ent(w).on != bool(dev['ann_init'].get(i, 0))]
 def lit():
-    return [dev['ann'][i].replace('|', ' ') for i in range(16) if sim.ent(f'A{i:02d}').on != bool(dev['ann_init'].get(i, 0)) ^ False]
+    return [dev['ann'][i].replace('|', ' ') for i in range(len(dev['ann'])) if sim.ent(f'A{i:02d}').on != bool(dev['ann_init'].get(i, 0))]
 
-sim.run(5); show('dark')
+sim.run(5); show('dark'); print('  windows lit:', lit())
 riv = []; sim.run(600, every=lambda s_: riv.append(C('rq')) if round(s_.time * 100) % 3200 == 0 else None)
 print('river flow, % every 32 s for 10 min (the unit stopped):', [65 + 5 * q for q in riv], f' river depth {depth()} m, spill gate {C("sg")}')
 print('brakes with no air: APPLY gives nothing, brake', G('brake'), '; dial to RELEASE:', flip('r_br', 2))
@@ -81,7 +82,7 @@ for sw in ('r_lp', 'r_wp', 'r_hp', 'r_ac'):
     flip(sw, 0.5)
 tt = run_until(lambda: C('o') >= 10 and C('a') >= 6, 30); print(f'aux running, hydraulic and air charged after {tt} s'); show('aux')
 sim.run(1); print('brakes off:', G('brake') == 0)
-flip('r_exc', 2.0); print(f'41 turned to CLOSE at standstill: closed {G("exc")}, handle back {sim.ent("r_exc").pos == 0} (it needs 95 % speed)')
+flip('r_exc', 2.0); print(f'41 turned to CLOSE at standstill: closed {G("exc")}, handle back {sim.ent("r_exc").pos == 0} (it needs 90 % speed)')
 # manual run-up: open the gate, then back to speed-no-load as speed comes up
 k = sim.ent('k_gr'); k.hold(1.0); g_rel = C('g'); sim.run(0.15); g_015 = C('g'); sim.run(1.5)
 print(f'RAISE held 1 s: gate {g_rel} % at release, {g_015} % 0.15 s later, {C("g")} % after the dial sprang back '
@@ -147,7 +148,8 @@ print('kW', C('g'), '->', round(sim.ent('p_kw').pos * 320), 'kW (KW[60]=', KW[60
 print('field to 115 (overexcited):', turn('k_fa', 'x', 115), ' PF', pf_reading())
 print('field to 94 (underexcited):', turn('k_fa', 'x', 94), ' PF', pf_reading()); turn('k_fa', 'x', 104)
 gate_to(12); tt = run_until(lambda: G('tr') == 1, 30, 0.25)
-print(f'gate down to 12 % on line, the unit motors: reverse power tripped it {tt} s later (PROT TRIP lit {sim.ent("A03").on})')
+print(f'gate down to 12 % on line, the unit motors: reverse power tripped it {tt} s later (32 REVERSE POWER lit {win_lit("rp")}, 86 LOCKOUT lit {win_lit("lock")})')
+print('  windows lit:', lit())
 run_until(lambda: G('hgt') == 1, 5, 0.1); sim.run(1); flip('r_gt', 1); gate_to(25); run_until(lambda: C('n') >= 80, 60); gate_to(15); run_until(lambda: C('n') == 100, 60)
 flip('r_exc'); turn('k_fa', 'x', 100); run_until(lambda: C('v') == 100, 20); sim.run(1); nudge_in(); sim.press('r_52'); sim.run(1)
 print('  reset, run up and re-synchronized:', G('cb')); gate_to(60); turn('k_fa', 'x', 115)
@@ -175,10 +177,10 @@ sim.press('r_52'); sim.run(0.15); a_try = scope.angle(); sim.run(1.0)
 print(f'52G turned to CLOSE outside the window (pointer {a_try:.0f} deg): refused, cb={G("cb")} tr={G("tr")} handle back={sim.ent("r_52").pos == 0}')
 flip('r_ss', 1)                                              # synchroscope (sync check) off
 run_until(lambda: G('inph') == 0 and 60 < scope.angle() < 300, 20, 0.05); a_try = scope.angle()
-sim.press('r_52'); sim.run(0.5); print(f'52G closed blind with the synchroscope off, phase {a_try:.0f} deg -> cb={G("cb")} tr={G("tr")} OUT OF PHASE lit={sim.ent("A02").on}')
+sim.press('r_52'); sim.run(0.5); print(f'52G closed blind with the synchroscope off, phase {a_try:.0f} deg -> cb={G("cb")} tr={G("tr")} OUT OF PHASE lit={win_lit("oop")}')
 flip('r_ss', 1)
 run_until(lambda: C('n') <= 30, 200); flip('r_br'); run_until(lambda: C('n') == 0, 120); flip('r_br', 0.5); flip('r_gt', 1)
-print('reset: tr', G('tr'), 'OUT OF PHASE lit', sim.ent('A02').on)
+print('reset: tr', G('tr'), 'OUT OF PHASE lit', win_lit('oop'))
 print(f'  the trip turned the PLC off: {G("plc") == 0} (handle {sim.ent("r_plc").pos}), the AVR off: {G("avr") == 0} (handle {sim.ent("r_avr").pos}), 41 open: {G("exc") == 0} (handle {sim.ent("r_exc").pos})')
 flip('r_plc'); flip('r_avr'); print('  PLC and AVR back on:', G('plc'), G('avr'))
 
@@ -197,13 +199,18 @@ print(f'  PLC following the river for 400 s: river flow {65 + 5 * min(h[2] for h
       f'river depth {4 + 0.25 * min(h[0] for h in hist)}-{4 + 0.25 * max(h[0] for h in hist)} m, gate {min(h[1] for h in hist)}-{max(h[1] for h in hist)} %, '
       f'spill gate {min(h[3] for h in hist)}-{max(h[3] for h in hist)}, still on line {G("cb")}')
 flip('r_lp'); tt = run_until(lambda: G('tr') == 1, 60); print(f'oil pump stopped: bearing trip after {tt} s, bt={C("bt")}'); g0 = C('g'); sim.run(1.0); show('lube trip')
+print('  windows lit:', lit())
 print(f'  1 s after the trip: gate {g0} -> {C("g")} %, PLC {G("plc")}, AVR {G("avr")}, 41 {G("exc")}, 52G {G("cb")}; station frequency follows the unit: {sim.ent("p_sfreq").pos == sim.ent("p_hz").pos}')
 flip('r_lp'); run_until(lambda: C('n') == 0, 400)
 flip('r_gt', 1); print('oil pump restarted, reset: tr', G('tr'))
 flip('r_br'); sim.run(1.5); print('unit stopped, brakes applied:', G('brake'))
 flip('r_ac'); tt = run_until(lambda: G('brake') == 0, 300)
-print(f'compressor off: the brake air leaked down and the brakes came off after {tt} s (a={C("a")}, BRAKE AIR PRESS LOW lit {sim.ent("A08").on != bool(dev["ann_init"].get(8, 0))})')
+print(f'compressor off: the brake air leaked down and the brakes came off after {tt} s (a={C("a")}, BRAKE AIR PRESS LOW lit {win_lit("air")})')
 flip('r_ac'); run_until(lambda: G('brake') == 1, 60); print('compressor back on: brakes applied again', G('brake'))
+# after the trip the PLC and the AVR are off: run up with the PLC, leave the AVR on MAN, close 41
+flip('r_br'); flip('r_plc'); tt = run_until(lambda: C('n') == 100, 120); print(f'PLC back on: speed 100 % after {tt} s; AVR {G("avr")} (MAN)')
+flip('r_exc'); tt = run_until(lambda: C('v') >= 100, 30); print(f'41 closed with the AVR on MAN: exc {G("exc")}, field flashing brought the volts to {C("v")} % in {tt} s (field {C("x")} %)')
+flip('r_exc'); flip('r_plc'); flip('r_br')
 
 # spillway panel: manual control
 sg0 = C('sg'); sim.ent('k_sr').hold(2.0); sim.run(0.5)

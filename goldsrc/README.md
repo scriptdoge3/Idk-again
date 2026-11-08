@@ -20,10 +20,10 @@ the generator.
 
 | Cabinet | Control | What it does |
 |---|---|---|
-| Left | WICKET GATE TRIP (red grip, yellow plate) | The emergency stop. A trip (this handle or any protection) shuts the wicket gate at once (under half a second), opens 52G and the 41 field breaker, and turns the PLC and the AVR off. Protection turns this handle to TRIP by itself; turning it back to NORMAL resets (it trips again if the cause is still there). |
-| Left | SYNCHROSCOPE | Shows the phase between the generator and the grid, and puts the sync check (25) in service. The phase is there whether the switch is on or not, while the field is on and the unit is within 5 % of 60 Hz; the switch only shows it (pointer and sync lamps). The phase turns at the slip: anticlockwise (SLOW) when the unit is slower than the grid, clockwise (FAST) when faster, quicker the further off. At exactly 100 % speed it stands still wherever it is. The sync lamps are dark at 12 o'clock and brightest at 6. The green SYNC OK lamp lights while a close would be allowed: phase in the green sector (±10°, as a real sync-check relay allows), speed at 100 % and volts within 5 % (456–504 V). |
-| Left | 52G SYNC BREAKER | Closes the generator onto the grid, on the real phase. In phase (what SYNC OK shows) it closes, switch on or off. Out of phase with the synchroscope on, the sync check refuses and the handle springs back; with the synchroscope off nothing stops it and the unit trips as out of phase. Once closed the unit is locked to the grid and the phase stops. |
-| Left | 41 FIELD BREAKER | Connects the thyristor exciter (field flashing). It only closes above 95 % speed; below that the handle springs back. Opening it lets the field decay. |
+| Left | WICKET GATE TRIP (red grip, yellow plate) | The emergency stop. A trip (this handle or any protection) shuts the wicket gate at once (under half a second), opens 52G and the 41 field breaker, and turns the PLC and the AVR off. Protection turns this handle to TRIP by itself; turning it back to RESET resets (it trips again if the cause is still there). |
+| Left | SYNCHRONIZING switch (OFF / ON) | Shows the phase between the generator and the grid, and puts the sync check (25) in service. The phase is there whether the switch is on or not, while the field is on and the unit is within 5 % of 60 Hz; the switch only shows it (pointer and sync lamps). The phase turns at the slip: anticlockwise (SLOW) when the unit is slower than the grid, clockwise (FAST) when faster, quicker the further off. At exactly 100 % speed it stands still wherever it is. The sync lamps are dark at 12 o'clock and brightest at 6. The green SYNC CHECK lamp lights while a close would be allowed: phase in the green sector (±10°, as a real sync-check relay allows), speed at 100 % and volts within 5 % (456–504 V). |
+| Left | 52G GEN BREAKER (TRIP / CLOSE) | Closes the generator onto the grid, on the real phase. In phase (what SYNC CHECK shows) it closes, switch on or off. Out of phase with the synchroscope on, the sync check refuses and the handle springs back; with the synchroscope off nothing stops it and the unit trips as out of phase. Once closed the unit is locked to the grid and the phase stops. |
+| Left | 41 FIELD BREAKER (TRIP / CLOSE) | Connects the thyristor exciter. It closes from 90 % speed (below that the handle springs back); field flashing then builds the field up to rated no-load, with the AVR in AUTO or MAN, so the volts come up to 480 V. Opening it lets the field decay. |
 | Left | FIRING ANGLE dial | Sets the field (manual excitation). Off line it sets the voltage; on line it sets the reactive power, shown on the POWER FACTOR meter. The FIRING ANGLE gauge above shows the thyristor angle: field goes as cos α, so 90° is no field, about 34° is rated field and 0° is full field. |
 | Left | WICKET GATE LOWER and RAISE dials | Hold USE on RAISE to open the gate, on LOWER to close it: 1 % every 0.1 s while held. They are spring-return: let go and the dial springs back to 12 o'clock and the gate stops. |
 | Left | BRAKES dial | APPLY / RELEASE. The generator brakes are applied by compressed air and only come on below 30 % speed (the shoes would burn above it); springs pull them off on RELEASE or when the air is gone. |
@@ -33,10 +33,26 @@ the generator.
 | Right | WATER PUMP | Bearing and generator cooling. Without it the bearings heat up in about a minute (trip). |
 | Right | HYDRAULIC PUMP | Charges the gate servo accumulator. Every gate movement uses oil; below 220 psi the gate trips. |
 | Right | AIR COMPRESSOR | Brake air. The brakes need 50 psi to be applied; without air they can't stop the unit. |
-| Spillway | CONTROL (AUTO / MANUAL) | AUTO: the spillway gate opens when the river is deeper than 7.5 m and still rising, and closes below 7.25 m (with the PLC on, on line, it gives the water to the unit first). MANUAL: the gate only moves on the dials. |
+| Spillway | CONTROL MODE (AUTO / MANUAL) | AUTO: the spillway gate opens when the river is deeper than 7.5 m and still rising, and closes below 7.25 m (with the PLC on, on line, it gives the water to the unit first). MANUAL: the gate only moves on the dials. |
 | Spillway | GATE LOWER and RAISE dials | In MANUAL, hold to move the spillway gate 0.15 m a second (it opens 1.2 m). Spring-return, like the wicket gate dials. |
 
-The spillway panel also carries the RIVER DEPTH (at the intake, 0–10 m), RIVER FLOW and SPILL GATE gauges.
+The annunciator has 20 windows, worded the way annunciator legends are: upper case, at most 13
+characters a line, with the IEEE C37.2 device number on protective functions. Red windows are trips
+(each lights with 86 LOCKOUT TRIPPED and stays lit until the WICKET GATE TRIP handle is reset), amber
+ones alarms, white ones status:
+
+| Trips (red) | Alarms (amber) | Status (white) |
+|---|---|---|
+| 12 OVERSPEED TRIP (140 %) | 38 BRG TEMP HIGH (76 °C) | BRAKES APPLIED |
+| 86 LOCKOUT TRIPPED (any trip) | 39 VIBRATION HIGH (rough zone on line) | SPILLWAY GATE OPEN |
+| 52G GEN BKR TRIPPED | HYD OIL PRESS LOW | PLC OFF |
+| 52G CLOSED OUT OF PHASE | OIL PUMP STOPPED | AVR IN MANUAL |
+| 32 REVERSE POWER (8 s motoring) | WATER PUMP STOPPED | |
+| 40 LOSS OF FIELD (below 60 %) | BRAKE AIR PRESS LOW | |
+| 59 GEN OVERVOLTAGE (115 %) | RIVER DEPTH HIGH / LOW | |
+| 38 BRG TEMP HIGH-HIGH (90 °C) | | |
+
+The spillway panel also carries the RIVER DEPTH (at the intake, 0–10 m), RIVER FLOW and GATE OPENING gauges.
 The river's flow wanders between 65 and 85 % of the turbine's full-gate discharge (58–77 cfs; full gate
 is 90 cfs), a step of 5 % every 32 s, so a cycle takes about 6½ minutes. When the plant and the spillway
 take more than the river brings, it gets shallower (below 4.75 m the intake draws air and the unit
@@ -56,12 +72,12 @@ and up), so the same field gives a lower power factor at light load.
 3. Hold RAISE to open the wicket gate to about 25 %. As speed passes 80 %, hold LOWER to bring it
    back to 15 % (speed-no-load): the unit settles at 100 rpm. Each 1 % of gate around there moves the speed about 5 %
    (14 % gives 94 rpm, 16 % gives 104). Leaving the gate open overspeeds it (trip at 140 %).
-4. Close 41 and raise the field with the firing-angle dial until GEN VOLTS reads 480.
+4. Close 41: field flashing brings GENERATOR VOLTS up to 480. Trim it with the firing-angle dial if needed.
 5. SYNCHROSCOPE on. While the speed is still settling the pointer spins (SLOW below 100 %, FAST
    above); at 100 % it stands still. To bring it round to 12 o'clock, nudge the speed: tap RAISE, and
    when the speed reaches 101 % and the pointer starts to turn clockwise, tap LOWER; the speed comes
    back to 100 % and the pointer stops, about 15° further on (LOWER first turns it back the other way).
-   Wait longer at 101 % to move it further. Close 52G while the green SYNC OK lamp is lit (pointer in
+   Wait longer at 101 % to move it further. Close 52G while the green SYNC CHECK lamp is lit (pointer in
    the green, speed and volts matched). If it isn't, the close is refused and nothing trips.
 6. Open the gate to load the unit (about 190 kW at 60 % gate). Keep it above 13 %, or after about 8 s of
    motoring the reverse-power relay trips the unit. Keep the field up, or loss of field trips it.
@@ -157,7 +173,7 @@ the firing-angle dial.
 `-num_edicts 4096` to Half-Life's launch options (Steam → Half-Life → Properties → Launch Options).
 Without it the map won't load ("ED_Alloc: no free edicts").
 
-The map has 2,624 entities (2,617 once the lights are compiled in): every needle moves in 1 % steps, and
+The map has 2,655 entities (2,648 once the lights are compiled in): every needle moves in 1 % steps, and
 each step needs a counter and a gauge setter. The default limit is 1,200 (900 before the 25th-anniversary
 update), hence the launch option. The variables only get counters for values something listens for.
 
@@ -192,6 +208,15 @@ Values were checked against published practice for small hydro, where it exists:
 - Field flashing builds the voltage before the thyristors take over
   ([IIT Roorkee, hydro generator excitation](https://iitr.ac.in/Departments/Hydro%20and%20Renewable%20Energy%20Department/static/Modern_hydroelectric_engg/vol_1/Chapter-10_Hydro_Generator_Excitation_Systems.pdf)).
 - Breaker lamps: red closed, green open (North American practice).
+- Names: device function numbers from IEEE C37.2 ([list](https://en.wikipedia.org/wiki/ANSI_device_numbers));
+  which conditions alarm and which trip, and the panel indications, from the AHEC/IIT Roorkee small hydro
+  standard on control and protection (based on IEEE 1020)
+  ([PDF](https://iitr.ac.in/Departments/Hydro%20and%20Renewable%20Energy%20Department/static/standards_pdf/3.4_Selection_of_control_automation_protection_and_monitoring_system.pdf));
+  switch names such as BRAKE APPLY/RELEASE and the hydro trip devices (12, 32, 38, 39, 40, 63, 86) from
+  its chapter on hydro station control
+  ([PDF](https://iitr.ac.in/Departments/Hydro%20and%20Renewable%20Energy%20Department/static/Modern_hydroelectric_engg/vol_2/Chapter-2_Control_System_of_Hydraulic_Electric_Stations.pdf));
+  annunciator legend rules (upper case, about 13 characters a line) from vendor and NRC human-factors
+  practice ([Ametek Series 90](https://www.ametekpower.com/-/media/ametekpower/files/products/alarm-management/series-90-annunciator/series-90-data-sheet.pdf?la=en&revision=3c24c19b-b647-4e00-acae-d32a2ef96091)).
 
 Two things are left as asked rather than as built: a real wicket gate takes about 4–10 s to close on a
 trip (water hammer limits it), here it shuts in under half a second; and in a grid-connected plant the

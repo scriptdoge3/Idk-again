@@ -55,11 +55,20 @@ VIB = [_interp(list(enumerate(_VIB5)), _old(g)) for g in range(101)]
 RIVER0 = 75                     # river flow at the start, % of full-gate discharge (rq = 2)
 INIT = dict(n=0, g=0, v=0, x=0, o=0, a=0, bt=2, l=12, sg=5, rq=2)
 VARS = dict(n=(0, 145), g=(0, 100), v=(0, 120), x=(0, 120), o=(0, 10), a=(0, 10), bt=(0, 10), l=(0, 20), sg=(0, 8), rq=(0, 4))
-ANN = ['OVERSPEED|TRIP', 'WICKET GATE|TRIPPED', 'OUT OF PHASE|CLOSE', 'GEN BREAKER|PROT TRIP',
-       'HYDRAULIC|PRESS LOW', 'OIL PUMP|OFF', 'BEARING|TEMP HIGH', 'WATER PUMP|OFF',
-       'BRAKE AIR|PRESS LOW', 'BRAKES|APPLIED', 'DRAFT TUBE|PULSATION', 'RIVER DEPTH|HIGH',
-       'RIVER DEPTH|LOW', 'SPILLWAY|GATE OPEN', 'PLC OFF|GATE MANUAL', 'AVR OFF|FIELD MANUAL']
-TRIP_WINDOWS = (0, 1, 2, 3, 4, 5, 6, 7, 8)   # red windows: trips and things that will cause one
+# annunciator windows, five across, four down: (key, legend, kind). Legends follow annunciator practice:
+# upper case, at most 13 characters a line, the device function number (IEEE C37.2) on protective trips.
+# Kinds: 'trip' (red), 'alarm' (amber), 'status' (white).
+ANN_WINDOWS = [
+    ('ovsp', '12 OVERSPEED|TRIP', 'trip'), ('lock', '86 LOCKOUT|TRIPPED', 'trip'), ('gbkr', '52G GEN BKR|TRIPPED', 'trip'),
+    ('oop', '52G CLOSED|OUT OF PHASE', 'trip'), ('rp', '32 REVERSE|POWER', 'trip'),
+    ('lof', '40 LOSS OF|FIELD', 'trip'), ('ov', '59 GEN|OVERVOLTAGE', 'trip'), ('bthh', '38 BRG TEMP|HIGH-HIGH', 'trip'),
+    ('bth', '38 BRG TEMP|HIGH', 'alarm'), ('vib', '39 VIBRATION|HIGH', 'alarm'),
+    ('hyd', 'HYD OIL|PRESS LOW', 'alarm'), ('oilp', 'OIL PUMP|STOPPED', 'alarm'), ('watp', 'WATER PUMP|STOPPED', 'alarm'),
+    ('air', 'BRAKE AIR|PRESS LOW', 'alarm'), ('brk', 'BRAKES|APPLIED', 'status'),
+    ('rhi', 'RIVER DEPTH|HIGH', 'alarm'), ('rlo', 'RIVER DEPTH|LOW', 'alarm'), ('spill', 'SPILLWAY GATE|OPEN', 'status'),
+    ('plc', 'PLC|OFF', 'status'), ('avr', 'AVR IN|MANUAL', 'status')]
+ANN = [w[1] for w in ANN_WINDOWS]
+ANN_KIND = [w[2] for w in ANN_WINDOWS]
 # the phase (and the synchroscope pointer): a ring of 12 path_tracks (radius R) clockwise from 12 o'clock.
 # Each one sets the sync lamps' brightness for its phase angle; the ones at 1 and 11 o'clock are the
 # in-phase window's edges (+-10 deg, as a sync-check relay allows). 'speed' is the train's top speed: one
@@ -264,8 +273,8 @@ def _build(L):
         L.late('env_global', targetname=step, globalstate=f'{name}_a', triggermode=0)
         dev['knobs'].append({'name': name, 'target': ev, 'label': label, 'spring': True})
 
-    W = [f'A{i:02d}' for i in range(16)]
-    dev['walls'] += W + ['SYNCLAMPS']
+    W = {key: f'A{i:02d}' for i, (key, _, _) in enumerate(ANN_WINDOWS)}
+    dev['walls'] += list(W.values()) + ['SYNCLAMPS']
     L.relay('alarm', 's_horn', USE_ON); L.relay('alarm', 's_relay', USE_ON)
     L.add('trigger_relay', targetname='alarm', target='s_horn', triggerstate=0, delay=6)   # the horn silences itself
 
@@ -323,7 +332,7 @@ def _build(L):
                            ('r_hp', 'hhp', 'HYDRAULIC PUMP'), ('r_ac', 'hac', 'AIR COMPRESSOR')):
         cs(nm, flg, label, ('STOP', 'RUN'))          # a maintained pump switch: the handle shows the state
     L.relay('r_hp_ev', 's_pump', USE_TOGGLE)
-    L.relay('r_lp_ev', W[5], USE_TOGGLE); L.relay('r_wp_ev', W[7], USE_TOGGLE)    # PUMP OFF windows
+    L.relay('r_lp_ev', W['oilp'], USE_TOGGLE); L.relay('r_wp_ev', W['watp'], USE_TOGGLE)    # PUMP STOPPED windows
     # bearings: no lube oil wipes them in seconds, no cooling water cooks them in about a minute
     L.rule('T2', ['n_gt0', '!lube', '!bt_max'], 'bt_up')
     L.rule('T8', ['n_ge50', '!cool', '!bt_max'], 'bt_up')
@@ -349,20 +358,22 @@ def _build(L):
     L.rule('TK', ['tr'], 'gshut')                                     # the gate shuts: 8 % every 0.05 s
     for _ in range(8):
         L.rule('gshut', ['g_gt0'], 'g_dn')
-    L.relay(vname('n', 140), 'prot'); alarm(vname('n', 140), W[0])        # overspeed, 140 %
-    L.rule('T1', ['bt_max', '!tr'], 'prot')
-    L.rule('T1', ['g_gt0', '!o_ge2', '!tr'], 'prot')                  # servo oil gone with the gate open
-    L.rule(vname('v', 115), ['!cb'], 'prot')                          # overvoltage, 115 %
+    L.relay(vname('n', 140), 'prot'); alarm(vname('n', 140), W['ovsp'])   # 12 overspeed, 140 %
+    L.rule('T1', ['bt_max', '!tr'], 'bt_trip')                       # 38 bearing temperature high-high, 90 C
+    L.relay('bt_trip', 'prot'); alarm('bt_trip', W['bthh'])
+    L.rule('T1', ['g_gt0', '!o_ge2', '!tr'], 'prot')                  # hydraulic oil gone with the gate open
+    L.rule(vname('v', 115), ['!cb'], 'ov_trip')                       # 59 overvoltage, 115 %
+    L.relay('ov_trip', 'prot'); alarm('ov_trip', W['ov'])
     L.rule(vname('l', 3), ['n_gt0'], 'prot')                          # 4.75 m: the intake would draw air
     # wicket gate trip: the emergency stop and the lockout in one handle. Turning it to TRIP trips the unit;
-    # protection turns it to TRIP; turning it back to NORMAL resets (it trips again if the cause is still there).
-    cs('r_gt', 'hgt', 'WICKET GATE TRIP', ('NORMAL', 'TRIP'), grip='red')
+    # protection turns it to TRIP; turning it back to RESET resets (it trips again if the cause is still there).
+    cs('r_gt', 'hgt', 'WICKET GATE TRIP', ('RESET', 'TRIP'), grip='red')
     L.rule('r_gt_ev', ['hgt', '!tr'], 'prot')
     L.rule('r_gt_ev', ['!hgt'], 'reset')
     L.rule('T1', ['tr', '!hgt'], 'r_gt')
     L.relay('reset', 'tr=0')
-    for i in (0, 2, 3):
-        L.relay('reset', W[i], USE_OFF)
+    for key in ('ovsp', 'gbkr', 'oop', 'rp', 'lof', 'ov', 'bthh'):     # the trip targets reset with the lockout
+        L.relay('reset', W[key], USE_OFF)
 
     # ---------------------------------------------------------- brakes
     # generator air brakes: applied by compressed air (at least 50 psi), and only below 30 % speed (the shoes
@@ -401,11 +412,17 @@ def _build(L):
     L.rule('T8', lc + ['l_ge14', '!g_max'], 'g_up')
     L.rule('T8', lc + ['!l_ge11', 'g_ge17'], 'g_dn')
     cs('r_plc', 'plc', 'PLC', ('OFF', 'ON'))
-    L.relay('r_plc_ev', W[14], USE_TOGGLE)
+    L.relay('r_plc_ev', W['plc'], USE_TOGGLE)
 
     # ----------------------------------------------------------- excitation
-    cs('r_exc', 'hexc', '41 FIELD BREAKER', ('OPEN', 'CLOSE'))
-    L.rule('r_exc_ev', ['hexc', '!tr', 'n_ge95'], 'exc=1')           # field flashing: only near rated speed
+    cs('r_exc', 'hexc', '41 FIELD BREAKER', ('TRIP', 'CLOSE'))
+    L.rule('r_exc_ev', ['hexc', '!tr', 'n_ge90'], 'exc=1')           # the field is applied from 90 % speed
+    # field flashing: closing 41 builds the field up to the rated no-load value (the manual setpoint is preset
+    # to it), with the AVR in AUTO or MAN; after that the AVR or the firing-angle dial has it
+    flag('flash', 0)
+    L.setf('exc=1', 'flash', 1); L.setf('exc=0', 'flash', 0)
+    L.rule('TS', ['flash', 'exc', '!avr', '!x_ge100'], 'x_up')
+    L.rule('TS', ['flash', 'x_ge100'], 'flash_done'); L.setf('flash_done', 'flash', 0)
     L.rule('r_exc_ev', ['!hexc'], 'exc=0')
     L.rule('T1', ['hexc', '!exc'], 'r_exc')                          # refused or tripped: handle back to OPEN
     L.rule('TS', ['!exc', 'x_gt0'], 'x_dn')                          # the field discharges, 10 %/s
@@ -416,7 +433,7 @@ def _build(L):
     L.rule('TS', ['avr', 'exc', 'cb', '!x_ge104'], 'x_up')
     L.rule('TS', ['avr', 'exc', 'x_ge106'], 'x_dn')
     cs('r_avr', 'avr', 'AVR', ('MAN', 'AUTO'))
-    L.relay('r_avr_ev', W[15], USE_TOGGLE)
+    L.relay('r_avr_ev', W['avr'], USE_TOGGLE)
     # off line the volts follow the field, limited by speed; on line the grid holds them
     L.rule('TS', ['!cb', 'dvn_pos', 'dvx_pos', '!v_max'], 'v_up')      # 10 %/s
     L.rule('TS', ['!cb', 'dvn_neg', 'v_gt0'], 'v_dn')
@@ -432,7 +449,7 @@ def _build(L):
     # holds the unit a hair fast instead, so it creeps clockwise, a turn in 22 s.
     # The phase exists while the field is on and the unit is within 5 % of synchronous speed, whether the
     # synchroscope is on or not: the switch only shows it (the pointer and the sync lamps).
-    cs('r_ss', 'hss', 'SYNCHROSCOPE', ('OFF', 'ON'))
+    cs('r_ss', 'hss', 'SYNCHRONIZING', ('OFF', 'ON'))
     L.relay('r_ss_ev', 'nd_SCOPE', USE_TOGGLE); L.relay('r_ss_ev', 'SLCOVER', USE_TOGGLE)
     L.rule('T1', ['exc', 'n_ge95', '!n_ge106', '!cb', '!phs'], 'phs_on')
     for c in ('!exc', '!n_ge95', 'n_ge106'):
@@ -473,18 +490,18 @@ def _build(L):
     # 52G closes on the real phase: in phase it closes, switch on or off. Out of phase, the sync check (switch
     # on) refuses the close and the handle springs back; with the switch off nothing stops it: the unit is
     # slammed into step and trips as out of phase. The handle turns in 0.1 s, so the close lands where pressed.
-    cs('r_52', 'h52', '52G SYNC BREAKER', ('TRIP', 'CLOSE'), speed=900)
+    cs('r_52', 'h52', '52G GEN BREAKER', ('TRIP', 'CLOSE'), speed=900)
     L.rule('r_52_ev', ['h52', 'pok', '!tr', '!cb'], 'cb_close')
     L.rule('r_52_ev', ['h52', '!hss', '!pok', '!tr', '!cb'], 'oop')
     L.rule('r_52_ev', ['!h52'], 'cb_open')
     L.rule('T1', ['h52', '!cb'], 'r_52')                           # not closed (refused or tripped): back to TRIP
-    L.relay('oop', 'prot'); alarm('oop', W[2])
-    L.relay('cb_close', 'cb=1'); L.relay('cb_close', 's_brk', USE_ON); L.relay('cb_close', W[3], USE_OFF)
+    L.relay('oop', 'prot'); alarm('oop', W['oop'])
+    L.relay('cb_close', 'cb=1'); L.relay('cb_close', 's_brk', USE_ON); L.relay('cb_close', W['gbkr'], USE_OFF)
     L.relay('cb_close', 'phs_off')                                # locked to the grid: the phase stops
     L.relay('cb_close', 'pf_band')                                # the power factor meter comes alive
     L.rule('cb_open', ['cb'], 'cb_open_x')
     L.rule('cb_prot', ['cb'], 'cb_prot_x')
-    L.relay('cb_prot_x', 'cb_open_x'); alarm('cb_prot_x', W[3])
+    L.relay('cb_prot_x', 'cb_open_x'); alarm('cb_prot_x', W['gbkr'])
     L.relay('cb_open_x', 'cb=0'); L.relay('cb_open_x', 'rz=0'); L.relay('cb_open_x', 's_brk', USE_ON)
     L.display('cb_open_x', 'p_kw', 0.0); L.display('cb_open_x', 'p_vib', 3.0 / 20); L.display('cb_open_x', 'p_pf', 0.5)
     for k in range(3):
@@ -512,8 +529,10 @@ def _build(L):
     # reverse power (32): the unit is motoring; trips after 8 s of it
     L.rule('T2', ['cb', '!g_ge13', '!tr'], 'rp_tick'); L.relay('rp_tick', 'rpc', USE_ON)
     L.rule(vname('g', 13), [], 'rpc', 0); L.rule('cb_close', [], 'rpc', 0)   # the count starts afresh
-    L.add('game_counter', targetname='rpc', frags=0, health=8, spawnflags=2, target='prot')
-    L.rule('T1', ['cb', '!x_ge60', '!tr'], 'prot')                # loss of field (40): below 60 %
+    L.add('game_counter', targetname='rpc', frags=0, health=8, spawnflags=2, target='rp_trip')
+    L.relay('rp_trip', 'prot'); alarm('rp_trip', W['rp'])
+    L.rule('T1', ['cb', '!x_ge60', '!tr'], 'lof_trip')            # loss of field (40): below 60 %
+    L.relay('lof_trip', 'prot'); alarm('lof_trip', W['lof'])
 
     # ---------------------------------------------------------------- river
     # no pond: the intake takes the water straight out of the river, so its depth moves as soon as the plant
@@ -527,7 +546,7 @@ def _build(L):
     L.setf(vname('rq', 4), 'rup', 0); L.setf(vname('rq', 0), 'rup', 1)
     # spillway gate, from its own panel: AUTO opens it above 7.5 m while the river still rises and closes it
     # below 7.25 m while it falls; MANUAL runs it from the LOWER / RAISE dials, 0.15 m a second
-    selector('r_sp', 'sman', 'CONTROL', ('AUTO', 'MANUAL'))
+    selector('r_sp', 'sman', 'CONTROL MODE', ('AUTO', 'MANUAL'))
     L.rule('T8', ['!sman', 'l_ge14', 'el_pos', '!sg_max'], 'sg_up')
     L.rule('T8', ['!sman', 'l_max', '!el_pos', '!sg_max'], 'sg_up')
     L.rule('T8', ['!sman', '!l_ge13', 'el_neg', 'sg_gt0'], 'sg_dn')
@@ -543,13 +562,16 @@ def _build(L):
     lamp('LP_brake', 'brake', ('red', 'green'))
     lamp('LP_exc', 'exc', ('red', 'green'))
     lamp('L_perm', 'perm', ('green', None))
-    for i, flg, lit_when in [(1, 'tr', 1), (4, 'o_ge4', 0), (6, 'bt_ge8', 1),
-                             (8, 'a_ge4', 0), (9, 'brake', 1), (10, 'rz', 1), (11, 'l_ge14', 1), (12, 'l_ok', 0),
-                             (13, 'sg_gt0', 1)]:
-        dev.setdefault('ann_init', {})[i] = int(fi[flg] == lit_when)
-        L.follow(flg, W[i], 1 - fi[flg])
-    for i, flg in ((5, 'lube'), (7, 'cool'), (14, 'plc'), (15, 'avr')):
-        dev['ann_init'][i] = 1 - fi[flg]
+    idx = {key: i for i, (key, _, _) in enumerate(ANN_WINDOWS)}
+    dev['ann_init'] = {}
+    for key, flg, lit_when in [('lock', 'tr', 1), ('hyd', 'o_ge4', 0), ('bth', 'bt_ge8', 1), ('air', 'a_ge4', 0),
+                               ('brk', 'brake', 1), ('vib', 'rz', 1), ('rhi', 'l_ge14', 1), ('rlo', 'l_ok', 0),
+                               ('spill', 'sg_gt0', 1)]:
+        dev['ann_init'][idx[key]] = int(fi[flg] == lit_when)
+        L.follow(flg, W[key], 1 - fi[flg])
+    for key, flg in (('oilp', 'lube'), ('watp', 'cool'), ('plc', 'plc'), ('avr', 'avr')):
+        dev['ann_init'][idx[key]] = 1 - fi[flg]
+    dev['ann_idx'] = idx
 
     # --------------------------------------------------------------- init
     L.display('init', 'p_pf', 0.5); L.display('init', 'p_vib', 0.02); L.display('init', 'p_fa', 1.0)

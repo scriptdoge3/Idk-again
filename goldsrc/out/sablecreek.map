@@ -4679,12 +4679,12 @@
 "rendermode" "2"
 "renderamt" "255"
 {
-( -13.95 -0.9 99.9 ) ( -13.95 -1.4 99.9 ) ( -26.55 -1.4 99.9 ) sc_black [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
-( -26.55 -1.4 94.1 ) ( -13.95 -1.4 94.1 ) ( -13.95 -0.9 94.1 ) sc_black [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
-( -13.95 -0.9 99.9 ) ( -13.95 -0.9 94.1 ) ( -13.95 -1.4 94.1 ) sc_black [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( -26.55 -1.4 94.1 ) ( -26.55 -0.9 94.1 ) ( -26.55 -0.9 99.9 ) sc_black [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( -26.55 -0.9 94.1 ) ( -13.95 -0.9 94.1 ) ( -13.95 -0.9 99.9 ) sc_black [ 1 0 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( -13.95 -1.4 99.9 ) ( -13.95 -1.4 94.1 ) ( -26.55 -1.4 94.1 ) +0an00 [ 1 0 0 202.2857 ] [ 0 0 -1 826.7586 ] 0 0.1313 0.1208
+( -16.3 -0.9 99.9 ) ( -16.3 -1.4 99.9 ) ( -26.6 -1.4 99.9 ) sc_black [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
+( -26.6 -1.4 94.1 ) ( -16.3 -1.4 94.1 ) ( -16.3 -0.9 94.1 ) sc_black [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
+( -16.3 -0.9 99.9 ) ( -16.3 -0.9 94.1 ) ( -16.3 -1.4 94.1 ) sc_black [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
+( -26.6 -1.4 94.1 ) ( -26.6 -0.9 94.1 ) ( -26.6 -0.9 99.9 ) sc_black [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
+( -26.6 -0.9 94.1 ) ( -16.3 -0.9 94.1 ) ( -16.3 -0.9 99.9 ) sc_black [ 1 0 0 0 ] [ 0 0 -1 0 ] 0 1 1
+( -16.3 -1.4 99.9 ) ( -16.3 -1.4 94.1 ) ( -26.6 -1.4 94.1 ) +0an00 [ 1 0 0 330.5631 ] [ 0 0 -1 1102.3448 ] 0 0.0805 0.0906
 }
 }
 {
@@ -4693,12 +4693,12 @@
 "rendermode" "2"
 "renderamt" "255"
 {
-( -0.45 -0.9 99.9 ) ( -0.45 -1.4 99.9 ) ( -13.05 -1.4 99.9 ) sc_black [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
-( -13.05 -1.4 94.1 ) ( -0.45 -1.4 94.1 ) ( -0.45 -0.9 94.1 ) sc_black [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
-( -0.45 -0.9 99.9 ) ( -0.45 -0.9 94.1 ) ( -0.45 -1.4 94.1 ) sc_black [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( -13.05 -1.4 94.1 ) ( -13.05 -0.9 94.1 ) ( -13.05 -0.9 99.9 ) sc_black [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( -13.05 -0.9 94.1 ) ( -0.45 -0.9 94.1 ) ( -0.45 -0.9 99.9 ) sc_black [ 1 0 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( -0.45 -1.4 99.9 ) ( -0.45 -1.4 94.1 ) ( -13.05 -1.4 94.1 ) +0an01 [ 1 0 0 99.4286 ] [ 0 0 -1 826.7586 ] 0 0.1313 0.1208
+( -5.575 -0.9 99.9 ) ( -5.575 -1.4 99.9 ) ( -15.875 -1.4 99.9 ) sc_black [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
+( -15.875 -1.4 94.1 ) ( -5.575 -1.4 94.1 ) ( -5.575 -0.9 94.1 ) sc_black [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
+( -5.575 -0.9 99.9 ) ( -5.575 -0.9 94.1 ) ( -5.575 -1.4 94.1 ) sc_black [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
+( -15.875 -1.4 94.1 ) ( -15.875 -0.9 94.1 ) ( -15.875 -0.9 99.9 ) sc_black [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
+( -15.875 -0.9 94.1 ) ( -5.575 -0.9 94.1 ) ( -5.575 -0.9 99.9 ) sc_black [ 1 0 0 0 ] [ 0 0 -1 0 ] 0 1 1
+( -5.575 -1.4 99.9 ) ( -5.575 -1.4 94.1 ) ( -15.875 -1.4 94.1 ) +0an01 [ 1 0 0 197.2816 ] [ 0 0 -1 1102.3448 ] 0 0.0805 0.0906
 }
 }
 {
@@ -4707,12 +4707,12 @@
 "rendermode" "2"
 "renderamt" "255"
 {
-( 13.05 -0.9 99.9 ) ( 13.05 -1.4 99.9 ) ( 0.45 -1.4 99.9 ) sc_black [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
-( 0.45 -1.4 94.1 ) ( 13.05 -1.4 94.1 ) ( 13.05 -0.9 94.1 ) sc_black [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
-( 13.05 -0.9 99.9 ) ( 13.05 -0.9 94.1 ) ( 13.05 -1.4 94.1 ) sc_black [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( 0.45 -1.4 94.1 ) ( 0.45 -0.9 94.1 ) ( 0.45 -0.9 99.9 ) sc_black [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( 0.45 -0.9 94.1 ) ( 13.05 -0.9 94.1 ) ( 13.05 -0.9 99.9 ) sc_black [ 1 0 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( 13.05 -1.4 99.9 ) ( 13.05 -1.4 94.1 ) ( 0.45 -1.4 94.1 ) +0an02 [ 1 0 0 -3.4286 ] [ 0 0 -1 826.7586 ] 0 0.1313 0.1208
+( 5.15 -0.9 99.9 ) ( 5.15 -1.4 99.9 ) ( -5.15 -1.4 99.9 ) sc_black [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
+( -5.15 -1.4 94.1 ) ( 5.15 -1.4 94.1 ) ( 5.15 -0.9 94.1 ) sc_black [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
+( 5.15 -0.9 99.9 ) ( 5.15 -0.9 94.1 ) ( 5.15 -1.4 94.1 ) sc_black [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
+( -5.15 -1.4 94.1 ) ( -5.15 -0.9 94.1 ) ( -5.15 -0.9 99.9 ) sc_black [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
+( -5.15 -0.9 94.1 ) ( 5.15 -0.9 94.1 ) ( 5.15 -0.9 99.9 ) sc_black [ 1 0 0 0 ] [ 0 0 -1 0 ] 0 1 1
+( 5.15 -1.4 99.9 ) ( 5.15 -1.4 94.1 ) ( -5.15 -1.4 94.1 ) +0an02 [ 1 0 0 64 ] [ 0 0 -1 1102.3448 ] 0 0.0805 0.0906
 }
 }
 {
@@ -4721,12 +4721,12 @@
 "rendermode" "2"
 "renderamt" "255"
 {
-( 26.55 -0.9 99.9 ) ( 26.55 -1.4 99.9 ) ( 13.95 -1.4 99.9 ) sc_black [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
-( 13.95 -1.4 94.1 ) ( 26.55 -1.4 94.1 ) ( 26.55 -0.9 94.1 ) sc_black [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
-( 26.55 -0.9 99.9 ) ( 26.55 -0.9 94.1 ) ( 26.55 -1.4 94.1 ) sc_black [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( 13.95 -1.4 94.1 ) ( 13.95 -0.9 94.1 ) ( 13.95 -0.9 99.9 ) sc_black [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( 13.95 -0.9 94.1 ) ( 26.55 -0.9 94.1 ) ( 26.55 -0.9 99.9 ) sc_black [ 1 0 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( 26.55 -1.4 99.9 ) ( 26.55 -1.4 94.1 ) ( 13.95 -1.4 94.1 ) +0an03 [ 1 0 0 -106.2857 ] [ 0 0 -1 826.7586 ] 0 0.1313 0.1208
+( 15.875 -0.9 99.9 ) ( 15.875 -1.4 99.9 ) ( 5.575 -1.4 99.9 ) sc_black [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
+( 5.575 -1.4 94.1 ) ( 15.875 -1.4 94.1 ) ( 15.875 -0.9 94.1 ) sc_black [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
+( 15.875 -0.9 99.9 ) ( 15.875 -0.9 94.1 ) ( 15.875 -1.4 94.1 ) sc_black [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
+( 5.575 -1.4 94.1 ) ( 5.575 -0.9 94.1 ) ( 5.575 -0.9 99.9 ) sc_black [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
+( 5.575 -0.9 94.1 ) ( 15.875 -0.9 94.1 ) ( 15.875 -0.9 99.9 ) sc_black [ 1 0 0 0 ] [ 0 0 -1 0 ] 0 1 1
+( 15.875 -1.4 99.9 ) ( 15.875 -1.4 94.1 ) ( 5.575 -1.4 94.1 ) +0an03 [ 1 0 0 -69.2816 ] [ 0 0 -1 1102.3448 ] 0 0.0805 0.0906
 }
 }
 {
@@ -4735,12 +4735,12 @@
 "rendermode" "2"
 "renderamt" "255"
 {
-( -13.95 -0.9 93.7 ) ( -13.95 -1.4 93.7 ) ( -26.55 -1.4 93.7 ) sc_black [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
-( -26.55 -1.4 87.9 ) ( -13.95 -1.4 87.9 ) ( -13.95 -0.9 87.9 ) sc_black [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
-( -13.95 -0.9 93.7 ) ( -13.95 -0.9 87.9 ) ( -13.95 -1.4 87.9 ) sc_black [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( -26.55 -1.4 87.9 ) ( -26.55 -0.9 87.9 ) ( -26.55 -0.9 93.7 ) sc_black [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( -26.55 -0.9 87.9 ) ( -13.95 -0.9 87.9 ) ( -13.95 -0.9 93.7 ) sc_black [ 1 0 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( -13.95 -1.4 93.7 ) ( -13.95 -1.4 87.9 ) ( -26.55 -1.4 87.9 ) +0an04 [ 1 0 0 202.2857 ] [ 0 0 -1 775.4483 ] 0 0.1313 0.1208
+( 26.6 -0.9 99.9 ) ( 26.6 -1.4 99.9 ) ( 16.3 -1.4 99.9 ) sc_black [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
+( 16.3 -1.4 94.1 ) ( 26.6 -1.4 94.1 ) ( 26.6 -0.9 94.1 ) sc_black [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
+( 26.6 -0.9 99.9 ) ( 26.6 -0.9 94.1 ) ( 26.6 -1.4 94.1 ) sc_black [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
+( 16.3 -1.4 94.1 ) ( 16.3 -0.9 94.1 ) ( 16.3 -0.9 99.9 ) sc_black [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
+( 16.3 -0.9 94.1 ) ( 26.6 -0.9 94.1 ) ( 26.6 -0.9 99.9 ) sc_black [ 1 0 0 0 ] [ 0 0 -1 0 ] 0 1 1
+( 26.6 -1.4 99.9 ) ( 26.6 -1.4 94.1 ) ( 16.3 -1.4 94.1 ) +0an04 [ 1 0 0 -202.5631 ] [ 0 0 -1 1102.3448 ] 0 0.0805 0.0906
 }
 }
 {
@@ -4749,12 +4749,12 @@
 "rendermode" "2"
 "renderamt" "255"
 {
-( -0.45 -0.9 93.7 ) ( -0.45 -1.4 93.7 ) ( -13.05 -1.4 93.7 ) sc_black [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
-( -13.05 -1.4 87.9 ) ( -0.45 -1.4 87.9 ) ( -0.45 -0.9 87.9 ) sc_black [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
-( -0.45 -0.9 93.7 ) ( -0.45 -0.9 87.9 ) ( -0.45 -1.4 87.9 ) sc_black [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( -13.05 -1.4 87.9 ) ( -13.05 -0.9 87.9 ) ( -13.05 -0.9 93.7 ) sc_black [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( -13.05 -0.9 87.9 ) ( -0.45 -0.9 87.9 ) ( -0.45 -0.9 93.7 ) sc_black [ 1 0 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( -0.45 -1.4 93.7 ) ( -0.45 -1.4 87.9 ) ( -13.05 -1.4 87.9 ) +0an05 [ 1 0 0 99.4286 ] [ 0 0 -1 775.4483 ] 0 0.1313 0.1208
+( -16.3 -0.9 93.7 ) ( -16.3 -1.4 93.7 ) ( -26.6 -1.4 93.7 ) sc_black [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
+( -26.6 -1.4 87.9 ) ( -16.3 -1.4 87.9 ) ( -16.3 -0.9 87.9 ) sc_black [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
+( -16.3 -0.9 93.7 ) ( -16.3 -0.9 87.9 ) ( -16.3 -1.4 87.9 ) sc_black [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
+( -26.6 -1.4 87.9 ) ( -26.6 -0.9 87.9 ) ( -26.6 -0.9 93.7 ) sc_black [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
+( -26.6 -0.9 87.9 ) ( -16.3 -0.9 87.9 ) ( -16.3 -0.9 93.7 ) sc_black [ 1 0 0 0 ] [ 0 0 -1 0 ] 0 1 1
+( -16.3 -1.4 93.7 ) ( -16.3 -1.4 87.9 ) ( -26.6 -1.4 87.9 ) +0an05 [ 1 0 0 330.5631 ] [ 0 0 -1 1033.931 ] 0 0.0805 0.0906
 }
 }
 {
@@ -4763,12 +4763,12 @@
 "rendermode" "2"
 "renderamt" "255"
 {
-( 13.05 -0.9 93.7 ) ( 13.05 -1.4 93.7 ) ( 0.45 -1.4 93.7 ) sc_black [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
-( 0.45 -1.4 87.9 ) ( 13.05 -1.4 87.9 ) ( 13.05 -0.9 87.9 ) sc_black [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
-( 13.05 -0.9 93.7 ) ( 13.05 -0.9 87.9 ) ( 13.05 -1.4 87.9 ) sc_black [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( 0.45 -1.4 87.9 ) ( 0.45 -0.9 87.9 ) ( 0.45 -0.9 93.7 ) sc_black [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( 0.45 -0.9 87.9 ) ( 13.05 -0.9 87.9 ) ( 13.05 -0.9 93.7 ) sc_black [ 1 0 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( 13.05 -1.4 93.7 ) ( 13.05 -1.4 87.9 ) ( 0.45 -1.4 87.9 ) +0an06 [ 1 0 0 -3.4286 ] [ 0 0 -1 775.4483 ] 0 0.1313 0.1208
+( -5.575 -0.9 93.7 ) ( -5.575 -1.4 93.7 ) ( -15.875 -1.4 93.7 ) sc_black [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
+( -15.875 -1.4 87.9 ) ( -5.575 -1.4 87.9 ) ( -5.575 -0.9 87.9 ) sc_black [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
+( -5.575 -0.9 93.7 ) ( -5.575 -0.9 87.9 ) ( -5.575 -1.4 87.9 ) sc_black [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
+( -15.875 -1.4 87.9 ) ( -15.875 -0.9 87.9 ) ( -15.875 -0.9 93.7 ) sc_black [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
+( -15.875 -0.9 87.9 ) ( -5.575 -0.9 87.9 ) ( -5.575 -0.9 93.7 ) sc_black [ 1 0 0 0 ] [ 0 0 -1 0 ] 0 1 1
+( -5.575 -1.4 93.7 ) ( -5.575 -1.4 87.9 ) ( -15.875 -1.4 87.9 ) +0an06 [ 1 0 0 197.2816 ] [ 0 0 -1 1033.931 ] 0 0.0805 0.0906
 }
 }
 {
@@ -4777,12 +4777,12 @@
 "rendermode" "2"
 "renderamt" "255"
 {
-( 26.55 -0.9 93.7 ) ( 26.55 -1.4 93.7 ) ( 13.95 -1.4 93.7 ) sc_black [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
-( 13.95 -1.4 87.9 ) ( 26.55 -1.4 87.9 ) ( 26.55 -0.9 87.9 ) sc_black [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
-( 26.55 -0.9 93.7 ) ( 26.55 -0.9 87.9 ) ( 26.55 -1.4 87.9 ) sc_black [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( 13.95 -1.4 87.9 ) ( 13.95 -0.9 87.9 ) ( 13.95 -0.9 93.7 ) sc_black [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( 13.95 -0.9 87.9 ) ( 26.55 -0.9 87.9 ) ( 26.55 -0.9 93.7 ) sc_black [ 1 0 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( 26.55 -1.4 93.7 ) ( 26.55 -1.4 87.9 ) ( 13.95 -1.4 87.9 ) +0an07 [ 1 0 0 -106.2857 ] [ 0 0 -1 775.4483 ] 0 0.1313 0.1208
+( 5.15 -0.9 93.7 ) ( 5.15 -1.4 93.7 ) ( -5.15 -1.4 93.7 ) sc_black [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
+( -5.15 -1.4 87.9 ) ( 5.15 -1.4 87.9 ) ( 5.15 -0.9 87.9 ) sc_black [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
+( 5.15 -0.9 93.7 ) ( 5.15 -0.9 87.9 ) ( 5.15 -1.4 87.9 ) sc_black [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
+( -5.15 -1.4 87.9 ) ( -5.15 -0.9 87.9 ) ( -5.15 -0.9 93.7 ) sc_black [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
+( -5.15 -0.9 87.9 ) ( 5.15 -0.9 87.9 ) ( 5.15 -0.9 93.7 ) sc_black [ 1 0 0 0 ] [ 0 0 -1 0 ] 0 1 1
+( 5.15 -1.4 93.7 ) ( 5.15 -1.4 87.9 ) ( -5.15 -1.4 87.9 ) +0an07 [ 1 0 0 64 ] [ 0 0 -1 1033.931 ] 0 0.0805 0.0906
 }
 }
 {
@@ -4791,12 +4791,12 @@
 "rendermode" "2"
 "renderamt" "255"
 {
-( -13.95 -0.9 87.5 ) ( -13.95 -1.4 87.5 ) ( -26.55 -1.4 87.5 ) sc_black [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
-( -26.55 -1.4 81.7 ) ( -13.95 -1.4 81.7 ) ( -13.95 -0.9 81.7 ) sc_black [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
-( -13.95 -0.9 87.5 ) ( -13.95 -0.9 81.7 ) ( -13.95 -1.4 81.7 ) sc_black [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( -26.55 -1.4 81.7 ) ( -26.55 -0.9 81.7 ) ( -26.55 -0.9 87.5 ) sc_black [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( -26.55 -0.9 81.7 ) ( -13.95 -0.9 81.7 ) ( -13.95 -0.9 87.5 ) sc_black [ 1 0 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( -13.95 -1.4 87.5 ) ( -13.95 -1.4 81.7 ) ( -26.55 -1.4 81.7 ) +0an08 [ 1 0 0 202.2857 ] [ 0 0 -1 724.1379 ] 0 0.1313 0.1208
+( 15.875 -0.9 93.7 ) ( 15.875 -1.4 93.7 ) ( 5.575 -1.4 93.7 ) sc_black [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
+( 5.575 -1.4 87.9 ) ( 15.875 -1.4 87.9 ) ( 15.875 -0.9 87.9 ) sc_black [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
+( 15.875 -0.9 93.7 ) ( 15.875 -0.9 87.9 ) ( 15.875 -1.4 87.9 ) sc_black [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
+( 5.575 -1.4 87.9 ) ( 5.575 -0.9 87.9 ) ( 5.575 -0.9 93.7 ) sc_black [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
+( 5.575 -0.9 87.9 ) ( 15.875 -0.9 87.9 ) ( 15.875 -0.9 93.7 ) sc_black [ 1 0 0 0 ] [ 0 0 -1 0 ] 0 1 1
+( 15.875 -1.4 93.7 ) ( 15.875 -1.4 87.9 ) ( 5.575 -1.4 87.9 ) +0an08 [ 1 0 0 -69.2816 ] [ 0 0 -1 1033.931 ] 0 0.0805 0.0906
 }
 }
 {
@@ -4805,12 +4805,12 @@
 "rendermode" "2"
 "renderamt" "255"
 {
-( -0.45 -0.9 87.5 ) ( -0.45 -1.4 87.5 ) ( -13.05 -1.4 87.5 ) sc_black [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
-( -13.05 -1.4 81.7 ) ( -0.45 -1.4 81.7 ) ( -0.45 -0.9 81.7 ) sc_black [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
-( -0.45 -0.9 87.5 ) ( -0.45 -0.9 81.7 ) ( -0.45 -1.4 81.7 ) sc_black [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( -13.05 -1.4 81.7 ) ( -13.05 -0.9 81.7 ) ( -13.05 -0.9 87.5 ) sc_black [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( -13.05 -0.9 81.7 ) ( -0.45 -0.9 81.7 ) ( -0.45 -0.9 87.5 ) sc_black [ 1 0 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( -0.45 -1.4 87.5 ) ( -0.45 -1.4 81.7 ) ( -13.05 -1.4 81.7 ) +0an09 [ 1 0 0 99.4286 ] [ 0 0 -1 724.1379 ] 0 0.1313 0.1208
+( 26.6 -0.9 93.7 ) ( 26.6 -1.4 93.7 ) ( 16.3 -1.4 93.7 ) sc_black [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
+( 16.3 -1.4 87.9 ) ( 26.6 -1.4 87.9 ) ( 26.6 -0.9 87.9 ) sc_black [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
+( 26.6 -0.9 93.7 ) ( 26.6 -0.9 87.9 ) ( 26.6 -1.4 87.9 ) sc_black [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
+( 16.3 -1.4 87.9 ) ( 16.3 -0.9 87.9 ) ( 16.3 -0.9 93.7 ) sc_black [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
+( 16.3 -0.9 87.9 ) ( 26.6 -0.9 87.9 ) ( 26.6 -0.9 93.7 ) sc_black [ 1 0 0 0 ] [ 0 0 -1 0 ] 0 1 1
+( 26.6 -1.4 93.7 ) ( 26.6 -1.4 87.9 ) ( 16.3 -1.4 87.9 ) +0an09 [ 1 0 0 -202.5631 ] [ 0 0 -1 1033.931 ] 0 0.0805 0.0906
 }
 }
 {
@@ -4819,12 +4819,12 @@
 "rendermode" "2"
 "renderamt" "255"
 {
-( 13.05 -0.9 87.5 ) ( 13.05 -1.4 87.5 ) ( 0.45 -1.4 87.5 ) sc_black [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
-( 0.45 -1.4 81.7 ) ( 13.05 -1.4 81.7 ) ( 13.05 -0.9 81.7 ) sc_black [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
-( 13.05 -0.9 87.5 ) ( 13.05 -0.9 81.7 ) ( 13.05 -1.4 81.7 ) sc_black [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( 0.45 -1.4 81.7 ) ( 0.45 -0.9 81.7 ) ( 0.45 -0.9 87.5 ) sc_black [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( 0.45 -0.9 81.7 ) ( 13.05 -0.9 81.7 ) ( 13.05 -0.9 87.5 ) sc_black [ 1 0 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( 13.05 -1.4 87.5 ) ( 13.05 -1.4 81.7 ) ( 0.45 -1.4 81.7 ) +0an10 [ 1 0 0 -3.4286 ] [ 0 0 -1 724.1379 ] 0 0.1313 0.1208
+( -16.3 -0.9 87.5 ) ( -16.3 -1.4 87.5 ) ( -26.6 -1.4 87.5 ) sc_black [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
+( -26.6 -1.4 81.7 ) ( -16.3 -1.4 81.7 ) ( -16.3 -0.9 81.7 ) sc_black [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
+( -16.3 -0.9 87.5 ) ( -16.3 -0.9 81.7 ) ( -16.3 -1.4 81.7 ) sc_black [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
+( -26.6 -1.4 81.7 ) ( -26.6 -0.9 81.7 ) ( -26.6 -0.9 87.5 ) sc_black [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
+( -26.6 -0.9 81.7 ) ( -16.3 -0.9 81.7 ) ( -16.3 -0.9 87.5 ) sc_black [ 1 0 0 0 ] [ 0 0 -1 0 ] 0 1 1
+( -16.3 -1.4 87.5 ) ( -16.3 -1.4 81.7 ) ( -26.6 -1.4 81.7 ) +0an10 [ 1 0 0 330.5631 ] [ 0 0 -1 965.5172 ] 0 0.0805 0.0906
 }
 }
 {
@@ -4833,12 +4833,12 @@
 "rendermode" "2"
 "renderamt" "255"
 {
-( 26.55 -0.9 87.5 ) ( 26.55 -1.4 87.5 ) ( 13.95 -1.4 87.5 ) sc_black [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
-( 13.95 -1.4 81.7 ) ( 26.55 -1.4 81.7 ) ( 26.55 -0.9 81.7 ) sc_black [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
-( 26.55 -0.9 87.5 ) ( 26.55 -0.9 81.7 ) ( 26.55 -1.4 81.7 ) sc_black [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( 13.95 -1.4 81.7 ) ( 13.95 -0.9 81.7 ) ( 13.95 -0.9 87.5 ) sc_black [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( 13.95 -0.9 81.7 ) ( 26.55 -0.9 81.7 ) ( 26.55 -0.9 87.5 ) sc_black [ 1 0 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( 26.55 -1.4 87.5 ) ( 26.55 -1.4 81.7 ) ( 13.95 -1.4 81.7 ) +0an11 [ 1 0 0 -106.2857 ] [ 0 0 -1 724.1379 ] 0 0.1313 0.1208
+( -5.575 -0.9 87.5 ) ( -5.575 -1.4 87.5 ) ( -15.875 -1.4 87.5 ) sc_black [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
+( -15.875 -1.4 81.7 ) ( -5.575 -1.4 81.7 ) ( -5.575 -0.9 81.7 ) sc_black [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
+( -5.575 -0.9 87.5 ) ( -5.575 -0.9 81.7 ) ( -5.575 -1.4 81.7 ) sc_black [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
+( -15.875 -1.4 81.7 ) ( -15.875 -0.9 81.7 ) ( -15.875 -0.9 87.5 ) sc_black [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
+( -15.875 -0.9 81.7 ) ( -5.575 -0.9 81.7 ) ( -5.575 -0.9 87.5 ) sc_black [ 1 0 0 0 ] [ 0 0 -1 0 ] 0 1 1
+( -5.575 -1.4 87.5 ) ( -5.575 -1.4 81.7 ) ( -15.875 -1.4 81.7 ) +0an11 [ 1 0 0 197.2816 ] [ 0 0 -1 965.5172 ] 0 0.0805 0.0906
 }
 }
 {
@@ -4847,12 +4847,12 @@
 "rendermode" "2"
 "renderamt" "255"
 {
-( -13.95 -0.9 81.3 ) ( -13.95 -1.4 81.3 ) ( -26.55 -1.4 81.3 ) sc_black [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
-( -26.55 -1.4 75.5 ) ( -13.95 -1.4 75.5 ) ( -13.95 -0.9 75.5 ) sc_black [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
-( -13.95 -0.9 81.3 ) ( -13.95 -0.9 75.5 ) ( -13.95 -1.4 75.5 ) sc_black [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( -26.55 -1.4 75.5 ) ( -26.55 -0.9 75.5 ) ( -26.55 -0.9 81.3 ) sc_black [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( -26.55 -0.9 75.5 ) ( -13.95 -0.9 75.5 ) ( -13.95 -0.9 81.3 ) sc_black [ 1 0 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( -13.95 -1.4 81.3 ) ( -13.95 -1.4 75.5 ) ( -26.55 -1.4 75.5 ) +0an12 [ 1 0 0 202.2857 ] [ 0 0 -1 672.8276 ] 0 0.1313 0.1208
+( 5.15 -0.9 87.5 ) ( 5.15 -1.4 87.5 ) ( -5.15 -1.4 87.5 ) sc_black [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
+( -5.15 -1.4 81.7 ) ( 5.15 -1.4 81.7 ) ( 5.15 -0.9 81.7 ) sc_black [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
+( 5.15 -0.9 87.5 ) ( 5.15 -0.9 81.7 ) ( 5.15 -1.4 81.7 ) sc_black [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
+( -5.15 -1.4 81.7 ) ( -5.15 -0.9 81.7 ) ( -5.15 -0.9 87.5 ) sc_black [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
+( -5.15 -0.9 81.7 ) ( 5.15 -0.9 81.7 ) ( 5.15 -0.9 87.5 ) sc_black [ 1 0 0 0 ] [ 0 0 -1 0 ] 0 1 1
+( 5.15 -1.4 87.5 ) ( 5.15 -1.4 81.7 ) ( -5.15 -1.4 81.7 ) +0an12 [ 1 0 0 64 ] [ 0 0 -1 965.5172 ] 0 0.0805 0.0906
 }
 }
 {
@@ -4861,12 +4861,12 @@
 "rendermode" "2"
 "renderamt" "255"
 {
-( -0.45 -0.9 81.3 ) ( -0.45 -1.4 81.3 ) ( -13.05 -1.4 81.3 ) sc_black [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
-( -13.05 -1.4 75.5 ) ( -0.45 -1.4 75.5 ) ( -0.45 -0.9 75.5 ) sc_black [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
-( -0.45 -0.9 81.3 ) ( -0.45 -0.9 75.5 ) ( -0.45 -1.4 75.5 ) sc_black [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( -13.05 -1.4 75.5 ) ( -13.05 -0.9 75.5 ) ( -13.05 -0.9 81.3 ) sc_black [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( -13.05 -0.9 75.5 ) ( -0.45 -0.9 75.5 ) ( -0.45 -0.9 81.3 ) sc_black [ 1 0 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( -0.45 -1.4 81.3 ) ( -0.45 -1.4 75.5 ) ( -13.05 -1.4 75.5 ) +0an13 [ 1 0 0 99.4286 ] [ 0 0 -1 672.8276 ] 0 0.1313 0.1208
+( 15.875 -0.9 87.5 ) ( 15.875 -1.4 87.5 ) ( 5.575 -1.4 87.5 ) sc_black [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
+( 5.575 -1.4 81.7 ) ( 15.875 -1.4 81.7 ) ( 15.875 -0.9 81.7 ) sc_black [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
+( 15.875 -0.9 87.5 ) ( 15.875 -0.9 81.7 ) ( 15.875 -1.4 81.7 ) sc_black [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
+( 5.575 -1.4 81.7 ) ( 5.575 -0.9 81.7 ) ( 5.575 -0.9 87.5 ) sc_black [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
+( 5.575 -0.9 81.7 ) ( 15.875 -0.9 81.7 ) ( 15.875 -0.9 87.5 ) sc_black [ 1 0 0 0 ] [ 0 0 -1 0 ] 0 1 1
+( 15.875 -1.4 87.5 ) ( 15.875 -1.4 81.7 ) ( 5.575 -1.4 81.7 ) +0an13 [ 1 0 0 -69.2816 ] [ 0 0 -1 965.5172 ] 0 0.0805 0.0906
 }
 }
 {
@@ -4875,12 +4875,12 @@
 "rendermode" "2"
 "renderamt" "255"
 {
-( 13.05 -0.9 81.3 ) ( 13.05 -1.4 81.3 ) ( 0.45 -1.4 81.3 ) sc_black [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
-( 0.45 -1.4 75.5 ) ( 13.05 -1.4 75.5 ) ( 13.05 -0.9 75.5 ) sc_black [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
-( 13.05 -0.9 81.3 ) ( 13.05 -0.9 75.5 ) ( 13.05 -1.4 75.5 ) sc_black [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( 0.45 -1.4 75.5 ) ( 0.45 -0.9 75.5 ) ( 0.45 -0.9 81.3 ) sc_black [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( 0.45 -0.9 75.5 ) ( 13.05 -0.9 75.5 ) ( 13.05 -0.9 81.3 ) sc_black [ 1 0 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( 13.05 -1.4 81.3 ) ( 13.05 -1.4 75.5 ) ( 0.45 -1.4 75.5 ) +0an14 [ 1 0 0 -3.4286 ] [ 0 0 -1 672.8276 ] 0 0.1313 0.1208
+( 26.6 -0.9 87.5 ) ( 26.6 -1.4 87.5 ) ( 16.3 -1.4 87.5 ) sc_black [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
+( 16.3 -1.4 81.7 ) ( 26.6 -1.4 81.7 ) ( 26.6 -0.9 81.7 ) sc_black [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
+( 26.6 -0.9 87.5 ) ( 26.6 -0.9 81.7 ) ( 26.6 -1.4 81.7 ) sc_black [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
+( 16.3 -1.4 81.7 ) ( 16.3 -0.9 81.7 ) ( 16.3 -0.9 87.5 ) sc_black [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
+( 16.3 -0.9 81.7 ) ( 26.6 -0.9 81.7 ) ( 26.6 -0.9 87.5 ) sc_black [ 1 0 0 0 ] [ 0 0 -1 0 ] 0 1 1
+( 26.6 -1.4 87.5 ) ( 26.6 -1.4 81.7 ) ( 16.3 -1.4 81.7 ) +0an14 [ 1 0 0 -202.5631 ] [ 0 0 -1 965.5172 ] 0 0.0805 0.0906
 }
 }
 {
@@ -4889,12 +4889,68 @@
 "rendermode" "2"
 "renderamt" "255"
 {
-( 26.55 -0.9 81.3 ) ( 26.55 -1.4 81.3 ) ( 13.95 -1.4 81.3 ) sc_black [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
-( 13.95 -1.4 75.5 ) ( 26.55 -1.4 75.5 ) ( 26.55 -0.9 75.5 ) sc_black [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
-( 26.55 -0.9 81.3 ) ( 26.55 -0.9 75.5 ) ( 26.55 -1.4 75.5 ) sc_black [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( 13.95 -1.4 75.5 ) ( 13.95 -0.9 75.5 ) ( 13.95 -0.9 81.3 ) sc_black [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( 13.95 -0.9 75.5 ) ( 26.55 -0.9 75.5 ) ( 26.55 -0.9 81.3 ) sc_black [ 1 0 0 0 ] [ 0 0 -1 0 ] 0 1 1
-( 26.55 -1.4 81.3 ) ( 26.55 -1.4 75.5 ) ( 13.95 -1.4 75.5 ) +0an15 [ 1 0 0 -106.2857 ] [ 0 0 -1 672.8276 ] 0 0.1313 0.1208
+( -16.3 -0.9 81.3 ) ( -16.3 -1.4 81.3 ) ( -26.6 -1.4 81.3 ) sc_black [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
+( -26.6 -1.4 75.5 ) ( -16.3 -1.4 75.5 ) ( -16.3 -0.9 75.5 ) sc_black [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
+( -16.3 -0.9 81.3 ) ( -16.3 -0.9 75.5 ) ( -16.3 -1.4 75.5 ) sc_black [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
+( -26.6 -1.4 75.5 ) ( -26.6 -0.9 75.5 ) ( -26.6 -0.9 81.3 ) sc_black [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
+( -26.6 -0.9 75.5 ) ( -16.3 -0.9 75.5 ) ( -16.3 -0.9 81.3 ) sc_black [ 1 0 0 0 ] [ 0 0 -1 0 ] 0 1 1
+( -16.3 -1.4 81.3 ) ( -16.3 -1.4 75.5 ) ( -26.6 -1.4 75.5 ) +0an15 [ 1 0 0 330.5631 ] [ 0 0 -1 897.1034 ] 0 0.0805 0.0906
+}
+}
+{
+"classname" "func_wall"
+"targetname" "A16"
+"rendermode" "2"
+"renderamt" "255"
+{
+( -5.575 -0.9 81.3 ) ( -5.575 -1.4 81.3 ) ( -15.875 -1.4 81.3 ) sc_black [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
+( -15.875 -1.4 75.5 ) ( -5.575 -1.4 75.5 ) ( -5.575 -0.9 75.5 ) sc_black [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
+( -5.575 -0.9 81.3 ) ( -5.575 -0.9 75.5 ) ( -5.575 -1.4 75.5 ) sc_black [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
+( -15.875 -1.4 75.5 ) ( -15.875 -0.9 75.5 ) ( -15.875 -0.9 81.3 ) sc_black [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
+( -15.875 -0.9 75.5 ) ( -5.575 -0.9 75.5 ) ( -5.575 -0.9 81.3 ) sc_black [ 1 0 0 0 ] [ 0 0 -1 0 ] 0 1 1
+( -5.575 -1.4 81.3 ) ( -5.575 -1.4 75.5 ) ( -15.875 -1.4 75.5 ) +0an16 [ 1 0 0 197.2816 ] [ 0 0 -1 897.1034 ] 0 0.0805 0.0906
+}
+}
+{
+"classname" "func_wall"
+"targetname" "A17"
+"rendermode" "2"
+"renderamt" "255"
+{
+( 5.15 -0.9 81.3 ) ( 5.15 -1.4 81.3 ) ( -5.15 -1.4 81.3 ) sc_black [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
+( -5.15 -1.4 75.5 ) ( 5.15 -1.4 75.5 ) ( 5.15 -0.9 75.5 ) sc_black [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
+( 5.15 -0.9 81.3 ) ( 5.15 -0.9 75.5 ) ( 5.15 -1.4 75.5 ) sc_black [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
+( -5.15 -1.4 75.5 ) ( -5.15 -0.9 75.5 ) ( -5.15 -0.9 81.3 ) sc_black [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
+( -5.15 -0.9 75.5 ) ( 5.15 -0.9 75.5 ) ( 5.15 -0.9 81.3 ) sc_black [ 1 0 0 0 ] [ 0 0 -1 0 ] 0 1 1
+( 5.15 -1.4 81.3 ) ( 5.15 -1.4 75.5 ) ( -5.15 -1.4 75.5 ) +0an17 [ 1 0 0 64 ] [ 0 0 -1 897.1034 ] 0 0.0805 0.0906
+}
+}
+{
+"classname" "func_wall"
+"targetname" "A18"
+"rendermode" "2"
+"renderamt" "255"
+{
+( 15.875 -0.9 81.3 ) ( 15.875 -1.4 81.3 ) ( 5.575 -1.4 81.3 ) sc_black [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
+( 5.575 -1.4 75.5 ) ( 15.875 -1.4 75.5 ) ( 15.875 -0.9 75.5 ) sc_black [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
+( 15.875 -0.9 81.3 ) ( 15.875 -0.9 75.5 ) ( 15.875 -1.4 75.5 ) sc_black [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
+( 5.575 -1.4 75.5 ) ( 5.575 -0.9 75.5 ) ( 5.575 -0.9 81.3 ) sc_black [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
+( 5.575 -0.9 75.5 ) ( 15.875 -0.9 75.5 ) ( 15.875 -0.9 81.3 ) sc_black [ 1 0 0 0 ] [ 0 0 -1 0 ] 0 1 1
+( 15.875 -1.4 81.3 ) ( 15.875 -1.4 75.5 ) ( 5.575 -1.4 75.5 ) +0an18 [ 1 0 0 -69.2816 ] [ 0 0 -1 897.1034 ] 0 0.0805 0.0906
+}
+}
+{
+"classname" "func_wall"
+"targetname" "A19"
+"rendermode" "2"
+"renderamt" "255"
+{
+( 26.6 -0.9 81.3 ) ( 26.6 -1.4 81.3 ) ( 16.3 -1.4 81.3 ) sc_black [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
+( 16.3 -1.4 75.5 ) ( 26.6 -1.4 75.5 ) ( 26.6 -0.9 75.5 ) sc_black [ 1 0 0 0 ] [ 0 -1 0 0 ] 0 1 1
+( 26.6 -0.9 81.3 ) ( 26.6 -0.9 75.5 ) ( 26.6 -1.4 75.5 ) sc_black [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
+( 16.3 -1.4 75.5 ) ( 16.3 -0.9 75.5 ) ( 16.3 -0.9 81.3 ) sc_black [ 0 1 0 0 ] [ 0 0 -1 0 ] 0 1 1
+( 16.3 -0.9 75.5 ) ( 26.6 -0.9 75.5 ) ( 26.6 -0.9 81.3 ) sc_black [ 1 0 0 0 ] [ 0 0 -1 0 ] 0 1 1
+( 26.6 -1.4 81.3 ) ( 26.6 -1.4 75.5 ) ( 16.3 -1.4 75.5 ) +0an19 [ 1 0 0 -202.5631 ] [ 0 0 -1 897.1034 ] 0 0.0805 0.0906
 }
 }
 {
@@ -10768,10 +10824,24 @@
 {
 "classname" "env_global"
 "targetname" "x_eq100"
+"globalstate" "x_ge100"
+"triggermode" "1"
+"spawnflags" "1"
+"initialstate" "0"
+}
+{
+"classname" "env_global"
+"targetname" "x_eq100"
 "globalstate" "nx_ge100"
 "triggermode" "0"
 "spawnflags" "1"
 "initialstate" "1"
+}
+{
+"classname" "env_global"
+"targetname" "x_eq99"
+"globalstate" "x_ge100"
+"triggermode" "0"
 }
 {
 "classname" "env_global"
@@ -11735,13 +11805,13 @@
 {
 "classname" "trigger_relay"
 "targetname" "r_lp_ev"
-"target" "A05"
+"target" "A11"
 "triggerstate" "2"
 }
 {
 "classname" "trigger_relay"
 "targetname" "r_wp_ev"
-"target" "A07"
+"target" "A12"
 "triggerstate" "2"
 }
 {
@@ -11787,6 +11857,42 @@
 "triggerstate" "1"
 }
 {
+"classname" "trigger_relay"
+"targetname" "bt_trip"
+"target" "prot"
+"triggerstate" "1"
+}
+{
+"classname" "trigger_relay"
+"targetname" "bt_trip"
+"target" "A07"
+"triggerstate" "1"
+}
+{
+"classname" "trigger_relay"
+"targetname" "bt_trip"
+"target" "alarm"
+"triggerstate" "1"
+}
+{
+"classname" "trigger_relay"
+"targetname" "ov_trip"
+"target" "prot"
+"triggerstate" "1"
+}
+{
+"classname" "trigger_relay"
+"targetname" "ov_trip"
+"target" "A06"
+"triggerstate" "1"
+}
+{
+"classname" "trigger_relay"
+"targetname" "ov_trip"
+"target" "alarm"
+"triggerstate" "1"
+}
+{
 "classname" "env_global"
 "targetname" "r_gt_ev"
 "globalstate" "hgt"
@@ -11824,6 +11930,30 @@
 "classname" "trigger_relay"
 "targetname" "reset"
 "target" "A03"
+"triggerstate" "0"
+}
+{
+"classname" "trigger_relay"
+"targetname" "reset"
+"target" "A04"
+"triggerstate" "0"
+}
+{
+"classname" "trigger_relay"
+"targetname" "reset"
+"target" "A05"
+"triggerstate" "0"
+}
+{
+"classname" "trigger_relay"
+"targetname" "reset"
+"target" "A06"
+"triggerstate" "0"
+}
+{
+"classname" "trigger_relay"
+"targetname" "reset"
+"target" "A07"
 "triggerstate" "0"
 }
 {
@@ -11913,7 +12043,7 @@
 {
 "classname" "trigger_relay"
 "targetname" "r_plc_ev"
-"target" "A14"
+"target" "A18"
 "triggerstate" "2"
 }
 {
@@ -11931,6 +12061,26 @@
 "triggermode" "3"
 "spawnflags" "1"
 "initialstate" "1"
+}
+{
+"classname" "env_global"
+"targetname" "exc=1"
+"globalstate" "flash"
+"triggermode" "1"
+"spawnflags" "1"
+"initialstate" "0"
+}
+{
+"classname" "env_global"
+"targetname" "exc=0"
+"globalstate" "flash"
+"triggermode" "0"
+}
+{
+"classname" "env_global"
+"targetname" "flash_done"
+"globalstate" "flash"
+"triggermode" "0"
 }
 {
 "classname" "env_global"
@@ -12005,7 +12155,7 @@
 {
 "classname" "trigger_relay"
 "targetname" "r_avr_ev"
-"target" "A15"
+"target" "A19"
 "triggerstate" "2"
 }
 {
@@ -12213,7 +12363,7 @@
 {
 "classname" "trigger_relay"
 "targetname" "oop"
-"target" "A02"
+"target" "A03"
 "triggerstate" "1"
 }
 {
@@ -12237,7 +12387,7 @@
 {
 "classname" "trigger_relay"
 "targetname" "cb_close"
-"target" "A03"
+"target" "A02"
 "triggerstate" "0"
 }
 {
@@ -12261,7 +12411,7 @@
 {
 "classname" "trigger_relay"
 "targetname" "cb_prot_x"
-"target" "A03"
+"target" "A02"
 "triggerstate" "1"
 }
 {
@@ -12384,7 +12534,43 @@
 "frags" "0"
 "health" "8"
 "spawnflags" "2"
+"target" "rp_trip"
+}
+{
+"classname" "trigger_relay"
+"targetname" "rp_trip"
 "target" "prot"
+"triggerstate" "1"
+}
+{
+"classname" "trigger_relay"
+"targetname" "rp_trip"
+"target" "A04"
+"triggerstate" "1"
+}
+{
+"classname" "trigger_relay"
+"targetname" "rp_trip"
+"target" "alarm"
+"triggerstate" "1"
+}
+{
+"classname" "trigger_relay"
+"targetname" "lof_trip"
+"target" "prot"
+"triggerstate" "1"
+}
+{
+"classname" "trigger_relay"
+"targetname" "lof_trip"
+"target" "A05"
+"triggerstate" "1"
+}
+{
+"classname" "trigger_relay"
+"targetname" "lof_trip"
+"target" "alarm"
+"triggerstate" "1"
 }
 {
 "classname" "game_counter"
@@ -12535,7 +12721,7 @@
 {
 "classname" "trigger_relay"
 "targetname" "brake=1"
-"target" "A09"
+"target" "A14"
 "triggerstate" "1"
 }
 {
@@ -12547,19 +12733,19 @@
 {
 "classname" "trigger_relay"
 "targetname" "brake=0"
-"target" "A09"
+"target" "A14"
 "triggerstate" "0"
 }
 {
 "classname" "trigger_relay"
 "targetname" "rz=1"
-"target" "A10"
+"target" "A09"
 "triggerstate" "1"
 }
 {
 "classname" "trigger_relay"
 "targetname" "rz=0"
-"target" "A10"
+"target" "A09"
 "triggerstate" "0"
 }
 {
@@ -12577,73 +12763,73 @@
 {
 "classname" "trigger_relay"
 "targetname" "o_eq4"
-"target" "A04"
+"target" "A10"
 "triggerstate" "1"
 }
 {
 "classname" "trigger_relay"
 "targetname" "o_eq3"
-"target" "A04"
+"target" "A10"
 "triggerstate" "0"
 }
 {
 "classname" "trigger_relay"
 "targetname" "a_eq4"
-"target" "A08"
+"target" "A13"
 "triggerstate" "1"
 }
 {
 "classname" "trigger_relay"
 "targetname" "a_eq3"
-"target" "A08"
+"target" "A13"
 "triggerstate" "0"
 }
 {
 "classname" "trigger_relay"
 "targetname" "bt_eq8"
-"target" "A06"
+"target" "A08"
 "triggerstate" "1"
 }
 {
 "classname" "trigger_relay"
 "targetname" "bt_eq7"
-"target" "A06"
+"target" "A08"
 "triggerstate" "0"
 }
 {
 "classname" "trigger_relay"
 "targetname" "l_eq9"
-"target" "A12"
+"target" "A16"
 "triggerstate" "0"
 }
 {
 "classname" "trigger_relay"
 "targetname" "l_eq8"
-"target" "A12"
+"target" "A16"
 "triggerstate" "1"
 }
 {
 "classname" "trigger_relay"
 "targetname" "l_eq14"
-"target" "A11"
+"target" "A15"
 "triggerstate" "1"
 }
 {
 "classname" "trigger_relay"
 "targetname" "l_eq13"
-"target" "A11"
+"target" "A15"
 "triggerstate" "0"
 }
 {
 "classname" "trigger_relay"
 "targetname" "sg_eq1"
-"target" "A13"
+"target" "A17"
 "triggerstate" "0"
 }
 {
 "classname" "trigger_relay"
 "targetname" "sg_eq0"
-"target" "A13"
+"target" "A17"
 "triggerstate" "1"
 }
 {
@@ -13084,6 +13270,11 @@
 }
 {
 "classname" "multisource"
+"targetname" "ms_flash"
+"globalstate" "flash"
+}
+{
+"classname" "multisource"
 "targetname" "ms_g_ge16"
 "globalstate" "g_ge16"
 }
@@ -13331,6 +13522,11 @@
 "classname" "multisource"
 "targetname" "ms_v_gt0"
 "globalstate" "v_gt0"
+}
+{
+"classname" "multisource"
+"targetname" "ms_x_ge100"
+"globalstate" "x_ge100"
 }
 {
 "classname" "multisource"
@@ -17388,7 +17584,7 @@
 {
 "classname" "game_counter_set"
 "targetname" "v_eq115"
-"target" "prot"
+"target" "ov_trip"
 "master" "ms_ncb"
 }
 {
@@ -20240,7 +20436,7 @@
 {
 "classname" "game_counter_set"
 "targetname" "q42"
-"target" "prot"
+"target" "bt_trip"
 "master" "ms_bt_max"
 }
 {
@@ -20360,7 +20556,7 @@
 {
 "classname" "game_counter_set"
 "targetname" "q50"
-"target" "prot"
+"target" "lof_trip"
 "master" "ms_nx_ge60"
 }
 {
@@ -20396,14 +20592,14 @@
 {
 "classname" "game_counter_set"
 "targetname" "q60"
-"master" "ms_n_ge95"
+"master" "ms_nn_ge106"
 "target" "q61"
 }
 {
 "classname" "game_counter_set"
 "targetname" "q61"
 "target" "phs_on"
-"master" "ms_nn_ge106"
+"master" "ms_n_ge95"
 }
 {
 "classname" "game_counter_set"
@@ -20924,30 +21120,30 @@
 {
 "classname" "game_counter_set"
 "targetname" "TS"
-"master" "ms_nexc"
+"master" "ms_exc"
 "target" "q109"
 }
 {
 "classname" "game_counter_set"
 "targetname" "q109"
-"target" "x_dn"
-"master" "ms_x_gt0"
-}
-{
-"classname" "game_counter_set"
-"targetname" "TS"
-"master" "ms_exc"
+"master" "ms_navr"
 "target" "q110"
 }
 {
 "classname" "game_counter_set"
 "targetname" "q110"
-"master" "ms_navr"
+"master" "ms_nx_ge100"
 "target" "q111"
 }
 {
 "classname" "game_counter_set"
 "targetname" "q111"
+"target" "x_up"
+"master" "ms_flash"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q110"
 "master" "ms_k_fa_a"
 "target" "q112"
 }
@@ -20977,7 +21173,7 @@
 }
 {
 "classname" "game_counter_set"
-"targetname" "q110"
+"targetname" "q109"
 "master" "ms_avr"
 "target" "q115"
 }
@@ -20996,24 +21192,48 @@
 {
 "classname" "game_counter_set"
 "targetname" "TS"
-"master" "ms_cb"
+"master" "ms_flash"
 "target" "q116"
 }
 {
 "classname" "game_counter_set"
 "targetname" "q116"
-"master" "ms_exc"
+"target" "flash_done"
+"master" "ms_x_ge100"
+}
+{
+"classname" "game_counter_set"
+"targetname" "TS"
+"master" "ms_nexc"
 "target" "q117"
 }
 {
 "classname" "game_counter_set"
 "targetname" "q117"
-"master" "ms_avr"
+"target" "x_dn"
+"master" "ms_x_gt0"
+}
+{
+"classname" "game_counter_set"
+"targetname" "TS"
+"master" "ms_cb"
 "target" "q118"
 }
 {
 "classname" "game_counter_set"
 "targetname" "q118"
+"master" "ms_exc"
+"target" "q119"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q119"
+"master" "ms_avr"
+"target" "q120"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q120"
 "target" "x_up"
 "master" "ms_nx_ge104"
 }
@@ -21021,41 +21241,41 @@
 "classname" "game_counter_set"
 "targetname" "TS"
 "master" "ms_phs"
-"target" "q119"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q119"
-"master" "ms_n_ge100"
-"target" "q120"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q120"
-"master" "ms_nn_ge101"
 "target" "q121"
 }
 {
 "classname" "game_counter_set"
 "targetname" "q121"
-"master" "ms_npok"
+"master" "ms_n_ge100"
 "target" "q122"
 }
 {
 "classname" "game_counter_set"
 "targetname" "q122"
-"master" "ms_nv_ge106"
+"master" "ms_nn_ge101"
 "target" "q123"
 }
 {
 "classname" "game_counter_set"
 "targetname" "q123"
-"master" "ms_inph"
+"master" "ms_npok"
 "target" "q124"
 }
 {
 "classname" "game_counter_set"
 "targetname" "q124"
+"master" "ms_nv_ge106"
+"target" "q125"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q125"
+"master" "ms_inph"
+"target" "q126"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q126"
 "target" "pok=1"
 "master" "ms_v_ge95"
 }
@@ -21063,53 +21283,53 @@
 "classname" "game_counter_set"
 "targetname" "TS"
 "master" "ms_pok"
-"target" "q125"
+"target" "q127"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q125"
+"targetname" "q127"
 "master" "ms_nperm"
-"target" "q126"
+"target" "q128"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q126"
+"targetname" "q128"
 "target" "perm=1"
 "master" "ms_hss"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q125"
+"targetname" "q127"
 "target" "pok=0"
 "master" "ms_nphs"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q125"
+"targetname" "q127"
 "target" "pok=0"
 "master" "ms_ninph"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q125"
+"targetname" "q127"
 "target" "pok=0"
 "master" "ms_nn_ge100"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q125"
+"targetname" "q127"
 "target" "pok=0"
 "master" "ms_n_ge101"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q125"
+"targetname" "q127"
 "target" "pok=0"
 "master" "ms_nv_ge95"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q125"
+"targetname" "q127"
 "target" "pok=0"
 "master" "ms_v_ge106"
 }
@@ -21117,11 +21337,11 @@
 "classname" "game_counter_set"
 "targetname" "TS"
 "master" "ms_npok"
-"target" "q127"
+"target" "q129"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q127"
+"targetname" "q129"
 "target" "perm=0"
 "master" "ms_perm"
 }
@@ -21129,11 +21349,11 @@
 "classname" "game_counter_set"
 "targetname" "TS"
 "master" "ms_nhss"
-"target" "q128"
+"target" "q130"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q128"
+"targetname" "q130"
 "target" "perm=0"
 "master" "ms_perm"
 }
@@ -21141,19 +21361,19 @@
 "classname" "game_counter_set"
 "targetname" "r_exc_ev"
 "master" "ms_ntr"
-"target" "q129"
+"target" "q131"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q129"
+"targetname" "q131"
 "master" "ms_hexc"
-"target" "q130"
+"target" "q132"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q130"
+"targetname" "q132"
 "target" "exc=1"
-"master" "ms_n_ge95"
+"master" "ms_n_ge90"
 }
 {
 "classname" "game_counter_set"
@@ -21213,41 +21433,41 @@
 "classname" "game_counter_set"
 "targetname" "r_plc_ev"
 "master" "ms_phs"
-"target" "q131"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q131"
-"master" "ms_plc"
-"target" "q132"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q132"
-"master" "ms_n_ge100"
 "target" "q133"
 }
 {
 "classname" "game_counter_set"
 "targetname" "q133"
-"target" "slip1"
-"master" "ms_nn_ge101"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q131"
-"master" "ms_n_ge100"
+"master" "ms_plc"
 "target" "q134"
 }
 {
 "classname" "game_counter_set"
 "targetname" "q134"
-"master" "ms_nplc"
+"master" "ms_n_ge100"
 "target" "q135"
 }
 {
 "classname" "game_counter_set"
 "targetname" "q135"
+"target" "slip1"
+"master" "ms_nn_ge101"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q133"
+"master" "ms_n_ge100"
+"target" "q136"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q136"
+"master" "ms_nplc"
+"target" "q137"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q137"
 "target" "slip0"
 "master" "ms_nn_ge101"
 }
@@ -21279,41 +21499,41 @@
 "classname" "game_counter_set"
 "targetname" "r_52_ev"
 "master" "ms_ncb"
-"target" "q136"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q136"
-"master" "ms_ntr"
-"target" "q137"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q137"
-"master" "ms_pok"
 "target" "q138"
 }
 {
 "classname" "game_counter_set"
 "targetname" "q138"
-"target" "cb_close"
-"master" "ms_h52"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q137"
-"master" "ms_npok"
+"master" "ms_ntr"
 "target" "q139"
 }
 {
 "classname" "game_counter_set"
 "targetname" "q139"
-"master" "ms_h52"
+"master" "ms_pok"
 "target" "q140"
 }
 {
 "classname" "game_counter_set"
 "targetname" "q140"
+"target" "cb_close"
+"master" "ms_h52"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q139"
+"master" "ms_npok"
+"target" "q141"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q141"
+"master" "ms_h52"
+"target" "q142"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q142"
 "target" "oop"
 "master" "ms_nhss"
 }
@@ -21356,11 +21576,11 @@
 "classname" "game_counter_set"
 "targetname" "pf_band"
 "master" "ms_ng_ge55"
-"target" "q141"
+"target" "q143"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q141"
+"targetname" "q143"
 "target" "pf1=1"
 "master" "ms_g_ge30"
 }
@@ -21385,11 +21605,11 @@
 "classname" "game_counter_set"
 "targetname" "T64"
 "master" "ms_nrq_max"
-"target" "q142"
+"target" "q144"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q142"
+"targetname" "q144"
 "target" "rq_up"
 "master" "ms_rup"
 }
@@ -21397,11 +21617,11 @@
 "classname" "game_counter_set"
 "targetname" "T64"
 "master" "ms_nrup"
-"target" "q143"
+"target" "q145"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q143"
+"targetname" "q145"
 "target" "rq_dn"
 "master" "ms_rq_gt0"
 }
