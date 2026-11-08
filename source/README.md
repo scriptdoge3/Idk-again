@@ -9,12 +9,29 @@ names, and real numbers instead of counters.
 Copy `out/sablecreek.bsp` to `Steam/steamapps/common/Half-Life 2/hl2/maps/` and type `map sablecreek` in
 the console. The textures and sounds are packed inside the BSP, and no launch options are needed.
 
-## Entities
+## Entities and speed
 
-The map has about 1,030 entities, and only 72 of them use network slots: the needles, switches, dials,
-lamps, annunciator windows and sounds. All the plant logic (955 entities: `math_counter`, `math_remap`,
-`logic_relay`, `logic_timer`, `logic_auto`) is server-only and uses no network slots. Half-Life 2 allows
-2048 networked entities and 2048 server-only ones, so there's room to spare.
+The map has 851 entities, and only 72 of them use network slots: the needles, switches, dials, lamps,
+annunciator windows and sounds. The plant logic (775 entities: `math_counter`, `math_remap`,
+`logic_relay`, `logic_timer`, `logic_auto`) is server-only and uses none. Half-Life 2 allows 2048 of
+each kind.
+
+What limits the logic is speed, not entity count. Each output the engine fires finds its target by
+name, and that lookup compares the name against every named entity in the map. So the cost is events
+times entities. The plant therefore runs as three loops, started on different server ticks so they never
+land on the same one:
+
+| Loop | Every | Runs |
+|---|---|---|
+| fast | 0.03 s | gate travel, runner and water column, rotor speed and swing, phase, 52G closing, the speed, gate, kW, power factor, frequency and synchroscope needles |
+| medium | 0.12 s | gate commands (dials, PLC governor, river control), excitation and AVR, protection and trips, brakes, the volts, field and firing-angle needles |
+| slow | 0.24 s | river and spillway, pumps and compressor, bearings, alarm and status windows, sound levels |
+
+In all they handle about 14,000 events a second, at most about 430 in one server tick. That's less work
+than the first Half-Life 2 version, whose single loop ran every 0.06 s, while the rotor and synchroscope
+now update twice as often. Sine and cosine are short formulas instead of tables, sibling `math_remap`s
+fed by the same value share one name (one event reaches them all), and node names are one to three
+characters that usually differ in the first, which keeps each name comparison as short as possible.
 
 ## The physics
 
@@ -102,13 +119,15 @@ follow their condition, and the horn sounds for 6 s on each new trip or alarm.
 ## How the logic works
 
 `hydro.py` writes the plant as equations; `srclogic.py` compiles them into logic entities. Every state
-variable is a `math_counter`. A `logic_timer` fires every 0.06 s (4 server ticks); its relay asks every
-variable for its value (`GetValue`), and the values flow through `math_remap` nodes (one value: scale,
+variable is a `math_counter`. Each loop's `logic_timer` fires its relay, which asks every variable of that
+loop for its value (`GetValue`), and the values flow through `math_remap` nodes (one value: scale,
 offset, clamp) and `math_counter` nodes (two values: add, subtract, multiply, divide) into the new
 values, the needles (`SetPosition`), the sync lamps (`Alpha`) and the turbine pitch. A two-value node
 takes its first value with `SetValueNoFire` and computes when the second arrives, so the compiler times
 every node by its distance from the timer (Source runs one tick's outputs first-in first-out). Lamps,
-windows, sounds and the handles the logic turns hang off 0/1 counters (`OnHitMax`, `OnHitMin`).
+windows, sounds and the handles the logic turns hang off 0/1 counters (`OnHitMax`, `OnHitMin`). A loop
+reads another loop's variables through mirrors: the original's `OutValue` sets the copy with
+`SetValueNoFire`, because `GetValue` answers every reader of a variable at once.
 
 `srcsim.py` simulates those entities as the Source SDK code does: the event queue, the reverse order
 of an output's actions, the relays, timers rounded to ticks, the buttons and wheels, 32-bit floats.

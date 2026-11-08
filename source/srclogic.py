@@ -145,6 +145,20 @@ class Bin(X):
 
 
 _memo = {}
+_DIG = '0123456789abcdefghijklmnopqrstuvwxyz'
+
+
+def _short(k):
+    out = ''
+    while True:
+        out += _DIG[k % 36]
+        k //= 36
+        if not k:
+            return out
+
+
+def reset():
+    _memo.clear()
 
 
 def _cse(node):
@@ -268,6 +282,30 @@ def lim(x, lo, hi):
     return clamp(x, lo, hi)
 
 
+def absx(x):
+    return add(relu(x), relu(neg(x)))
+
+
+def neg(x):
+    return aff(x, -1, 0)
+
+
+def sq(x):
+    return mul(x, x)
+
+
+def sin_deg(x):
+    """sin of x degrees, x in -180..180: 4s(1-|s|) with s = x/180, then y(0.775 + 0.225|y|)"""
+    s = aff(x, 1 / 180, 0)
+    y = mul(s, aff(absx(s), -4, 4))
+    return mul(y, aff(absx(y), 0.225, 0.775))
+
+
+def cos_deg(x):
+    """cos of x degrees, x in -180..180: sin(90 - |x|)"""
+    return sin_deg(aff(absx(x), -1, 90))
+
+
 def pwl(x, pts):
     """Piecewise linear function through pts [(x0, y0), (x1, y1), ...], flat outside."""
     x = C(x)
@@ -324,7 +362,18 @@ class Program:
         self.writes = []           # (var, expr, mode)
         self.sinks = []            # (ent name, input, expr)
         self.init_values = []
-        _memo.clear()
+        self.start_delay = 0.1     # programs start on different server ticks so their ticks never coincide
+
+    def share_names(self):
+        self.shared = _share_names(self)
+
+    def mirror(self, var, name=None):
+        """A copy of another program's variable that this program can read: the original's OutValue sets it
+        silently (SetValueNoFire), so this program sees the value from the original's last tick. (Only
+        one program may ask a variable for its value: GetValue answers every reader at once.)"""
+        mv = self.var(name or f'{var.name}_m', var.init, var.lo, var.hi, clamp=False)
+        var.ent.out('OutValue', mv.ent, 'SetValueNoFire')
+        return mv
 
     def var(self, name, init=0.0, lo=-BIG, hi=BIG, clamp=True):
         v = Var(self, name, init, lo, hi, clamp)
@@ -359,7 +408,7 @@ class Program:
 
         def new(cls, **kv):
             n[0] += 1
-            e = m.ent(cls, f'{self.name}{n[0]}', **kv)
+            e = m.ent(cls, _short(n[0]) + self.name[-1], **kv)
             self.nodes.append(e)
             return e
 
@@ -387,6 +436,7 @@ class Program:
             if id(node) in level:
                 return
             if isinstance(node, Read):
+                assert node.var.prog is self, f'{self.name} reads {node.var.name} of program {node.var.prog.name}: use a mirror'
                 tick.out('OnTrigger', node.var.ent, 'GetValue')
                 emit[id(node)], level[id(node)] = (node.var.ent, 'OnGetValue'), 2
             elif isinstance(node, Const):
@@ -464,13 +514,46 @@ class Program:
         for e in self.nodes:
             if '_first' in e.kv:
                 self.levels[e.name] = (e.kv.pop('_first'), e.kv.pop('_trig'))
+        self.share_names()
         # start: set the non-integer initial values, then start the clock
         auto = m.ent('logic_auto', f'{self.name}_auto', spawnflags=1)
         for v, val in self.init_values:
             auto.out('OnMapSpawn', v.ent, 'SetValue', val)
-        auto.out('OnMapSpawn', timer, 'Enable', None, 0.1)
+        auto.out('OnMapSpawn', timer, 'Enable', None, self.start_delay)
         self.timer = timer
         return self
+
+
+def _share_names(prog):
+    """math_remaps that take their only input from the same output share one name, so one event reaches all
+    of them (the engine's lookup scans every named entity for each event anyway)."""
+    m = prog.m
+    remaps = {e.name: e for e in prog.nodes if e.cls == 'math_remap'}
+    incoming = {}
+    for e in m.ents:
+        for o in e.outputs:
+            if o[1] in remaps:
+                incoming.setdefault(o[1], []).append((e, o))
+    groups = {}
+    for name, inc in incoming.items():
+        if len(inc) == 1:
+            src, (out, tgt, inp, par, delay, times) = inc[0]
+            groups.setdefault((id(src), out, inp, par, delay), (src, []))[1].append(name)
+    shared = 0
+    for (sid, out, inp, par, delay), (src, names) in groups.items():
+        if len(names) < 2:
+            continue
+        keep = names[0]
+        for nm in names[1:]:
+            remaps[nm].kv['targetname'] = keep
+            shared += 1
+        drop = set(names[1:])
+        src.outputs = [o for o in src.outputs if not (o[0] == out and o[1] in drop and o[2] == inp)]
+    m.by_name = {}
+    for e in m.ents:
+        if e.name:
+            m.by_name.setdefault(e.name, e)
+    return shared
 
 
 def gate(x, cond, lo, hi):

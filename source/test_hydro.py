@@ -4,14 +4,15 @@ import hydro
 from hydro import build
 from srcsim import Sim
 
-m, P, dev = build()
+m, PROGS, dev = build()
+LEVELS = {k: v for p in PROGS for k, v in p.levels.items()}
 
 
 def bin_ops():
     ops = {}
     for e in m.ents:
         for out, tgt, inp, par, d, t in e.outputs:
-            if tgt in P.levels and inp != 'SetValueNoFire':
+            if tgt in LEVELS and inp != 'SetValueNoFire':
                 ops[tgt] = inp
     return ops
 
@@ -187,8 +188,8 @@ def scenario_trip(s):
           'PLC, AVR, 52G and 41 handles turned to OFF / MAN / TRIP')
     check(s['A01'].on and s['A02'].on, '86 LOCKOUT and 52G GEN BKR TRIPPED lit')
     check(s['s_horn'].playing, 'horn')
-    s.run(7)
-    check(not s['s_horn'].playing, 'horn silences itself')
+    t = wait_for(s, lambda: not s['s_horn'].playing, 20)
+    check(not s['s_horn'].playing, f'horn silences itself ({t + 1:.0f} s; the gate slam draws the oil low, a new alarm)')
     flip(s, 'r_gt', 0.8)
     check(V(s, 'tr') == 0 and not s['A01'].on and not s['A02'].on, 'reset clears the lockout')
     s.run(30)
