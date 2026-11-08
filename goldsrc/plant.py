@@ -7,9 +7,9 @@ The unit is run by hand from these controls:
   middle (annunciator) PLC and AVR breakers
   right (auxiliaries)  lube oil pump, cooling water pump, gate servo oil pump, brake air compressor
   spillway panel       AUTO / MANUAL selector, spill gate LOWER and RAISE dials (on the wall by the extinguisher)
-With the PLC on it runs the gate (speed off line, river level on line); with the AVR on it runs the field.
-The plant is run-of-river: it takes its water straight from the river behind a low weir, with almost no
-storage, so on line it has to pass what the river brings, and the river's flow comes and goes by itself.
+With the PLC on it runs the gate (speed off line, river depth on line); with the AVR on it runs the field.
+There is no pond: the plant takes its water straight out of the river, so on line it has to pass what
+the river brings, and the river's flow comes and goes by itself.
 
 Every number is a game_counter variable. A clock made of two multi_managers runs the rules; each rule is
 a chain of game_counter_set entities locked by multisource masters that read env_global flags.
@@ -22,9 +22,9 @@ Scales (one step of each variable):
   o  servo oil    10 psi above 200 psi (10 = 300 psi)
   a  brake air    12.5 psi (brakes release at 4 = 50 psi)
   bt bearing temp 10 C above 20 C (8 = alarm, 10 = trip)
-  l  river level  at the intake, 0.25 ft above EL 510.0 (12 = 513.0 ft normal; at 515.0 it tops the weir)
+  l  river depth  at the intake, 4.0 m + 0.25 m per step (12 = 7.0 m normal, 20 = 9.0 m, bank full)
   rq river flow  65 + 5 rq % of full-gate discharge (65-85 %)
-  sg spill gate   0.5 ft
+  sg spill gate   0.15 m
 Difference variables (only their sign is needed):
   en  = T(g) - n          speed error: T is the speed the runner settles at for gate g
   dvn = n - v             the generator can't make more volts than its speed allows
@@ -54,11 +54,11 @@ VIB = [_interp(list(enumerate(_VIB5)), _old(g)) for g in range(101)]
 
 RIVER0 = 75                     # river flow at the start, % of full-gate discharge (rq = 2)
 INIT = dict(n=0, g=0, v=0, x=0, o=0, a=0, bt=2, l=12, sg=5, rq=2)
-VARS = dict(n=(0, 145), g=(0, 100), v=(0, 120), x=(0, 120), o=(0, 10), a=(0, 10), bt=(0, 10), l=(0, 16), sg=(0, 8), rq=(0, 4))
+VARS = dict(n=(0, 145), g=(0, 100), v=(0, 120), x=(0, 120), o=(0, 10), a=(0, 10), bt=(0, 10), l=(0, 20), sg=(0, 8), rq=(0, 4))
 ANN = ['OVERSPEED|TRIP', 'WICKET GATE|TRIPPED', 'OUT OF PHASE|CLOSE', 'GEN BREAKER|PROT TRIP',
        'SERVO OIL|PRESS LOW', 'LUBE OIL|PUMP OFF', 'BEARING|TEMP HIGH', 'COOLING WATER|PUMP OFF',
-       'BRAKE AIR|PRESS LOW', 'BRAKES|APPLIED', 'DRAFT TUBE|PULSATION', 'RIVER LEVEL|HIGH',
-       'RIVER LEVEL|LOW', 'SPILLWAY|GATE OPEN', 'PLC OFF|GATE MANUAL', 'AVR OFF|FIELD MANUAL']
+       'BRAKE AIR|PRESS LOW', 'BRAKES|APPLIED', 'DRAFT TUBE|PULSATION', 'RIVER DEPTH|HIGH',
+       'RIVER DEPTH|LOW', 'SPILLWAY|GATE OPEN', 'PLC OFF|GATE MANUAL', 'AVR OFF|FIELD MANUAL']
 TRIP_WINDOWS = (0, 1, 2, 3, 4, 5, 6, 7, 8)   # red windows: trips and things that will cause one
 # the phase (and the synchroscope pointer): a ring of 12 path_tracks (radius R) clockwise from 12 o'clock.
 # Each one sets the sync lamps' brightness for its phase angle; the ones at 1 and 11 o'clock are the
@@ -129,7 +129,7 @@ def _build(L):
     thr('o', 1, 'o_gt0'); thr('o', 2); thr('o', 3); thr('o', 4); thr('o', 10, 'o_full')
     thr('a', 1, 'a_gt0'); thr('a', 4); thr('a', 10, 'a_max')
     thr('bt', 3); thr('bt', 5); thr('bt', 6); thr('bt', 8); thr('bt', 10, 'bt_max')
-    thr('l', 1, 'l_gt0'); thr('l', 9, 'l_ok'); thr('l', 11); thr('l', 12); thr('l', 13); thr('l', 14); thr('l', 16, 'l_max')
+    thr('l', 1, 'l_gt0'); thr('l', 9, 'l_ok'); thr('l', 11); thr('l', 12); thr('l', 13); thr('l', 14); thr('l', 20, 'l_max')
     thr('sg', 1, 'sg_gt0'); thr('sg', 8, 'sg_max')
     thr('rq', 1, 'rq_gt0'); thr('rq', 4, 'rq_max')
 
@@ -293,7 +293,7 @@ def _build(L):
     display('o', ptr('p_opu'), lambda x: (200 + 10 * x) / 400, vals=[0, 2, 4, 6, 8, 10])
     display('a', ptr('p_air'), lambda x: 12.5 * x / 150, vals=[0, 2, 4, 6, 8, 10])
     display('bt', ptr('p_bt'), lambda x: x / 10)
-    display('l', ptr('p_hw'), lambda x: (1 + 0.25 * x) / 6)
+    display('l', ptr('p_hw'), lambda x: (4 + 0.25 * x) / 10)          # river depth on a 0-10 m scale
     display('rq', ptr('p_rq'), lambda q: 0.9 * (65 + 5 * q) / 120)          # river flow, cfs on a 0-120 scale
     display('sg', ptr('p_spill'), lambda x: x / 8)
     for p, flg, ev, val in (('p_lube', 'lube', 'r_lp_ev', 0.6), ('p_cw', 'cool', 'r_wp_ev', 0.62)):
@@ -346,7 +346,7 @@ def _build(L):
     L.rule('T1', ['bt_max', '!tr'], 'prot')
     L.rule('T1', ['g_gt0', '!o_ge2', '!tr'], 'prot')                  # servo oil gone with the gate open
     L.rule(vname('v', 115), ['!cb'], 'prot')                          # overvoltage, 115 %
-    L.rule(vname('l', 3), ['n_gt0'], 'prot')                          # the intake would draw air
+    L.rule(vname('l', 3), ['n_gt0'], 'prot')                          # 4.75 m: the intake would draw air
     # wicket gate trip: the emergency stop and the lockout in one handle. Turning it to TRIP trips the unit;
     # protection turns it to TRIP; turning it back to NORMAL resets (it trips again if the cause is still there).
     cs('r_gt', 'hgt', 'WICKET GATE TRIP', ('NORMAL', 'TRIP'), grip='red')
@@ -502,9 +502,8 @@ def _build(L):
     L.rule('T1', ['cb', '!x_ge60'], 'cb_prot')                    # loss of field (40): below 60 %
 
     # ---------------------------------------------------------------- river
-    # run-of-river: the intake is on the river behind a low weir with almost no storage, so the level moves
-    # as soon as the plant and the spillway take more or less than the river brings. At 515.0 ft the river
-    # tops the weir and goes over it.
+    # no pond: the intake takes the water straight out of the river, so its depth moves as soon as the plant
+    # and the spillway take more or less than the river brings. 7.0 m is normal, 9.0 m bank full.
     L.rule('T8', ['el_pos', '!l_max'], 'l_up')
     L.rule('T8', ['el_neg', 'l_gt0'], 'l_dn')
     # the river's flow rises and falls between 65 and 85 % of full-gate discharge, a step every 32 s
@@ -512,8 +511,8 @@ def _build(L):
     L.add('game_counter', targetname='T16', frags=0, health=4, spawnflags=2, target='T64')
     L.rule('T64', ['rup', '!rq_max'], 'rq_up'); L.rule('T64', ['!rup', 'rq_gt0'], 'rq_dn')
     L.setf(vname('rq', 4), 'rup', 0); L.setf(vname('rq', 0), 'rup', 1)
-    # spillway gate in the weir, from its own panel: AUTO opens it above 513.5 ft while the river still rises
-    # and closes it below 513.25 ft while it falls; MANUAL runs it from the LOWER / RAISE dials, 0.5 ft a second
+    # spillway gate, from its own panel: AUTO opens it above 7.5 m while the river still rises and closes it
+    # below 7.25 m while it falls; MANUAL runs it from the LOWER / RAISE dials, 0.15 m a second
     selector('r_sp', 'sman', 'CONTROL', ('AUTO', 'MANUAL'))
     L.rule('T8', ['!sman', 'l_ge14', 'el_pos', '!sg_max'], 'sg_up')
     L.rule('T8', ['!sman', 'l_max', '!el_pos', '!sg_max'], 'sg_up')
@@ -541,7 +540,7 @@ def _build(L):
     # --------------------------------------------------------------- init
     L.display('init', 'p_pf', 0.5); L.display('init', 'p_vib', 0.02); L.display('init', 'p_fa', 1.0)
     L.display('init', 'p_sfreq', 0.5)
-    for var, p, fn in [('l', 'p_hw', lambda x: (1 + 0.25 * x) / 6), ('sg', 'p_spill', lambda x: x / 8),
+    for var, p, fn in [('l', 'p_hw', lambda x: (4 + 0.25 * x) / 10), ('sg', 'p_spill', lambda x: x / 8),
                        ('rq', 'p_rq', lambda q: 0.9 * (65 + 5 * q) / 120),
                        ('bt', 'p_bt', lambda x: x / 10)]:
         L.display('init', p, fn(INIT[var]))

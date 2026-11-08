@@ -2,8 +2,8 @@
 
 The same plant as the web simulator, as a map for plain Half-Life: no mod, no DLL,
 no scripting. The physics is faked with stock `hl.dll` entities used as variables.
-The plant is run-of-river: it takes its water straight from the creek behind a low weir, with almost no
-storage, so it has to pass whatever the river brings, and the river's flow rises and falls by itself.
+There is no pond: the plant takes its water straight out of the river, which is about 7 m deep at the
+intake, so it has to pass whatever the river brings, and the river's flow rises and falls by itself.
 The unit is run by hand from 17 controls, with round gauges, pistol-grip control switches and
 spring-return dials.
 
@@ -23,20 +23,20 @@ middle. The spillway gate has its own panel on the left wall, beside the fire ex
 | Left | FIRING ANGLE dial | Sets the field (manual excitation). Off line it sets the voltage; on line it sets the reactive power, shown on the POWER FACTOR meter. The FIRING ANGLE gauge above shows the thyristor angle: field goes as cos α, so 90° is no field, about 34° is rated field and 0° is full field. |
 | Left | WICKET GATE LOWER and RAISE dials | Hold USE on RAISE to open the gate, on LOWER to close it: 1 % every 0.1 s while held. They are spring-return: let go and the dial springs back to 12 o'clock and the gate stops. |
 | Left | BRAKES dial | APPLY / RELEASE. Apply them below 30 % speed when stopping. |
-| Middle | PLC | ON: the PLC runs the gate: it brings the unit up to speed once the brakes are released, and on line it holds the river level at the intake at 513.0 ft, so the unit follows the river's flow. |
+| Middle | PLC | ON: the PLC runs the gate: it brings the unit up to speed once the brakes are released, and on line it holds the river at 7.0 m deep at the intake, so the unit follows the river's flow. |
 | Middle | AVR | AUTO: the AVR runs the field: 480 V off line, slightly lagging on line. |
 | Right | LUBE OIL PUMP | Bearing lube oil. Turning the unit without it wipes the bearings in seconds (trip). |
 | Right | COOLING WATER PUMP | Bearing and generator cooling. Without it the bearings heat up in about a minute (trip). |
 | Right | SERVO OIL PUMP | Charges the gate servo accumulator. Every gate movement uses oil; below 220 psi the gate trips. |
 | Right | AIR COMPRESSOR | Brake air. The brakes are spring-applied and need 50 psi to stay released. |
-| Spillway | CONTROL (AUTO / MANUAL) | The spillway gate is in the weir. AUTO: the gate opens above 513.5 ft while the river still rises and closes below 513.25 ft (with the PLC on, on line, it gives the water to the unit first). MANUAL: the gate only moves on the dials. |
-| Spillway | GATE LOWER and RAISE dials | In MANUAL, hold to move the spillway gate 0.5 ft a second. Spring-return, like the wicket gate dials. |
+| Spillway | CONTROL (AUTO / MANUAL) | AUTO: the spillway gate opens when the river is deeper than 7.5 m and still rising, and closes below 7.25 m (with the PLC on, on line, it gives the water to the unit first). MANUAL: the gate only moves on the dials. |
+| Spillway | GATE LOWER and RAISE dials | In MANUAL, hold to move the spillway gate 0.15 m a second (it opens 1.2 m). Spring-return, like the wicket gate dials. |
 
-The spillway panel also carries the RIVER LEVEL (at the intake), RIVER FLOW and SPILL GATE gauges.
+The spillway panel also carries the RIVER DEPTH (at the intake, 0–10 m), RIVER FLOW and SPILL GATE gauges.
 The river's flow wanders between 65 and 85 % of the turbine's full-gate discharge (58–77 cfs; full gate
 is 90 cfs), a step of 5 % every 32 s, so a cycle takes about 6½ minutes. When the plant and the spillway
-take more than the river brings, the level falls (below 510.75 ft the intake draws air and the unit
-trips); when they take less it rises, and at 515.0 ft the river tops the weir. Its dials turn anticlockwise:
+take more than the river brings, it gets shallower (below 4.75 m the intake draws air and the unit
+trips); when they take less it gets deeper, up to 9.0 m, bank full. Its dials turn anticlockwise:
 a momentary button on that wall can only roll that way.
 
 The POWER FACTOR meter (left cabinet, where the kilovar meter was) reads cos φ with φ = atan(Q / P):
@@ -109,7 +109,7 @@ out-of-phase close, a start with the PLC and AVR, the PLC following the river fo
 on line, a brake air failure and the spillway in MANUAL and back in AUTO. The simulated
 `func_tracktrain` follows the SDK's `CPathTrack::LookAhead()`, so it reverses the way the game does.
 
-Speed, gate, voltage, field, servo oil, brake air, bearing temperature, river level and spill gate are
+Speed, gate, voltage, field, servo oil, brake air, bearing temperature, river depth and spill gate are
 integer variables, and so is the river's flow. Speed, voltage, field and gate move in 1 % steps; the fast ones update every 0.1 s. Four difference variables carry only their sign:
 
 - **speed error** = T(gate) − speed, where T is the speed the runner would settle at for that gate
@@ -119,7 +119,7 @@ integer variables, and so is the river's flow. Speed, voltage, field and gate mo
 - **volts per hertz** = speed − voltage and **field** = field − voltage: off line the voltage follows the
   field but can't exceed what the speed allows. On line the grid holds the voltage and the field sets
   the reactive power (the POWER FACTOR meter).
-- **river balance** = river flow − gate − 15 × spill gate: the river level at the intake (RIVER LEVEL
+- **river balance** = river flow − gate − 15 × spill gate: the river depth at the intake (RIVER DEPTH
   gauge, spillway panel) integrates it.
 
 Gate movements draw servo oil; on line
@@ -154,7 +154,7 @@ the firing-angle dial.
 `-num_edicts 2048` to Half-Life's launch options (Steam → Half-Life → Properties → Launch Options).
 Without it the map won't load ("ED_Alloc: no free edicts"). 2048 is the most the engine can handle.
 
-The map has 1,976 entities (1,969 once the lights are compiled in): the 1 % steps need a counter and a
+The map has 1,984 entities (1,977 once the lights are compiled in): the 1 % steps need a counter and a
 gauge setter for most values. The default limit is 1,200 (900 before the 25th-anniversary update), hence
 the launch option. The variables only get counters for values something listens for, and needles step
 2-4 % where they are not read closely.

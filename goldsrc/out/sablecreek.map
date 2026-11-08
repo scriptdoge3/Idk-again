@@ -8226,6 +8226,34 @@
 }
 {
 "classname" "game_counter"
+"targetname" "l_c"
+"frags" "12"
+"health" "17"
+"target" "l_eq17"
+}
+{
+"classname" "game_counter"
+"targetname" "l_c"
+"frags" "12"
+"health" "18"
+"target" "l_eq18"
+}
+{
+"classname" "game_counter"
+"targetname" "l_c"
+"frags" "12"
+"health" "19"
+"target" "l_eq19"
+}
+{
+"classname" "game_counter"
+"targetname" "l_c"
+"frags" "12"
+"health" "20"
+"target" "l_eq20"
+}
+{
+"classname" "game_counter"
 "targetname" "sg_c"
 "frags" "5"
 "health" "0"
@@ -9780,7 +9808,7 @@
 }
 {
 "classname" "env_global"
-"targetname" "l_eq16"
+"targetname" "l_eq20"
 "globalstate" "l_max"
 "triggermode" "1"
 "spawnflags" "1"
@@ -9788,7 +9816,7 @@
 }
 {
 "classname" "env_global"
-"targetname" "l_eq16"
+"targetname" "l_eq20"
 "globalstate" "nl_max"
 "triggermode" "0"
 "spawnflags" "1"
@@ -9796,13 +9824,13 @@
 }
 {
 "classname" "env_global"
-"targetname" "l_eq15"
+"targetname" "l_eq19"
 "globalstate" "l_max"
 "triggermode" "0"
 }
 {
 "classname" "env_global"
-"targetname" "l_eq15"
+"targetname" "l_eq19"
 "globalstate" "nl_max"
 "triggermode" "1"
 }
@@ -15323,25 +15351,25 @@
 "classname" "game_counter_set"
 "targetname" "l_eq0"
 "target" "p_hw"
-"frags" "0.2246"
+"frags" "0.4262"
 }
 {
 "classname" "game_counter_set"
 "targetname" "l_eq1"
 "target" "p_hw"
-"frags" "0.2664"
+"frags" "0.4449"
 }
 {
 "classname" "game_counter_set"
 "targetname" "l_eq2"
 "target" "p_hw"
-"frags" "0.3048"
+"frags" "0.4634"
 }
 {
 "classname" "game_counter_set"
 "targetname" "l_eq3"
 "target" "p_hw"
-"frags" "0.3408"
+"frags" "0.4817"
 }
 {
 "classname" "game_counter_set"
@@ -15353,61 +15381,61 @@
 "classname" "game_counter_set"
 "targetname" "l_eq4"
 "target" "p_hw"
-"frags" "0.3747"
+"frags" "0.5000"
 }
 {
 "classname" "game_counter_set"
 "targetname" "l_eq5"
 "target" "p_hw"
-"frags" "0.4073"
+"frags" "0.5183"
 }
 {
 "classname" "game_counter_set"
 "targetname" "l_eq6"
 "target" "p_hw"
-"frags" "0.4387"
+"frags" "0.5366"
 }
 {
 "classname" "game_counter_set"
 "targetname" "l_eq7"
 "target" "p_hw"
-"frags" "0.4695"
+"frags" "0.5551"
 }
 {
 "classname" "game_counter_set"
 "targetname" "l_eq8"
 "target" "p_hw"
-"frags" "0.5000"
+"frags" "0.5738"
 }
 {
 "classname" "game_counter_set"
 "targetname" "l_eq9"
 "target" "p_hw"
-"frags" "0.5305"
+"frags" "0.5927"
 }
 {
 "classname" "game_counter_set"
 "targetname" "l_eq10"
 "target" "p_hw"
-"frags" "0.5613"
+"frags" "0.6121"
 }
 {
 "classname" "game_counter_set"
 "targetname" "l_eq11"
 "target" "p_hw"
-"frags" "0.5927"
+"frags" "0.6319"
 }
 {
 "classname" "game_counter_set"
 "targetname" "l_eq12"
 "target" "p_hw"
-"frags" "0.6253"
+"frags" "0.6523"
 }
 {
 "classname" "game_counter_set"
 "targetname" "l_eq13"
 "target" "p_hw"
-"frags" "0.6592"
+"frags" "0.6733"
 }
 {
 "classname" "game_counter_set"
@@ -15419,13 +15447,37 @@
 "classname" "game_counter_set"
 "targetname" "l_eq15"
 "target" "p_hw"
-"frags" "0.7336"
+"frags" "0.7179"
 }
 {
 "classname" "game_counter_set"
 "targetname" "l_eq16"
 "target" "p_hw"
-"frags" "0.7754"
+"frags" "0.7417"
+}
+{
+"classname" "game_counter_set"
+"targetname" "l_eq17"
+"target" "p_hw"
+"frags" "0.7667"
+}
+{
+"classname" "game_counter_set"
+"targetname" "l_eq18"
+"target" "p_hw"
+"frags" "0.7932"
+}
+{
+"classname" "game_counter_set"
+"targetname" "l_eq19"
+"target" "p_hw"
+"frags" "0.8214"
+}
+{
+"classname" "game_counter_set"
+"targetname" "l_eq20"
+"target" "p_hw"
+"frags" "0.8516"
 }
 {
 "classname" "game_counter_set"
@@ -17266,7 +17318,7 @@
 "classname" "game_counter_set"
 "targetname" "init"
 "target" "p_hw"
-"frags" "0.6253"
+"frags" "0.6523"
 }
 {
 "classname" "game_counter_set"

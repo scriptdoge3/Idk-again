@@ -731,7 +731,6 @@ def build_panels(dev):
                   '_brushes': [body, bar, tip, Box(x - 0.5, -2.0, z - 0.5, x + 0.5, -1.0, z + 0.5, tex='ORIGIN')]})
         D.plate(u, v + 4.4, 5.6, 1.4, knobs[name]['label'], px=0.8)
 
-    hw_fmt = lambda x: f'{x:g}'
     ROW1, ROW2, CTL = 13, 29, 50       # gauge rows at the top, the breaker row across the middle (all three cabinets)
 
     # ------------------------------------------- left: unit control
@@ -801,13 +800,13 @@ def build_panels(dev):
     # ------------------------------------------- spillway panel, on the wall beside the extinguisher
     w0, e0 = len(world), len(E)
     D = doors[SP]
-    gauge(SP, 7, 12, 'RIVER LEVEL', [(509, 515, 1, 1, 0.25, hw_fmt)], 'FT|513.0 NORMAL', ptr='p_hw', red=(514, 515), xl=5.5, xr=5)
+    gauge(SP, 7, 12, 'RIVER DEPTH', [(0, 10, 2, 1, 0.25, None)], 'M|7.0 NORMAL', ptr='p_hw', red=(9, 10), xl=5.5, xr=5)
     gauge(SP, 20, 12, 'RIVER FLOW', [(0, 120, 40, 20, 5, None)], 'CFS|FULL GATE 90', ptr='p_rq', xl=5, xr=5)
-    gauge(SP, 33, 12, 'SPILL GATE', [(0, 4, 1, 1, 0.25, None)], 'FT OPEN', ptr='p_spill', xl=5, xr=5.5)
+    gauge(SP, 33, 12, 'SPILL GATE', [(0, 1.2, 0.4, 0.2, 0.05, None)], 'M OPEN', ptr='p_spill', xl=5, xr=5.5)
     rot(SP, 8, 32, 'r_sp', dial=True)
     D.plate(27.5, 26.6, 13, 1.4, 'GATE', px=0.8)
     spring_dial(SP, 22, 32, 'k_sl', ccw=True); spring_dial(SP, 33, 32, 'k_sr', ccw=True)
-    D.tape(20, 43, 30, 2.6, 'MANUAL: HOLD LOWER OR RAISE, 0.5 FT A SECOND|AUTO: OPENS ABOVE 513.5 FT')
+    D.tape(20, 43, 30, 2.6, 'MANUAL: HOLD LOWER OR RAISE, 0.15 M A SECOND|AUTO: OPENS ABOVE 7.5 M DEEP')
     W(-1, 0, SP_TOP - SP_H - 1, SP_W + 1, 6, SP_TOP + 1, tex='sc_paintd', scale=0.5)       # the box, against the wall
     for t, nm in enumerate(D.tiles('scsp')):
         zt = SP_TOP - t * 24
