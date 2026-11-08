@@ -22,7 +22,7 @@ times entities. The plant therefore runs as four loops, started on different ser
 
 | Loop | Every | Runs |
 |---|---|---|
-| fast | 0.03 s | gate travel, runner and water column, rotor speed and swing, phase, 52G closing, the speed, gate, kW, power factor, scroll case, frequency and synchroscope needles |
+| fast | 0.03 s | gate travel, runner and water column, rotor speed and swing, phase, 52G closing, the speed, gate, kW, power factor, net head, frequency and synchroscope needles |
 | medium | 0.12 s | gate commands (dials, PLC governor, river control), excitation and AVR, protection and trips, brakes, the volts, field and firing-angle needles, sound pitch and loudness |
 | slow | 0.24 s | river and spillway, pumps and compressor, bearings, their meters |
 | annunciator | 0.24 s (half a period after slow) | the 20 windows' alarm sequence, horn, ACKNOWLEDGE / RESET / TEST |
@@ -35,14 +35,15 @@ characters that usually differ in the first, which keeps each name comparison as
 
 The plant is a per-unit machine model, the kind used in hydro studies:
 
-- **Runner:** Francis turbine torque falls with speed (stall torque 1.8 pu at full gate, runaway 160 %).
-  The head is the river's: it rises and falls with the depth at the intake (12.2 m at 7.0 m), and power
-  goes with it.
-- **Water column:** a nonlinear inelastic water column, as in the IEEE hydro turbine models. The water in
-  the intake and penstock (starting time 1 s) accelerates under the river's head less what the turbine
-  takes, and the turbine passes q = G sqrt(h). Open the gate fast and the head drops, so the power dips
-  before it rises; close it fast and the head jumps (water hammer, up to 2.6 times normal before the relief
-  valve). The SCROLL CASE PRESS meter on the auxiliaries panel shows it.
+- **Runner:** a vertical Francis runner in an open flume, 40 ft (12.2 m) of head. Its torque falls with
+  speed (stall torque 1.8 pu at full gate, runaway 160 %). The head is the river's: 40 ft at the normal
+  7.0 m depth, rising and falling with it, and the power goes with it.
+- **Open flume:** the runner sits in an open concrete flume off the headrace, with no penstock and no
+  scroll case. The water in the flume and draft tube still has a little momentum (a nonlinear inelastic
+  water column as in the IEEE hydro turbine models, starting time 0.4 s; the turbine passes
+  q = G sqrt(h)), so a fast gate opening makes the power dip slightly before it rises. A fast closure only
+  piles the water up in the flume, a surge of about 2.4 ft, not water hammer. The NET HEAD meter on the
+  auxiliaries panel shows the head at the runner (0-60 ft).
 - **Rotor:** mechanical starting time 6 s, friction and windage, air brakes. Off line the speed settles
   where the gate's torque meets the losses (speed-no-load at 15 % gate). Coasting down with the gate shut
   takes minutes, so the brakes matter.
@@ -59,7 +60,7 @@ The plant is a per-unit machine model, the kind used in hydro studies:
   opens, the manual setting goes back to the no-load field.
 - **PLC governor:** PID speed control. The gate is limited to 25 % while starting, and the integrator waits
   at the speed-no-load gate until 90 % speed, so start-up overshoots only about 2 %. On a full load
-  rejection the speed peaks around 120 % and comes back to speed-no-load without tripping. With the PLC off
+  rejection the speed peaks around 118 % and comes back to speed-no-load without tripping. With the PLC off
   nothing catches it, and 12 overspeed trips at 140 %.
 - **Auxiliaries:** the hydraulic pump runs on its pressure switch (on below 270 psi, off at 300) and the
   air compressor on its own (100 / 125 psi); you hear them start and stop. Bearings warm with speed and
@@ -75,7 +76,7 @@ The cabinets and the spillway panel are laid out as in the GoldSrc map. These th
 
 | Control | Now |
 |---|---|
-| Meters | Switchboard meters with a 250-degree scale. Each needle's speed is matched to how often its loop updates it, so it glides between values like a damped movement. New: SCROLL CASE PRESS (auxiliaries panel). |
+| Meters | Switchboard meters with a 250-degree scale. Each needle's speed is matched to how often its loop updates it, so it glides between values like a damped movement. New: NET HEAD (auxiliaries panel). |
 | ACKNOWLEDGE / RESET / TEST | Pushbuttons under the PLC and AVR switches (see the annunciator below). |
 | WICKET GATE LOWER / RAISE | Spring-return dials. Held, they move the gate 0.25 %/s for the first second, 2.5 %/s for the next two, then 10 %/s. Short taps trim the speed finely for synchronizing. |
 | FIRING ANGLE | The knob's position is the firing angle: left stop 90 degrees (no field), right stop 0 degrees (the exciter's ceiling, 140 % field). Like every Source wheel, each new grab turns the other way. With the AVR on AUTO the knob follows the AVR, so switching back to MAN doesn't bump the field. |

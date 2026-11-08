@@ -21,13 +21,13 @@ from srclogic import (Map, Program, C, aff, clamp, relu, step, below, OR, NOT, s
 # Per-unit model (1 pu speed = 100 rpm, 1 pu power = PBASE kW, torque in pu of rated torque).
 PBASE = 340.0          # kW per pu: full gate at rated head gives about 245 kW
 H2 = 6.0               # mechanical starting time 2H, s (runner, shaft and 72-pole rotor)
-TW = 1.0               # water starting time of the intake and penstock, s
+TW = 0.4               # water starting time, s: an open-flume unit has no penstock, only the flume and draft tube
 XS = 0.5               # reactance between the internal EMF and the grid, pu
 XT = 0.06              # step-up transformer reactance: the terminal volts rise with the vars
 DSW = 0.27             # damper winding damping on line, pu torque per % slip
 GOV_KP, GOV_KI, GOV_KD = 1.5, 0.3, 1.0   # PLC governor PID: % gate per % speed error, per % s, per %/s
-FL = 0.03              # intake and penstock head loss at full flow, pu
-HEAD0 = 12.2           # rated head, m (40 ft) at 7.0 m river depth; the tailwater is 5.2 m below the intake bed
+FL = 0.02              # trash rack, flume and draft tube head loss at full flow, pu
+HEAD0 = 12.19          # rated head, 40 ft (12.19 m) at 7.0 m river depth; the tailwater is 5.19 m below the intake bed
 
 # Francis runner: torque = A(g) h - B(g) sqrt(h) w (falls linearly with speed), friction and windage
 # Tf = 0.005 + 0.08 w^2. A is the stall torque (1.8 pu at full gate); B is set so that off line, with no
@@ -222,16 +222,20 @@ def build():
     # to the grid through XS: the load angle dl sets the power, the field sets the vars, and the damper
     # windings damp the swings.
     X = x_f.r
-    # Nonlinear water column (inelastic, as in the IEEE hydro turbine models): the water in the intake and
-    # penstock accelerates under the head the river gives less what the turbine takes, TW dq/dt = h0 - h -
-    # FL q^2, and the turbine passes q = G sqrt(h). Solved semi-implicitly so it stays stable as the gate
-    # closes. Opening the gate fast drops the head (the power dips first); closing it fast raises it (water
-    # hammer, limited at 2.6 pu by the relief valve).
+    # Open-flume Francis unit: the runner sits in an open concrete flume off the headrace, with no penstock
+    # and no scroll case. The water in the flume and draft tube still has some momentum (inelastic water
+    # column, as in the IEEE hydro turbine models: TW dq/dt = h0 - h - FL q^2, and the turbine passes
+    # q = G sqrt(h)), solved semi-implicitly so it stays stable as the gate closes. With TW only 0.4 s the
+    # power dips just a little when the gate opens fast, and a fast closure only piles the water up in the
+    # flume (a surge of a few feet, not water hammer).
     Ge = clamp(G * 0.01, 0.005, None)               # gate opening, pu (closed gates still leak a little)
     cw_ = df / TW
     q_new = (qf.r + cw_ * (head(lv_f.r) - FL * sq(qf.r))) / (1 + cw_ * qf.r / sq(Ge))
     F.set(qf, q_new)
-    rh = clamp(q_new / Ge, 0, 1.6)                  # sqrt of the head at the turbine, pu
+    # the free surface in the flume limits a closure surge to about 0.7 m (2.4 ft: wave speed x flow
+    # velocity / g), so the head can rise at most 0.06 pu over the river's
+    rh = clamp(q_new / Ge, 0, None)
+    rh = rh - relu(rh - (shead(lv_f.r) + 0.03))     # sqrt of the head at the turbine, pu
     hh = sq(rh)                                     # head at the turbine, pu
     Tt = 0.018 * G * hh - pwl(G, B_PTS) * rh * w
     Tm = Tt
@@ -278,7 +282,7 @@ def build():
 
     # ------------------------------------------------------------ fast meters and lamps
     needle(F, 'p_kw', Pe * PBASE / 320)                     # 0-320 kW
-    needle(F, 'p_scp', (hh * HEAD0 + 5.2) * 1.422 / 60)    # scroll case pressure, 0-60 psi (head + tailwater)
+    needle(F, 'p_head', hh * 40 / 60)                       # net head, 0-60 ft (40 ft rated)
     pf_ang = pwl(Qe / clamp(Pe, 0.03, None), ATAN_PTS)
     needle(F, 'p_pf', sel(CB, 0.5 + pf_ang / 120, 0.5))
     needle(F, 'p_speed', N / 150)

@@ -136,7 +136,7 @@ def scenario_manual_start():
         s.run(0.03); ks.append(kw(s))
     s.holding.discard('k_gr'); s.run(3)
     rises = [b - a for a, b in zip(ks, ks[1:])]
-    check(min(rises) < -0.2, f'water hammer: the power dips when the gate speeds up ({min(rises):.2f} kW per 0.03 s)')
+    check(min(rises) < -0.2, f'water inertia: the power dips a little when the gate speeds up ({min(rises):.2f} kW per 0.03 s)')
     check(V(s, 'tr') == 0, 'no trip')
     return s
 

@@ -368,7 +368,7 @@ def build_panels(m, dev):
     gauge(2, 37, ROW1, 'VIBRATION', [(0, 20, 5, 5, 1, None)], 'MILS P-P', 'p_vib', red=(12, 20), xl=5)
     gauge(2, 7, ROW2, 'HYDRAULIC PRESS', [(0, 400, 100, 50, 10, None)], 'PSI', 'p_opu', red=(0, 220), xr=5)
     gauge(2, 17, ROW2, 'BRAKE AIR PRESS', [(0, 150, 25, 25, 5, None)], 'PSI', 'p_air', red=(0, 50), xl=5, xr=5)
-    gauge(2, 27, ROW2, 'SCROLL CASE PRESS', [(0, 60, 10, 10, 2, None)], 'PSI', 'p_scp', red=(45, 60), xl=5)
+    gauge(2, 27, ROW2, 'NET HEAD', [(0, 60, 10, 10, 2, None)], 'FEET', 'p_head', xl=5)
     D.section(1.5, 40, 53, 22, 'PUMPS')
     for u, nm in ((8, 'r_lp'), (21, 'r_wp'), (34, 'r_hp'), (47, 'r_ac')):
         cs_switch(2, u, CTL, nm)
