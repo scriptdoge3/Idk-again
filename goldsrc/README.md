@@ -154,13 +154,12 @@ Press USE (E) on switches and the brake and spillway CONTROL dials; hold it on t
 the firing-angle dial.
 
 **Launch option needed:** the map has more entities than Half-Life allows by default, so add
-`-num_edicts 2048` to Half-Life's launch options (Steam → Half-Life → Properties → Launch Options).
-Without it the map won't load ("ED_Alloc: no free edicts"). 2048 is the most the engine can handle.
+`-num_edicts 4096` to Half-Life's launch options (Steam → Half-Life → Properties → Launch Options).
+Without it the map won't load ("ED_Alloc: no free edicts").
 
-The map has 1,997 entities (1,990 once the lights are compiled in): the 1 % steps need a counter and a
-gauge setter for most values. The default limit is 1,200 (900 before the 25th-anniversary update), hence
-the launch option. The variables only get counters for values something listens for, and needles step
-2-4 % where they are not read closely.
+The map has 2,624 entities (2,617 once the lights are compiled in): every needle moves in 1 % steps, and
+each step needs a counter and a gauge setter. The default limit is 1,200 (900 before the 25th-anniversary
+update), hence the launch option. The variables only get counters for values something listens for.
 
 ## Status
 

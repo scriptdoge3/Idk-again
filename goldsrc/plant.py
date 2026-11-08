@@ -70,9 +70,9 @@ SCOPE = {'R': 5.4, 'speed': 6,
 # speed %; at 100 % it stands still (with the PLC on it creeps one notch clockwise, see below)
 SLIP = {95: -4, 96: -4, 97: -3, 98: -2, 99: -1, 100: 0, 101: 1, 102: 2, 103: 3, 104: 4, 105: 4}
 slip_ev = lambda k: f'slip{k}' if k >= 0 else f'slipm{-k}'
-# power factor meter: field values it reads (4 apart, so re-sending the field always lands on one) and the
+# power factor meter: field values it reads (2 apart, so re-sending the field always lands on one) and the
 # kW used for each load band
-PF_X = list(range(60, 121, 4))
+PF_X = list(range(60, 121, 2))
 PF_P = (40, 125, 225)
 
 
@@ -275,21 +275,20 @@ def _build(L):
         L.relay(event, 'alarm')
 
     # ------------------------------------------------- gauges
-    # needles move in 1 % steps where they are read closely (speed 90-110 %, volts 72-108 %), 2-4 % elsewhere
-    # (each position is two entities)
-    display('n', ptr('p_speed'), lambda x: x / 150, vals=list(range(0, 90, 2)) + list(range(90, 111)) + list(range(112, 146, 2)))
-    display('g', ptr('p_gate'), lambda x: x / 100, vals=list(range(0, 31)) + list(range(32, 101, 2)))
-    display('g', ptr('p_kw'), lambda x: KW[x] / 320, vals=list(range(13, 101, 3)), conds=['cb'])
+    # needles move in 1 % steps (each position is two entities: a counter for the value and a setter)
+    display('n', ptr('p_speed'), lambda x: x / 150)
+    display('g', ptr('p_gate'), lambda x: x / 100)
+    display('g', ptr('p_kw'), lambda x: KW[x] / 320, vals=range(13, 101), conds=['cb'])
     display('g', ptr('p_vib'), lambda x: VIB[x] / 20, vals=list(range(0, 101, 5)), conds=['cb'])
-    display('v', ptr('p_volts'), lambda x: x / 125, vals=list(range(0, 72, 4)) + list(range(72, 109)) + list(range(110, 121, 2)))
+    display('v', ptr('p_volts'), lambda x: x / 125)
     # frequency: the generator's follows its speed (60 Hz at 100 %), shown on a 54-66 Hz scale; the station
     # bus is fed from the grid at 60 Hz
-    hz = lambda x: min(1, max(0, (0.6 * x - 54) / 12)); hz_vals = [90, 92, 94] + list(range(95, 106)) + [106, 108, 110]
+    hz = lambda x: min(1, max(0, (0.6 * x - 54) / 12)); hz_vals = range(89, 112)
     display('n', ptr('p_hz'), hz, vals=hz_vals)
     # the station bus is on the grid only through 52G: closed, it reads 60 Hz (the unit is held at 100 % on
     # line); open, it is not synchronized and follows the generator
     display('n', ptr('p_sfreq'), hz, vals=hz_vals)
-    fx = list(range(0, 72, 6)) + list(range(72, 121, 2))
+    fx = range(0, 121)
     display('x', ptr('p_exc'), lambda x: x / 120, vals=fx)
     # thyristor firing angle: field current goes as cos(alpha); 90 deg = no field, 0 deg = full field (x = 120)
     display('x', ptr('p_fa'), lambda x: math.degrees(math.acos(x / 120)) / 90, vals=fx)
@@ -500,7 +499,7 @@ def _build(L):
         L.setf(f'pf{k}=1', f'pf{k}', 1)
     L.rule('pf_band', ['!g_ge30'], 'pf0=1'); L.rule('pf_band', ['g_ge30', '!g_ge55'], 'pf1=1'); L.rule('pf_band', ['g_ge55'], 'pf2=1')
     L.late('trigger_relay', targetname='pf_band', target='x_redo', triggerstate=1)
-    for d in ('x_dn',) * 4 + ('x_up',) * 4:                        # four down and back: one of them is on the meter's list
+    for d in ('x_dn',) * 2 + ('x_up',) * 2:                        # two down and back: one of them is on the meter's list
         L.relay('x_redo', d)
     for v in (29, 30, 54, 55):
         L.rule(vname('g', v), ['cb'], 'pf_band')
