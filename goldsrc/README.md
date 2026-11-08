@@ -21,18 +21,18 @@ the generator.
 | Cabinet | Control | What it does |
 |---|---|---|
 | Left | WICKET GATE TRIP (red grip, yellow plate) | The emergency stop. A trip (this handle or any protection) shuts the wicket gate at once (under half a second), opens 52G and the 41 field breaker, and turns the PLC and the AVR off. Protection turns this handle to TRIP by itself; turning it back to NORMAL resets (it trips again if the cause is still there). |
-| Left | SYNCHROSCOPE | Shows the phase between the generator and the grid, and puts the sync check (25) in service. The phase is there whether the switch is on or not, while the field is on and the unit is within 5 % of 60 Hz; the switch only shows it (pointer and sync lamps). The phase turns at the slip: anticlockwise (SLOW) when the unit is slower than the grid, clockwise (FAST) when faster, quicker the further off. At exactly 100 % speed it stands still wherever it is. The sync lamps are dark at 12 o'clock and brightest at 6. The green SYNC OK lamp lights while a close would be allowed: phase in the green sector, speed at 100 % and volts within 5 % (456–504 V). |
+| Left | SYNCHROSCOPE | Shows the phase between the generator and the grid, and puts the sync check (25) in service. The phase is there whether the switch is on or not, while the field is on and the unit is within 5 % of 60 Hz; the switch only shows it (pointer and sync lamps). The phase turns at the slip: anticlockwise (SLOW) when the unit is slower than the grid, clockwise (FAST) when faster, quicker the further off. At exactly 100 % speed it stands still wherever it is. The sync lamps are dark at 12 o'clock and brightest at 6. The green SYNC OK lamp lights while a close would be allowed: phase in the green sector (±10°, as a real sync-check relay allows), speed at 100 % and volts within 5 % (456–504 V). |
 | Left | 52G SYNC BREAKER | Closes the generator onto the grid, on the real phase. In phase (what SYNC OK shows) it closes, switch on or off. Out of phase with the synchroscope on, the sync check refuses and the handle springs back; with the synchroscope off nothing stops it and the unit trips as out of phase. Once closed the unit is locked to the grid and the phase stops. |
-| Left | 41 FIELD BREAKER | Connects the thyristor exciter. Opening it lets the field decay. |
+| Left | 41 FIELD BREAKER | Connects the thyristor exciter (field flashing). It only closes above 95 % speed; below that the handle springs back. Opening it lets the field decay. |
 | Left | FIRING ANGLE dial | Sets the field (manual excitation). Off line it sets the voltage; on line it sets the reactive power, shown on the POWER FACTOR meter. The FIRING ANGLE gauge above shows the thyristor angle: field goes as cos α, so 90° is no field, about 34° is rated field and 0° is full field. |
 | Left | WICKET GATE LOWER and RAISE dials | Hold USE on RAISE to open the gate, on LOWER to close it: 1 % every 0.1 s while held. They are spring-return: let go and the dial springs back to 12 o'clock and the gate stops. |
-| Left | BRAKES dial | APPLY / RELEASE. Apply them below 30 % speed when stopping. |
+| Left | BRAKES dial | APPLY / RELEASE. The generator brakes are applied by compressed air and only come on below 30 % speed (the shoes would burn above it); springs pull them off on RELEASE or when the air is gone. |
 | Middle | PLC | ON: the PLC runs the gate: it brings the unit up to speed once the brakes are released, and on line it holds the river at 7.0 m deep at the intake, so the unit follows the river's flow. A trip turns it OFF. |
 | Middle | AVR | AUTO: the AVR runs the field: 480 V off line, slightly lagging on line. A trip turns it to MAN. |
 | Right | OIL PUMP | Bearing lube oil. Turning the unit without it wipes the bearings in seconds (trip). |
 | Right | WATER PUMP | Bearing and generator cooling. Without it the bearings heat up in about a minute (trip). |
 | Right | HYDRAULIC PUMP | Charges the gate servo accumulator. Every gate movement uses oil; below 220 psi the gate trips. |
-| Right | AIR COMPRESSOR | Brake air. The brakes are spring-applied and need 50 psi to stay released. |
+| Right | AIR COMPRESSOR | Brake air. The brakes need 50 psi to be applied; without air they can't stop the unit. |
 | Spillway | CONTROL (AUTO / MANUAL) | AUTO: the spillway gate opens when the river is deeper than 7.5 m and still rising, and closes below 7.25 m (with the PLC on, on line, it gives the water to the unit first). MANUAL: the gate only moves on the dials. |
 | Spillway | GATE LOWER and RAISE dials | In MANUAL, hold to move the spillway gate 0.15 m a second (it opens 1.2 m). Spring-return, like the wicket gate dials. |
 
@@ -60,15 +60,15 @@ and up), so the same field gives a lower power factor at light load.
 5. SYNCHROSCOPE on. While the speed is still settling the pointer spins (SLOW below 100 %, FAST
    above); at 100 % it stands still. To bring it round to 12 o'clock, nudge the speed: tap RAISE, and
    when the speed reaches 101 % and the pointer starts to turn clockwise, tap LOWER; the speed comes
-   back to 100 % and the pointer stops, about 25° further on (LOWER first turns it back the other way).
+   back to 100 % and the pointer stops, about 15° further on (LOWER first turns it back the other way).
    Wait longer at 101 % to move it further. Close 52G while the green SYNC OK lamp is lit (pointer in
    the green, speed and volts matched). If it isn't, the close is refused and nothing trips.
-6. Open the gate to load the unit (about 190 kW at 60 % gate). Keep it above 13 %, or the reverse-power
-   relay trips the unit. Keep the field up, or loss of field trips it.
+6. Open the gate to load the unit (about 190 kW at 60 % gate). Keep it above 13 %, or after about 8 s of
+   motoring the reverse-power relay trips the unit. Keep the field up, or loss of field trips it.
 
 To stop: close the gate to 15 %, turn 52G to TRIP, open 41, close the gate, and apply the brakes below 30 %.
 With the PLC ON and the AVR on AUTO (middle cabinet), steps 3 and 4 happen by themselves, and the PLC
-holds the unit a hair fast, so the phase creeps clockwise (a turn in 11 s) and you only wait for 12 o'clock.
+holds the unit a hair fast, so the phase creeps clockwise (a turn in 22 s) and you only wait for 12 o'clock.
 
 ## How the "math" works
 
@@ -124,7 +124,8 @@ integer variables, and so is the river's flow. Speed, voltage, field and gate mo
 - **river balance** = river flow − gate − 15 × spill gate: the river depth at the intake (RIVER DEPTH
   gauge, spillway panel) integrates it.
 
-Gate movements draw servo oil; on line
+Bearings run at about 55 °C; BEARING TEMP HIGH comes on at 76 °C and the unit trips at 90 °C.
+Gate movements draw hydraulic oil; on line
 between 20 and 45 % gate the draft-tube vortex rope shows on the vibration gauge and annunciator.
 
 ## Building
@@ -156,7 +157,7 @@ the firing-angle dial.
 `-num_edicts 2048` to Half-Life's launch options (Steam → Half-Life → Properties → Launch Options).
 Without it the map won't load ("ED_Alloc: no free edicts"). 2048 is the most the engine can handle.
 
-The map has 2,006 entities (1,999 once the lights are compiled in): the 1 % steps need a counter and a
+The map has 1,997 entities (1,990 once the lights are compiled in): the 1 % steps need a counter and a
 gauge setter for most values. The default limit is 1,200 (900 before the 25th-anniversary update), hence
 the launch option. The variables only get counters for values something listens for, and needles step
 2-4 % where they are not read closely.
@@ -177,3 +178,22 @@ Compiled with SDHLT 1.3.1 (CSG, BSP, full VIS, RAD -extra) with no warnings or e
 It has not been played in Half-Life yet. The entity logic was checked in `test_plant.py`'s simulator,
 which follows the Half-Life SDK's entity code, not in the engine itself. The beam needles, the
 synchroscope's track train and the spring-return dials are the parts most worth checking in game.
+
+## Realism notes
+
+Values were checked against published practice for small hydro, where it exists:
+
+- Sync check (25): close within about ±10° with a slip of 0.1 Hz or less
+  ([electrical-engineering-portal.com](https://electrical-engineering-portal.com/generator-synchronizing-check-protective-function),
+  [Basler BE1-25 manual](https://www.electricalpartmanuals.com/pdf/relaysAndMeters/Basler%20Electric/Relay/9170200990M.pdf)).
+- Brakes: air-applied, used from about 20–30 % speed down
+  ([UNIDO small hydro guidelines, units](https://www.unido.org/sites/default/files/files/2020-01/P2_UNITS%20003-2.pdf)).
+- Reverse power (32): a delay of about 5–30 s ([CED generator protection course](https://www.cedengineering.com/userfiles/Generator%20Protection%20R1.pdf)).
+- Overspeed: the turbine must not exceed 140 % ([FM Global data sheet 5-3](https://www.fm.com/-/media/project/publicwebsites/fmglobal/documentum-new/data-sheet-individual/05-electrical/fmds0503.pdf)).
+- Field flashing builds the voltage before the thyristors take over
+  ([IIT Roorkee, hydro generator excitation](https://iitr.ac.in/Departments/Hydro%20and%20Renewable%20Energy%20Department/static/Modern_hydroelectric_engg/vol_1/Chapter-10_Hydro_Generator_Excitation_Systems.pdf)).
+- Breaker lamps: red closed, green open (North American practice).
+
+Two things are left as asked rather than as built: a real wicket gate takes about 4–10 s to close on a
+trip (water hammer limits it), here it shuts in under half a second; and in a grid-connected plant the
+station bus stays at grid frequency after a trip, here it follows the generator.

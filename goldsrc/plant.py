@@ -5,7 +5,7 @@ The unit is run by hand from these controls:
   left (unit control)  wicket gate trip (the emergency stop), synchroscope, 41 field and 52G sync breakers,
                        firing-angle dial, wicket gate LOWER and RAISE dials, brake dial
   middle (annunciator) PLC and AVR breakers
-  right (auxiliaries)  lube oil pump, cooling water pump, gate servo oil pump, brake air compressor
+  right (auxiliaries)  oil pump (bearing lube), water pump (cooling), hydraulic pump (gate servos), air compressor (brakes)
   spillway panel       AUTO / MANUAL selector, spill gate LOWER and RAISE dials (on the wall by the extinguisher)
 With the PLC on it runs the gate (speed off line, river depth on line); with the AVR on it runs the field.
 There is no pond: the plant takes its water straight out of the river, so on line it has to pass what
@@ -20,8 +20,8 @@ Scales (one step of each variable):
   v  voltage      1 % of 480 V
   x  field        1 % of rated field current, set by the thyristor firing angle
   o  servo oil    10 psi above 200 psi (10 = 300 psi)
-  a  brake air    12.5 psi (brakes release at 4 = 50 psi)
-  bt bearing temp 10 C above 20 C (8 = alarm, 10 = trip)
+  a  brake air    12.5 psi (the brakes are air-applied and need 4 = 50 psi)
+  bt bearing temp 7 C above 20 C (5 = 55 C running, 8 = 76 C alarm, 10 = 90 C trip)
   l  river depth  at the intake, 4.0 m + 0.25 m per step (12 = 7.0 m normal, 20 = 9.0 m, bank full)
   rq river flow  65 + 5 rq % of full-gate discharge (65-85 %)
   sg spill gate   0.15 m
@@ -62,16 +62,17 @@ ANN = ['OVERSPEED|TRIP', 'WICKET GATE|TRIPPED', 'OUT OF PHASE|CLOSE', 'GEN BREAK
 TRIP_WINDOWS = (0, 1, 2, 3, 4, 5, 6, 7, 8)   # red windows: trips and things that will cause one
 # the phase (and the synchroscope pointer): a ring of 12 path_tracks (radius R) clockwise from 12 o'clock.
 # Each one sets the sync lamps' brightness for its phase angle; the ones at 1 and 11 o'clock are the
-# in-phase window's edges. 'speed' is the train's top speed: one notch (a quarter of it) is a turn in 11 s.
-SCOPE = {'R': 5.4, 'speed': 12,
-         'nodes': [(30 * i, {1: 'sc_r', 11: 'sc_l'}.get(i, f'scl{min(i, 12 - i)}')) for i in range(12)]}
+# in-phase window's edges (+-10 deg, as a sync-check relay allows). 'speed' is the train's top speed: one
+# notch (a quarter of it) is a turn in 22 s, a slip of 0.045 Hz.
+SCOPE = {'R': 5.4, 'speed': 6,
+         'nodes': [(10 + 340 * i / 11, {0: 'sc_r', 11: 'sc_l'}.get(i, f'scl{min(i, 11 - i)}')) for i in range(12)]}
 # how fast the phase turns (the slip), in quarter notches of the train (+ = FAST, clockwise), for each
 # speed %; at 100 % it stands still (with the PLC on it creeps one notch clockwise, see below)
 SLIP = {95: -4, 96: -4, 97: -3, 98: -2, 99: -1, 100: 0, 101: 1, 102: 2, 103: 3, 104: 4, 105: 4}
 slip_ev = lambda k: f'slip{k}' if k >= 0 else f'slipm{-k}'
-# power factor meter: field values it reads (3 apart, so re-sending the field always lands on one) and the
+# power factor meter: field values it reads (4 apart, so re-sending the field always lands on one) and the
 # kW used for each load band
-PF_X = list(range(61, 121, 3))
+PF_X = list(range(60, 121, 4))
 PF_P = (40, 125, 225)
 
 
@@ -113,13 +114,13 @@ def _build(L):
     for fl, a_, b_ in (('en_hi', 20, 19), ('en_md', 5, 4), ('en_lo', -20, -19), ('en_ml', -5, -4)):
         flag(fl, 0); L.setf(vname('en', a_), fl, 1); L.setf(vname('en', b_), fl, 0)
 
-    for name, init in [('cb', 0), ('exc', 0), ('tr', 0), ('brake', 1), ('phs', 0),
+    for name, init in [('cb', 0), ('exc', 0), ('tr', 0), ('brake', 0), ('phs', 0),
                        ('inph', 1), ('rz', 0), ('pok', 0), ('perm', 0)]:
         state(name, init)
     flag('gdir', 1)
     for nm in ('lube', 'cool', 'plc', 'avr'):
         flag(nm, 0)
-    thr('n', 1, 'n_gt0'); thr('n', 50); thr('n', 90); thr('n', 95); thr('n', 100); thr('n', 101); thr('n', 106)
+    thr('n', 1, 'n_gt0'); thr('n', 30); thr('n', 50); thr('n', 90); thr('n', 95); thr('n', 100); thr('n', 101); thr('n', 106)
     thr('n', 145, 'n_max')
     thr('g', 1, 'g_gt0'); thr('g', 13); thr('g', 15); thr('g', 16); thr('g', 17); thr('g', 25); thr('g', 26)
     thr('g', 30); thr('g', 55)
@@ -274,9 +275,9 @@ def _build(L):
         L.relay(event, 'alarm')
 
     # ------------------------------------------------- gauges
-    # needles move in 1 % steps where they are read closely (speed 86-112 %, volts 72-108 %), 2-4 % elsewhere
+    # needles move in 1 % steps where they are read closely (speed 90-110 %, volts 72-108 %), 2-4 % elsewhere
     # (each position is two entities)
-    display('n', ptr('p_speed'), lambda x: x / 150, vals=list(range(0, 86, 2)) + list(range(86, 113)) + list(range(114, 146, 2)))
+    display('n', ptr('p_speed'), lambda x: x / 150, vals=list(range(0, 90, 2)) + list(range(90, 111)) + list(range(112, 146, 2)))
     display('g', ptr('p_gate'), lambda x: x / 100, vals=list(range(0, 31)) + list(range(32, 101, 2)))
     display('g', ptr('p_kw'), lambda x: KW[x] / 320, vals=list(range(13, 101, 3)), conds=['cb'])
     display('g', ptr('p_vib'), lambda x: VIB[x] / 20, vals=list(range(0, 101, 5)), conds=['cb'])
@@ -295,7 +296,7 @@ def _build(L):
     ptr('p_pf')                                       # power factor (set further down, with 52G)
     display('o', ptr('p_opu'), lambda x: (200 + 10 * x) / 400, vals=[0, 2, 4, 6, 8, 10])
     display('a', ptr('p_air'), lambda x: 12.5 * x / 150, vals=[0, 2, 4, 6, 8, 10])
-    display('bt', ptr('p_bt'), lambda x: x / 10)
+    display('bt', ptr('p_bt'), lambda x: 7 * x / 80)                  # 20 + 7 bt deg C on a 20-100 C scale
     display('l', ptr('p_hw'), lambda x: (4 + 0.25 * x) / 10)          # river depth on a 0-10 m scale
     display('rq', ptr('p_rq'), lambda q: 0.9 * (65 + 5 * q) / 120)          # river flow, cfs on a 0-120 scale
     display('sg', ptr('p_spill'), lambda x: x / 8)
@@ -334,10 +335,10 @@ def _build(L):
     # servo oil (wicket gate servomotors)
     L.rule('T1', ['hhp', '!o_full'], 'o_up')
     L.rule('T16', ['o_gt0'], 'o_dn')                                  # pilot-valve leakage
-    # brake air; the brakes are spring-applied and air-released
+    # brake air; the brakes are applied by air and released by springs
     L.rule('T1', ['hac', '!a_max'], 'a_up')
     L.rule('T16', ['a_gt0'], 'a_dn')
-    L.rule('T8', ['!brake', 'a_gt0'], 'a_dn')                         # released brakes leak a little more
+    L.rule('T8', ['brake', 'a_gt0'], 'a_dn')                          # applied brakes leak a little more
 
     # ------------------------------------------------------- protection
     # 'prot' trips the unit: the wicket gate shuts at once, 52G and the 41 field breaker open, the PLC and the
@@ -365,10 +366,12 @@ def _build(L):
         L.relay('reset', W[i], USE_OFF)
 
     # ---------------------------------------------------------- brakes
+    # generator air brakes: applied by compressed air (at least 50 psi), and only below 30 % speed (the shoes
+    # would burn above it); springs pull them off when released or when the air is gone
     selector('r_br', 'hbr', 'BRAKES', ('APPLY', 'RELEASE'))            # a rotary dial
-    L.rule('T1', ['hbr', 'a_ge4', 'brake'], 'brake=0')
-    L.rule('T1', ['!hbr', '!brake'], 'brake=1')
-    L.rule('T1', ['!a_ge4', '!brake'], 'brake=1')
+    L.rule('T1', ['!hbr', 'a_ge4', '!n_ge30', '!brake'], 'brake=1')
+    L.rule('T1', ['hbr', 'brake'], 'brake=0')
+    L.rule('T1', ['!a_ge4', 'brake'], 'brake=0')
 
     # ---------------------------------------------------------------- speed
     # the runner accelerates hard when far from the speed the gate would settle it at, then eases in:
@@ -403,7 +406,7 @@ def _build(L):
 
     # ----------------------------------------------------------- excitation
     cs('r_exc', 'hexc', '41 FIELD BREAKER', ('OPEN', 'CLOSE'))
-    L.rule('r_exc_ev', ['hexc', '!tr'], 'exc=1')
+    L.rule('r_exc_ev', ['hexc', '!tr', 'n_ge95'], 'exc=1')           # field flashing: only near rated speed
     L.rule('r_exc_ev', ['!hexc'], 'exc=0')
     L.rule('T1', ['hexc', '!exc'], 'r_exc')                          # refused or tripped: handle back to OPEN
     L.rule('TS', ['!exc', 'x_gt0'], 'x_dn')                          # the field discharges, 10 %/s
@@ -427,7 +430,7 @@ def _build(L):
     # unit's speed: below 100 % anticlockwise (SLOW), above it clockwise (FAST), quicker the further off.
     # At exactly 100 % (60 Hz) it stands still wherever it is: nudge it round with a touch of RAISE (it turns
     # clockwise while the speed is up at 101 %) and a touch of LOWER to stop it. With the PLC on, the PLC
-    # holds the unit a hair fast instead, so it creeps clockwise, a turn in 11 s.
+    # holds the unit a hair fast instead, so it creeps clockwise, a turn in 22 s.
     # The phase exists while the field is on and the unit is within 5 % of synchronous speed, whether the
     # synchroscope is on or not: the switch only shows it (the pointer and the sync lamps).
     cs('r_ss', 'hss', 'SYNCHROSCOPE', ('OFF', 'ON'))
@@ -450,13 +453,15 @@ def _build(L):
     L.rule('r_plc_ev', ['phs', 'n_ge100', '!n_ge101', '!plc'], slip_ev(0))
     # the in-phase window (+-30 deg): the path_tracks at 11 and 1 o'clock; which way the phase crosses them
     # depends on whether the unit is fast or slow
-    L.rule('sc_l', ['n_ge100'], 'inph=1'); L.rule('sc_l', ['!n_ge100'], 'inph=0')
-    L.rule('sc_r', ['n_ge100'], 'inph=0'); L.rule('sc_r', ['!n_ge100'], 'inph=1')
+    L.rule('sc_l', ['n_ge100'], 'sc_in'); L.rule('sc_l', ['!n_ge100'], 'sc_out')
+    L.rule('sc_r', ['n_ge100'], 'sc_out'); L.rule('sc_r', ['!n_ge100'], 'sc_in')
+    L.relay('sc_in', 'inph=1'); L.relay('sc_out', 'inph=0')
     # dark-lamp sync lamps: every path_track sets their brightness, |sin(phase / 2)|, dark at 12 o'clock;
     # with the switch off a dark cover hides them
-    for k in range(7):
-        L.add('env_render', targetname=f'scl{k}', target='SYNCLAMPS', renderamt=round(255 * math.sin(math.radians(15 * k))), spawnflags=13)
-    L.relay('sc_l', 'scl1'); L.relay('sc_r', 'scl1')
+    for k, (ang, _) in enumerate(SCOPE['nodes'][:6]):
+        L.add('env_render', targetname='sc_out' if k == 0 else f'scl{k}', target='SYNCLAMPS',
+              renderamt=round(255 * math.sin(math.radians(ang / 2))), spawnflags=13)
+    L.add('env_render', targetname='sc_in', target='SYNCLAMPS', renderamt=0, spawnflags=13)
     L.add('env_render', targetname='phs_off', target='SYNCLAMPS', renderamt=0, spawnflags=13)
     # in phase: phase in the window, no slip (100 % speed) and volts within 5 %
     good = ['phs', 'inph', 'n_ge100', '!n_ge101', 'v_ge95', '!v_ge106']
@@ -495,7 +500,7 @@ def _build(L):
         L.setf(f'pf{k}=1', f'pf{k}', 1)
     L.rule('pf_band', ['!g_ge30'], 'pf0=1'); L.rule('pf_band', ['g_ge30', '!g_ge55'], 'pf1=1'); L.rule('pf_band', ['g_ge55'], 'pf2=1')
     L.late('trigger_relay', targetname='pf_band', target='x_redo', triggerstate=1)
-    for d in ('x_dn', 'x_dn', 'x_dn', 'x_up', 'x_up', 'x_up'):     # three down and back: one of them is on the meter's list
+    for d in ('x_dn',) * 4 + ('x_up',) * 4:                        # four down and back: one of them is on the meter's list
         L.relay('x_redo', d)
     for v in (29, 30, 54, 55):
         L.rule(vname('g', v), ['cb'], 'pf_band')
@@ -505,7 +510,10 @@ def _build(L):
             continue
         for k, P in enumerate(PF_P):
             L.display(vname('x', x), 'p_pf', pf_frac(x, P), [f'pf{k}'])
-    L.rule('T1', ['cb', '!g_ge13', '!tr'], 'prot')                # reverse power (32): the unit is motoring
+    # reverse power (32): the unit is motoring; trips after 8 s of it
+    L.rule('T2', ['cb', '!g_ge13', '!tr'], 'rp_tick'); L.relay('rp_tick', 'rpc', USE_ON)
+    L.rule(vname('g', 13), [], 'rpc', 0); L.rule('cb_close', [], 'rpc', 0)   # the count starts afresh
+    L.add('game_counter', targetname='rpc', frags=0, health=8, spawnflags=2, target='prot')
     L.rule('T1', ['cb', '!x_ge60', '!tr'], 'prot')                # loss of field (40): below 60 %
 
     # ---------------------------------------------------------------- river
@@ -548,7 +556,7 @@ def _build(L):
     L.display('init', 'p_pf', 0.5); L.display('init', 'p_vib', 0.02); L.display('init', 'p_fa', 1.0)
     for var, p, fn in [('l', 'p_hw', lambda x: (4 + 0.25 * x) / 10), ('sg', 'p_spill', lambda x: x / 8),
                        ('rq', 'p_rq', lambda q: 0.9 * (65 + 5 * q) / 120),
-                       ('bt', 'p_bt', lambda x: x / 10)]:
+                       ('bt', 'p_bt', lambda x: 7 * x / 80)]:
         L.display('init', p, fn(INIT[var]))
     dev['flags_init'] = fi
     dev['scope'] = SCOPE

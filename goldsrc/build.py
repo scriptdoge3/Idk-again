@@ -299,7 +299,7 @@ def synchro_textures():
     P = lambda a, r: (c + r * math.sin(a), c - r * math.cos(a))
     im = Image.new('RGBA', (S, S), (17, 17, 18, 255)); d = ImageDraw.Draw(im)
     cream = (236, 230, 210, 255)
-    d.pieslice([c - 56, c - 56, c + 56, c + 56], -120, -60, fill=(30, 80, 40, 255))        # in-phase window, +-30 deg
+    d.pieslice([c - 56, c - 56, c + 56, c + 56], -100, -80, fill=(30, 80, 40, 255))        # in-phase window, +-10 deg
     for k in range(12):
         a = k / 12 * 2 * math.pi
         d.line([P(a, 56), P(a, 47 if k % 3 == 0 else 51)], fill=cream, width=3 if k % 3 == 0 else 2)
@@ -788,7 +788,7 @@ def build_panels(dev):
     D.section(1.5, 5.5, 53, 32.5, 'METERS')
     gauge(2, 7, ROW1, 'OIL', [(0, 60, 20, 10, 2, None)], 'PSI', ptr='p_lube', red=(0, 20), xr=5)
     gauge(2, 17, ROW1, 'WATER', [(0, 100, 20, 20, 5, None)], 'GPM', ptr='p_cw', red=(0, 35), xl=5, xr=5)
-    gauge(2, 27, ROW1, 'BEARING TEMP', [(20, 120, 20, 20, 5, None)], 'DEG C', ptr='p_bt', red=(100, 120), xl=5, xr=5)
+    gauge(2, 27, ROW1, 'BEARING TEMP', [(20, 100, 20, 20, 5, None)], 'DEG C', ptr='p_bt', red=(76, 100), xl=5, xr=5)
     gauge(2, 37, ROW1, 'VIBRATION', [(0, 20, 10, 5, 1, None)], 'MILS P-P', ptr='p_vib', red=(12, 20), xl=5)
     gauge(2, 7, ROW2, 'HYDRAULIC', [(0, 400, 100, 100, 20, None)], 'PSI', ptr='p_opu', red=(0, 220), xr=5)
     gauge(2, 17, ROW2, 'BRAKE AIR', [(0, 150, 50, 50, 10, None)], 'PSI', ptr='p_air', red=(0, 50), xl=5)
