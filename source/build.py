@@ -20,7 +20,7 @@ _spec = importlib.util.spec_from_file_location('goldbuild', os.path.join(GOLD, '
 gb = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(gb)
 from hlfiles import Box, Poly, prism, ngon, face_map, face_map_up, write_wav       # noqa: E402
-from srcfiles import Content, VmfWriter, pack_bsp, pow2                              # noqa: E402
+from srcfiles import Content, VmfWriter, pack_bsp, pow2, strip_prims                              # noqa: E402
 import hydro                                                                         # noqa: E402
 
 OUT = os.path.join(HERE, 'out')
@@ -821,6 +821,7 @@ def main():
     run(os.path.join(gbsp, 'grad'), NAME)
     bsp = os.path.join(OUT, f'{NAME}.bsp')
     shutil.copy(os.path.join(maps, f'{NAME}.bsp'), bsp)
+    print(f'face triangle lists dropped ({strip_prims(bsp)} did not match their faces)')
     n = pack_bsp(bsp, C.files)
     print(f'packed {len(C.files)} files ({n / 1e6:.1f} MB); {bsp}: {os.path.getsize(bsp) / 1e6:.1f} MB')
 

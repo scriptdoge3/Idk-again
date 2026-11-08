@@ -219,3 +219,34 @@ def pack_bsp(path, files):
     struct.pack_into('<ii', d, 8 + 40 * 16, new_ofs, len(pak))
     open(path, 'wb').write(d)
     return len(pak)
+
+
+# ------------------------------------------------------------------ BSP face fix-up
+LUMP_FACES, LUMP_PRIMITIVES, LUMP_PRIMVERTS, LUMP_PRIMINDICES, LUMP_FACES_HDR = 7, 37, 38, 39, 58
+
+
+def strip_prims(path):
+    """Drop the compiler's per-face triangle lists ("primitives") so the engine draws every face as a fan
+    of its own polygon. The engine sizes its index buffers as (vertices - 2) * 3 per face; gbsp leaves out
+    zero-area triangles where a face has a repeated vertex, so a single short list shifts every index after
+    it, and the world draws with the wrong triangles and textures. Returns how many lists didn't match."""
+    d = bytearray(open(path, 'rb').read())
+    assert d[:4] == b'VBSP'
+    lump = lambda i: struct.unpack_from('<ii', d, 8 + 16 * i)
+    po, pl = lump(LUMP_PRIMITIVES)
+    prims = [struct.unpack_from('<BxHHHH', d, po + 10 * i) for i in range(pl // 10)]
+    bad = 0
+    for li in (LUMP_FACES, LUMP_FACES_HDR):
+        fo, fl = lump(li)
+        for i in range(fl // 56):
+            o = fo + 56 * i
+            ne = struct.unpack_from('<h', d, o + 8)[0]
+            nprim, first = struct.unpack_from('<HH', d, o + 48)
+            n = nprim & 0x7FFF                      # the top bit is the no-shadows flag: keep it
+            if n and li == LUMP_FACES and sum(prims[first + k][2] for k in range(n)) != (ne - 2) * 3:
+                bad += 1
+            struct.pack_into('<HH', d, o + 48, nprim & 0x8000, 0)
+    for li in (LUMP_PRIMITIVES, LUMP_PRIMVERTS, LUMP_PRIMINDICES):
+        struct.pack_into('<ii', d, 8 + 16 * li, 0, 0)
+    open(path, 'wb').write(d)
+    return bad

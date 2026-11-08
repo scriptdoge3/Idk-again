@@ -182,3 +182,8 @@ Brush rules for Source compilers, learned the hard way: every brush must be at l
 BSP drops smaller pieces), no edge may be 0.2 units or shorter (the face is dropped), and thin slabs
 must not be crossed by other brushes' planes. That's why the meters sit in rectangular cases and the
 needles are 1 unit deep.
+
+After compiling, `build.py` drops gbsp's per-face triangle lists ("primitives"), so the game draws every
+face as a fan of its own outline. The game reserves (corners - 2) x 3 indices for each face, and gbsp
+leaves zero-area triangles out of a face with a repeated corner. One short list shifts every index after
+it, and the whole map then draws with the wrong triangles and textures.
