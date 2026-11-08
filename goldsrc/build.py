@@ -698,7 +698,7 @@ def build_panels(dev):
         E.append({'classname': 'env_beam', 'targetname': 'nd_SCOPE', 'LightningStart': 'nd_SCOPE', 'LightningEnd': 'SCOPE',
                   'origin': f'{x:g} -1 {z:g}', 'texture': 'sprites/laserbeam.spr', 'BoltWidth': '5', 'NoiseAmplitude': '0',
                   'life': '0', 'StrikeTime': '0', 'damage': '0', 'TextureScroll': '0', 'framestart': '0', 'renderamt': '255',
-                  'rendercolor': '255 70 40', 'spawnflags': '1'})
+                  'rendercolor': '255 70 40', 'spawnflags': '0'})            # off until the SYNCHROSCOPE switch turns it on
         doors[ci].plate(u, v + GPH + 1.3, 9, 1.4, 'SYNCHROSCOPE', px=0.8)
 
     def rotor(name, brushes, x, y, z, yaw=False, distance=3600, speed=120):
@@ -745,6 +745,8 @@ def build_panels(dev):
     world.append(front_box(0, 51.5, ROW1 - 1, 5, 2, -1.0, -0.5, 'sc_slmp0'))
     E.append({'classname': 'func_wall', 'targetname': 'SYNCLAMPS', 'rendermode': '5', 'renderamt': '0',
               '_brushes': [front_box(0, 51.5, ROW1 - 1, 5, 2, -1.25, -1.0, 'sc_slmp1')]})
+    E.append({'classname': 'func_wall_toggle', 'targetname': 'SLCOVER',             # dark lenses while the switch is off
+              '_brushes': [front_box(0, 51.5, ROW1 - 1, 5, 2, -1.5, -1.25, 'sc_slmp0')]})
     D.plate(51.5, ROW1 + 1.4, 5.4, 1.0, 'SYNC LAMPS', px=0.62)
     lampw(0, 51.5, ROW1 + 5, 'L_perm', ('SYNC OK',))        # sync check permissive: close 52G while it is lit
     gauge(0, 7, ROW2, 'SPEED', [(0, 150, 50, 25, 5, None)], 'RPM', ptr='p_speed', red=(140, 150), xr=5)

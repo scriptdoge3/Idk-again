@@ -15,8 +15,8 @@ middle. The spillway gate has its own panel on the left wall, beside the fire ex
 | Cabinet | Control | What it does |
 |---|---|---|
 | Left | WICKET GATE TRIP (red, yellow plate) | The emergency stop: closes the gate fast and opens 41 and 52G. Protection turns it to TRIP by itself; turning it back to NORMAL resets (it trips again if the cause is still there). |
-| Left | SYNCHROSCOPE | Switches the synchroscope and the sync check (25) on (it works while the unit is within 5 % of 60 Hz). The pointer turns at the slip: anticlockwise (SLOW) when the unit is slower than the grid, clockwise (FAST) when faster, quicker the further off. At 100 % speed the unit is a hair fast and the pointer creeps clockwise, a turn in about 11 s. The sync lamps beside it are dark at 12 o'clock and brightest at 6. The green SYNC OK lamp lights while a close would be allowed: pointer in the green sector, speed at 100 % (the creeping pointer) and volts within 5 % (456–504 V). |
-| Left | 52G SYNC BREAKER | Closes the generator onto the grid. Close it while SYNC OK is lit, as the pointer creeps up to 12 o'clock. With the sync check on, a close it doesn't allow is refused and the handle springs back. Closing with the SYNCHROSCOPE switch off is a blind close: out of phase, and the unit trips. Once closed the unit is locked to the grid and the pointer stops. |
+| Left | SYNCHROSCOPE | Shows the phase between the generator and the grid, and puts the sync check (25) in service. The phase is there whether the switch is on or not, while the field is on and the unit is within 5 % of 60 Hz; the switch only shows it (pointer and sync lamps). The phase turns at the slip: anticlockwise (SLOW) when the unit is slower than the grid, clockwise (FAST) when faster, quicker the further off. At exactly 100 % speed it stands still wherever it is. The sync lamps are dark at 12 o'clock and brightest at 6. The green SYNC OK lamp lights while a close would be allowed: phase in the green sector, speed at 100 % and volts within 5 % (456–504 V). |
+| Left | 52G SYNC BREAKER | Closes the generator onto the grid, on the real phase. In phase (what SYNC OK shows) it closes, switch on or off. Out of phase with the synchroscope on, the sync check refuses and the handle springs back; with the synchroscope off nothing stops it and the unit trips as out of phase. Once closed the unit is locked to the grid and the phase stops. |
 | Left | 41 FIELD BREAKER | Connects the thyristor exciter. Opening it lets the field decay. |
 | Left | FIRING ANGLE dial | Sets the field (manual excitation). Off line it sets the voltage; on line it sets the reactive power, shown on the POWER FACTOR meter. The FIRING ANGLE gauge above shows the thyristor angle: field goes as cos α, so 90° is no field, about 34° is rated field and 0° is full field. |
 | Left | WICKET GATE LOWER and RAISE dials | Hold USE on RAISE to open the gate, on LOWER to close it: 1 % every 0.1 s while held. They are spring-return: let go and the dial springs back to 12 o'clock and the gate stops. |
@@ -48,13 +48,17 @@ and up), so the same field gives a lower power factor at light load.
    (14 % gives 94 rpm, 16 % gives 104). Leaving the gate open overspeeds it (trip at 140 %).
 4. Close 41 and raise the field with the firing-angle dial until GEN VOLTS reads 480.
 5. SYNCHROSCOPE on. While the speed is still settling the pointer spins (SLOW below 100 %, FAST
-   above); at 100 % it creeps clockwise. Close 52G while the green SYNC OK lamp is lit (pointer in
+   above); at 100 % it stands still. To bring it round to 12 o'clock, nudge the speed: tap RAISE, and
+   when the speed reaches 101 % and the pointer starts to turn clockwise, tap LOWER; the speed comes
+   back to 100 % and the pointer stops, about 25° further on (LOWER first turns it back the other way).
+   Wait longer at 101 % to move it further. Close 52G while the green SYNC OK lamp is lit (pointer in
    the green, speed and volts matched). If it isn't, the close is refused and nothing trips.
 6. Open the gate to load the unit (about 190 kW at 60 % gate). Keep it above 13 %, or the reverse-power
    relay opens 52G. Keep the field up, or loss of field trips 52G.
 
 To stop: close the gate to 15 %, turn 52G to TRIP, open 41, close the gate, and apply the brakes below 30 %.
-With the PLC ON and the AVR on AUTO (middle cabinet), steps 3 and 4 happen by themselves.
+With the PLC ON and the AVR on AUTO (middle cabinet), steps 3 and 4 happen by themselves, and the PLC
+holds the unit a hair fast, so the phase creeps clockwise (a turn in 11 s) and you only wait for 12 o'clock.
 
 ## How the "math" works
 
@@ -65,7 +69,7 @@ With the PLC ON and the AVR on AUTO (middle cabinet), steps 3 and 4 happen by th
 | Rule (if A and B then do X) | A chain of `game_counter_set` entities, each locked by a `multisource` master. Rules with the same leading conditions share links. |
 | Clock | Two `multi_manager`s that trigger each other every 0.05 s; `game_counter`s with "reset on fire" divide it to 0.1, 0.2, 0.5, 1, 4 and 8 s. |
 | Gauge needle | `game_counter_set` sends USE_SET with a fraction to an invisible `momentary_door` (the slider) hidden in the gauge bezel. The needle is an `env_beam` from the dial centre to the slider, so it swings as the slider moves. The same USE_SET trick sets `ambient_generic` pitch. |
-| Synchroscope | A `func_tracktrain` on a ring of 12 `path_track`s behind the bezel, with a beam from the centre as the pointer. Its speed is the slip: the logic stops it (USE_OFF) and gives it a number of quarter notches (USE_SET, `game_counter_set`), negative to run the ring backwards. The tracks at 11 and 1 o'clock are the in-phase window's edges (entering or leaving depends on which way it turns), so the sync check uses exactly what you see. Every track sets the sync lamps' brightness with an `env_render`. |
+| Phase, synchroscope | The phase is a `func_tracktrain` on a ring of 12 `path_track`s behind the synchroscope's bezel; a beam from the centre to it is the pointer, switched on and off with the SYNCHROSCOPE switch. Its speed is the slip: the logic stops it (USE_OFF) and gives it a number of quarter notches (USE_SET, `game_counter_set`), negative to run the ring backwards, none at 100 %. The tracks at 11 and 1 o'clock are the in-phase window's edges (entering or leaving depends on which way it turns), so the breaker closes on exactly what you see. Every track sets the sync lamps' brightness with an `env_render`; a `func_wall_toggle` covers them while the switch is off. |
 | Control switch | `func_rot_button` with a pistol-grip handle, maintained in two positions ("toggle", with `wait` 0.5: `wait -1` would make it stay pushed for good). Each turn toggles a flag. The logic can turn the handle itself, so the 52G, 41 and gate-trip handles always agree with the plant. |
 | Lamp, annunciator window | `func_wall` with `+0` / `+A` textures, switched explicitly on or off by `trigger_relay`. |
 | Spring-return dial | `momentary_rot_button` with Auto Return: held, it turns to its stop and fires its target every frame; let go, it springs back and fires once every 0.1 s on the way. A `game_counter` reset every 0.05 s only counts it as turning on two fires within one tick, so the fires on the way back are ignored. While it turns, a rule steps the variable every tick. |
@@ -91,9 +95,10 @@ run along Y.
 
 `plant.py` is the whole model; `hlogic.py` compiles it into entities and contains a simulator that
 reproduces how those entities behave in `hl.dll`; `test_plant.py` runs it by hand through the simulator:
-a manual start on the gate dials (and that the spring-back of a dial adds no step), the synchroscope
-turning SLOW and FAST as the speed settles (and its in-phase window agreeing with where the pointer is),
-synchronization, the power factor at three loads and two field settings, the emergency stop, an
+a manual start on the gate dials (and that the spring-back of a dial adds no step), the phase turning
+SLOW and FAST as the speed settles and standing still at 100 % (and its in-phase window agreeing with
+where the pointer is), nudging it into the window and synchronizing, closes with the synchroscope off
+both in and out of phase, the power factor at three loads and two field settings, the emergency stop, an
 out-of-phase close, a start with the PLC and AVR, the PLC holding the pond, the lube oil pump stopping
 on line, a brake air failure and the spillway in MANUAL and back in AUTO. The simulated
 `func_tracktrain` follows the SDK's `CPathTrack::LookAhead()`, so it reverses the way the game does.
@@ -143,7 +148,7 @@ the firing-angle dial.
 `-num_edicts 2048` to Half-Life's launch options (Steam → Half-Life → Properties → Launch Options).
 Without it the map won't load ("ED_Alloc: no free edicts"). 2048 is the most the engine can handle.
 
-The map has 1,960 entities (1,953 once the lights are compiled in): the 1 % steps need a counter and a
+The map has 1,985 entities (1,978 once the lights are compiled in): the 1 % steps need a counter and a
 gauge setter for most values. The default limit is 1,200 (900 before the 25th-anniversary update), hence
 the launch option. The variables only get counters for values something listens for, and needles step
 2-4 % where they are not read closely.

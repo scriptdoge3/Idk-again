@@ -16,6 +16,7 @@ for k in dev['knobs']:                     # as build.py makes them
     devs.append({'classname': 'momentary_rot_button', 'targetname': k['name'], 'target': k['target'], **{a: str(b) for a, b in kv.items()}})
 sc = dev['scope']
 devs.append({'classname': 'func_tracktrain', 'targetname': 'SCOPE', 'speed': str(sc['speed'])})
+devs.append({'classname': 'func_wall_toggle', 'targetname': 'SLCOVER'})
 sim = Sim(ents + devs)
 sim.train_nodes['SCOPE'] = [(msg, sc['R'] * math.sin(math.radians(a)), sc['R'] * math.cos(math.radians(a))) for a, msg in sc['nodes']]
 G = lambda k: sim.globals.get(k)
@@ -90,14 +91,15 @@ for gg in (16, 14, 15):
     gate_to(gg); run_until(lambda: False, 12); print(f'  gate {C("g")} % -> speed settles at {C("n")} %')
 flip('r_exc'); print('41 closed, exc', G('exc'), ' field', turn('k_fa', 'x', 100))
 run_until(lambda: C('v') == 100, 20); show('excited')
-flip('r_ss', 1); print('synchroscope on, rotating', G('scr'))
 scope = sim.ent('SCOPE')
-print(f'  at 100 % speed the pointer turns {scope_turn(5.5)} deg in 5.5 s (FAST, creeping)')
+print(f'phase running {G("phs")} with the synchroscope still off; lamps covered {sim.ent("SLCOVER").on}')
+flip('r_ss', 1); print(f'synchroscope on: lamps covered {sim.ent("SLCOVER").on}')
+print(f'  at exactly 100 % speed the phase stands still: {scope_turn(5.5)} deg in 5.5 s, at {scope.angle():.0f} deg')
 bad = []
 def window_check(s_):
     """the logic's in-phase flag against where the pointer is; the edges fire when the point the train looks
     0.1 s ahead to passes them, so the window leads the pointer by that much (3 deg at the sync slip)"""
-    if G('scr'):
+    if G('phs'):
         a_ = (scope.angle() + 180) % 360 - 180
         lead = math.degrees(abs(scope.speed) * 0.1 / sc['R']) + 2
         if (abs(a_) < 30 - lead and not G('inph')) or (abs(a_) > 30 + lead and G('inph')): bad.append(round(a_))
@@ -115,11 +117,25 @@ run_until(lambda: C('n') == 100, 30); sim.run(4)
 lev = []
 run_until(lambda: lev.append((round(scope.angle()), sim.ent('SYNCLAMPS').amt)) or False, 12, 0.5)
 print('  sync lamps (pointer deg, brightness):', lev[:12])
-run_until(lambda: G('perm') == 0, 10, 0.05)
-run_until(lambda: G('perm') == 1, 10, 0.05); a_press = scope.angle()                     # SYNC OK lamp lights
-sim.press('r_52'); sim.run(0.1); print(f'52G turned to CLOSE as SYNC OK lit (pointer {a_press:.0f} deg, closed at {scope.angle():.0f}) -> cb={G("cb")}')
+def nudge_in(limit=180):
+    """Bring the phase into the window like a player: tap RAISE (or LOWER) once, and when the speed reaches
+    101 % (99 %) and the pointer starts to turn, tap the other one; the speed comes back to 100 % and the
+    pointer stops. Returns how far each touch moved it."""
+    t0 = sim.time; moves = []
+    while not G('perm') and sim.time - t0 < limit:
+        a_ = scope.angle(); cw = not (30 < a_ < 180)          # the short way round to 12 o'clock
+        up, back = ('k_gr', 'k_gl') if cw else ('k_gl', 'k_gr')
+        sim.ent(up).hold(0.05); run_until(lambda: C('n') != 100, 10, 0.05)
+        sim.ent(back).hold(0.05); run_until(lambda: C('n') == 100 and C('g') == 15, 10, 0.05); sim.run(0.3)
+        moves.append(round(((scope.angle() - a_ + 180) % 360) - 180))
+    return moves
+sim.run(2); a0 = scope.angle()
+print(f'  phase at {a0:.0f} deg, SYNC OK {G("perm")}; nudged into the window, deg per touch {nudge_in()}: now {scope.angle():.0f} deg, '
+      f'stays there: {scope_turn(4.0)} deg in 4 s, SYNC OK {G("perm")}')
+a_press = scope.angle()
+sim.press('r_52'); sim.run(0.1); print(f'52G turned to CLOSE with SYNC OK lit (phase {a_press:.0f} deg) -> cb={G("cb")}')
 sim.run(1); show('on line')
-print(f'  pointer stopped at {scope.angle():.0f} deg once on line, scope running {G("scr")}')
+print(f'  phase locked at {scope.angle():.0f} deg once on line, phase running {G("phs")}')
 print('PF just after closing:', pf_reading(), ' (x', C('x'), ')')
 for gg in (25, 40, 60):
     gate_to(gg); sim.run(1); print(f'  gate {gg} %: {round(sim.ent("p_kw").pos * 320)} kW, PF {pf_reading()}')
@@ -139,18 +155,22 @@ flip('r_gt', 1); print('gate trip reset: tr', G('tr'))
 flip('r_plc'); flip('r_avr'); flip('r_br', 1)
 tt = run_until(lambda: C('n') == 100 and C('g') == 15, 120); print(f'PLC ran the unit up to speed-no-load in {tt} s'); show('plc')
 flip('r_exc'); run_until(lambda: C('v') == 100, 30); print('AVR excited it: v', C('v'), 'x', C('x'))
-run_until(lambda: G('scr') == 1 and G('inph') == 0, 15, 0.05)
+print(f'  with the PLC the unit is held a hair fast: the phase creeps {scope_turn(5.5)} deg in 5.5 s')
+run_until(lambda: G('phs') == 1 and G('inph') == 0, 15, 0.05)
 sim.press('r_52'); sim.run(0.15); a_try = scope.angle(); sim.run(1.0)
 print(f'52G turned to CLOSE outside the window (pointer {a_try:.0f} deg): refused, cb={G("cb")} tr={G("tr")} handle back={sim.ent("r_52").pos == 0}')
 flip('r_ss', 1)                                              # synchroscope (sync check) off
-sim.press('r_52'); sim.run(0.5); print(f'52G closed blind with the sync check off -> cb={G("cb")} tr={G("tr")} OUT OF PHASE lit={sim.ent("A02").on}')
+run_until(lambda: G('inph') == 0 and 60 < scope.angle() < 300, 20, 0.05); a_try = scope.angle()
+sim.press('r_52'); sim.run(0.5); print(f'52G closed blind with the synchroscope off, phase {a_try:.0f} deg -> cb={G("cb")} tr={G("tr")} OUT OF PHASE lit={sim.ent("A02").on}')
 flip('r_ss', 1)
 run_until(lambda: C('n') <= 30, 200); flip('r_br'); run_until(lambda: C('n') == 0, 120); flip('r_br', 0.5); flip('r_gt', 1)
 print('reset: tr', G('tr'), 'OUT OF PHASE lit', sim.ent('A02').on)
 
 # PLC/AVR on line, then lose the lube oil pump
-run_until(lambda: C('n') == 100, 120); flip('r_exc'); run_until(lambda: C('v') == 100, 30); run_until(lambda: G('perm') == 1, 30, 0.05)
-sim.press('r_52'); sim.run(1); print('back on line:', G('cb'))
+run_until(lambda: C('n') == 100, 120); flip('r_exc'); run_until(lambda: C('v') == 100, 30)
+flip('r_ss', 1); run_until(lambda: G('pok') == 1, 30, 0.05); a_try = scope.angle()
+sim.press('r_52'); sim.run(1); print(f'52G closed blind with the synchroscope off but the phase at {a_try:.0f} deg: closed {G("cb")}, tr {G("tr")}')
+flip('r_ss', 1)
 print('52G turned to TRIP by hand:', sim.press('r_52')); sim.run(1); print('  cb', G('cb'), 'handle', sim.ent('r_52').pos)
 print('41 turned to OPEN by hand:', sim.press('r_exc')); sim.run(1); print('  exc', G('exc'), 'handle', sim.ent('r_exc').pos)
 flip('r_exc'); run_until(lambda: C('v') == 100, 30); run_until(lambda: G('perm') == 1, 30, 0.05)

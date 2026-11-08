@@ -57,13 +57,14 @@ ANN = ['OVERSPEED|TRIP', 'WICKET GATE|TRIPPED', 'OUT OF PHASE|CLOSE', 'GEN BREAK
        'BRAKE AIR|PRESS LOW', 'BRAKES|APPLIED', 'DRAFT TUBE|PULSATION', 'POND LEVEL|HIGH',
        'POND LEVEL|LOW', 'SPILLWAY|GATE OPEN', 'PLC OFF|GATE MANUAL', 'AVR OFF|FIELD MANUAL']
 TRIP_WINDOWS = (0, 1, 2, 3, 4, 5, 6, 7, 8)   # red windows: trips and things that will cause one
-# synchroscope pointer path: a ring of 12 path_tracks (radius R) clockwise from 12 o'clock. Each one sets
-# the sync lamps' brightness for its phase angle; the ones at 1 and 11 o'clock are the in-phase window's
-# edges. 'speed' is the train's top speed: one notch (a quarter of it) is a turn in 11 s.
+# the phase (and the synchroscope pointer): a ring of 12 path_tracks (radius R) clockwise from 12 o'clock.
+# Each one sets the sync lamps' brightness for its phase angle; the ones at 1 and 11 o'clock are the
+# in-phase window's edges. 'speed' is the train's top speed: one notch (a quarter of it) is a turn in 11 s.
 SCOPE = {'R': 5.4, 'speed': 12,
          'nodes': [(30 * i, {1: 'sc_r', 11: 'sc_l'}.get(i, f'scl{min(i, 12 - i)}')) for i in range(12)]}
-# pointer speed in quarter notches (+ = FAST, clockwise) for each speed % while the synchroscope runs
-SLIP = {95: -4, 96: -4, 97: -4, 98: -3, 99: -2, 100: 1, 101: 2, 102: 3, 103: 4, 104: 4, 105: 4}
+# how fast the phase turns (the slip), in quarter notches of the train (+ = FAST, clockwise), for each
+# speed %; at 100 % it stands still (with the PLC on it creeps one notch clockwise, see below)
+SLIP = {95: -4, 96: -4, 97: -3, 98: -2, 99: -1, 100: 0, 101: 1, 102: 2, 103: 3, 104: 4, 105: 4}
 slip_ev = lambda k: f'slip{k}' if k >= 0 else f'slipm{-k}'
 # power factor meter: field values it reads (3 apart, so re-sending the field always lands on one) and the
 # kW used for each load band
@@ -109,8 +110,8 @@ def _build(L):
     for fl, a_, b_ in (('en_hi', 20, 19), ('en_md', 5, 4), ('en_lo', -20, -19), ('en_ml', -5, -4)):
         flag(fl, 0); L.setf(vname('en', a_), fl, 1); L.setf(vname('en', b_), fl, 0)
 
-    for name, init in [('cb', 0), ('exc', 0), ('tr', 0), ('brake', 1), ('scr', 0),
-                       ('inph', 1), ('rz', 0), ('perm', 0)]:
+    for name, init in [('cb', 0), ('exc', 0), ('tr', 0), ('brake', 1), ('phs', 0),
+                       ('inph', 1), ('rz', 0), ('pok', 0), ('perm', 0)]:
         state(name, init)
     flag('gdir', 1)
     for nm in ('lube', 'cool', 'plc', 'avr'):
@@ -406,49 +407,62 @@ def _build(L):
     L.rule('TS', ['!cb', 'dvx_neg', '!dvn_neg', 'v_gt0'], 'v_dn')     # (exclusive: one step down per tick)
 
     # ------------------------------------------------------ synchronizing
-    # synchroscope: the pointer turns at the slip, the difference between the generator's frequency and the
-    # bus. It is a func_tracktrain on a ring of path_tracks behind the bezel, whose speed the logic sets in
-    # quarter notches: below 100 % speed it turns SLOW (anticlockwise), above it FAST (clockwise), quicker
-    # the further off; at 100 % the unit is a hair fast and the pointer creeps clockwise, 11 s a turn.
-    # It runs while the switch is on, the field is on and the unit is within 5 % of synchronous speed.
+    # The phase between the generator and the grid is a func_tracktrain on a ring of path_tracks behind the
+    # synchroscope's bezel: where the train is IS the phase angle, and the synchroscope's beam pointer shows
+    # it. The phase turns at the slip, so the logic gives the train its speed in quarter notches from the
+    # unit's speed: below 100 % anticlockwise (SLOW), above it clockwise (FAST), quicker the further off.
+    # At exactly 100 % (60 Hz) it stands still wherever it is: nudge it round with a touch of RAISE (it turns
+    # clockwise while the speed is up at 101 %) and a touch of LOWER to stop it. With the PLC on, the PLC
+    # holds the unit a hair fast instead, so it creeps clockwise, a turn in 11 s.
+    # The phase exists while the field is on and the unit is within 5 % of synchronous speed, whether the
+    # synchroscope is on or not: the switch only shows it (the pointer and the sync lamps).
     cs('r_ss', 'hss', 'SYNCHROSCOPE', ('OFF', 'ON'))
-    L.rule('T1', ['hss', 'exc', 'n_ge95', '!n_ge106', '!cb', '!scr'], 'scope_on')
-    for c in ('!hss', '!exc', '!n_ge95', 'n_ge106'):
-        L.rule('T1', ['scr', c], 'scope_off')
-    L.relay('scope_on', 'scr=1'); L.relay('scope_on', 'n_dn'); L.relay('scope_on', 'n_up')   # re-send the speed
-    L.relay('scope_off', 'scr=0'); L.relay('scope_off', 'SCOPE', USE_OFF)
-    for k in sorted(set(SLIP.values())):
+    L.relay('r_ss_ev', 'nd_SCOPE', USE_TOGGLE); L.relay('r_ss_ev', 'SLCOVER', USE_TOGGLE)
+    L.rule('T1', ['exc', 'n_ge95', '!n_ge106', '!cb', '!phs'], 'phs_on')
+    for c in ('!exc', '!n_ge95', 'n_ge106'):
+        L.rule('T1', ['phs', c], 'phs_off')
+    L.relay('phs_on', 'phs=1'); L.relay('phs_on', 'n_dn'); L.relay('phs_on', 'n_up')   # re-send the speed: sets the slip
+    L.relay('phs_off', 'phs=0'); L.relay('phs_off', 'SCOPE', USE_OFF)
+    for k in sorted(set(SLIP.values()) | {1}):
         L.relay(slip_ev(k), 'SCOPE', USE_OFF)                          # stop, then k quarter notches
-        L.rule(slip_ev(k), [], 'SCOPE', k)
+        if k:
+            L.rule(slip_ev(k), [], 'SCOPE', k)
     for v, k in SLIP.items():
-        L.rule(vname('n', v), ['scr'], slip_ev(k))
-    # the in-phase window (+-30 deg): the path_tracks at 11 and 1 o'clock; which way the pointer crosses
-    # them depends on whether the unit is fast or slow
+        if v == 100:
+            L.rule(vname('n', v), ['phs', '!plc'], slip_ev(0)); L.rule(vname('n', v), ['phs', 'plc'], slip_ev(1))
+        else:
+            L.rule(vname('n', v), ['phs'], slip_ev(k))
+    L.rule('r_plc_ev', ['phs', 'n_ge100', '!n_ge101', 'plc'], slip_ev(1))
+    L.rule('r_plc_ev', ['phs', 'n_ge100', '!n_ge101', '!plc'], slip_ev(0))
+    # the in-phase window (+-30 deg): the path_tracks at 11 and 1 o'clock; which way the phase crosses them
+    # depends on whether the unit is fast or slow
     L.rule('sc_l', ['n_ge100'], 'inph=1'); L.rule('sc_l', ['!n_ge100'], 'inph=0')
     L.rule('sc_r', ['n_ge100'], 'inph=0'); L.rule('sc_r', ['!n_ge100'], 'inph=1')
-    # dark-lamp sync lamps: every path_track sets their brightness, |sin(phase / 2)|, dark at 12 o'clock
+    # dark-lamp sync lamps: every path_track sets their brightness, |sin(phase / 2)|, dark at 12 o'clock;
+    # with the switch off a dark cover hides them
     for k in range(7):
         L.add('env_render', targetname=f'scl{k}', target='SYNCLAMPS', renderamt=round(255 * math.sin(math.radians(15 * k))), spawnflags=13)
     L.relay('sc_l', 'scl1'); L.relay('sc_r', 'scl1')
-    L.add('env_render', targetname='scope_off', target='SYNCLAMPS', renderamt=0, spawnflags=13)
-    # sync check (25), in service with the synchroscope switch: permits a close while the pointer is in the
-    # window, the slip is small (100 % speed: the pointer creeping clockwise) and volts are within 5 %;
-    # the SYNC OK lamp shows it
-    good = ['scr', 'inph', 'n_ge100', '!n_ge101', 'v_ge95', '!v_ge106']
-    L.rule('TS', good + ['!perm'], 'perm=1')
+    L.add('env_render', targetname='phs_off', target='SYNCLAMPS', renderamt=0, spawnflags=13)
+    # in phase: phase in the window, no slip (100 % speed) and volts within 5 %
+    good = ['phs', 'inph', 'n_ge100', '!n_ge101', 'v_ge95', '!v_ge106']
+    L.rule('TS', good + ['!pok'], 'pok=1')
     for c in good:
-        L.rule('TS', ['perm', c[1:] if c.startswith('!') else '!' + c], 'perm=0')
-    # 52G: with the sync check in service a close it does not permit is simply refused (the handle springs
-    # back); closing with the synchroscope switch off is a blind close and trips the unit as out of phase.
-    # The handle turns in 0.1 s, so the close lands where you pressed it.
+        L.rule('TS', ['pok', c[1:] if c.startswith('!') else '!' + c], 'pok=0')
+    # sync check (25), in service with the synchroscope switch: the SYNC OK lamp shows it would permit a close
+    L.rule('TS', ['pok', 'hss', '!perm'], 'perm=1')
+    L.rule('TS', ['perm', '!pok'], 'perm=0'); L.rule('TS', ['perm', '!hss'], 'perm=0')
+    # 52G closes on the real phase: in phase it closes, switch on or off. Out of phase, the sync check (switch
+    # on) refuses the close and the handle springs back; with the switch off nothing stops it: the unit is
+    # slammed into step and trips as out of phase. The handle turns in 0.1 s, so the close lands where pressed.
     cs('r_52', 'h52', '52G SYNC BREAKER', ('TRIP', 'CLOSE'), speed=900)
-    L.rule('r_52_ev', ['h52', 'hss', 'perm', '!tr', '!cb'], 'cb_close')
-    L.rule('r_52_ev', ['h52', '!hss', '!tr', '!cb'], 'oop')
+    L.rule('r_52_ev', ['h52', 'pok', '!tr', '!cb'], 'cb_close')
+    L.rule('r_52_ev', ['h52', '!hss', '!pok', '!tr', '!cb'], 'oop')
     L.rule('r_52_ev', ['!h52'], 'cb_open')
     L.rule('T1', ['h52', '!cb'], 'r_52')                           # not closed (refused or tripped): back to TRIP
     L.relay('oop', 'prot'); alarm('oop', W[2])
     L.relay('cb_close', 'cb=1'); L.relay('cb_close', 's_brk', USE_ON); L.relay('cb_close', W[3], USE_OFF)
-    L.relay('cb_close', 'scope_off')                              # locked to the grid: the pointer stops in phase
+    L.relay('cb_close', 'phs_off')                                # locked to the grid: the phase stops
     L.relay('cb_close', 'pf_band')                                # the power factor meter comes alive
     L.rule('cb_open', ['cb'], 'cb_open_x')
     L.rule('cb_prot', ['cb'], 'cb_prot_x')
