@@ -13684,15 +13684,14 @@
 }
 {
 "classname" "game_counter_set"
-"targetname" "n_eq91"
-"target" "p_speed"
-"frags" "0.5788"
+"targetname" "n_eq90"
+"target" "p_sfreq"
 }
 {
 "classname" "game_counter_set"
 "targetname" "n_eq91"
-"target" "p_hz"
-"frags" "0.0808"
+"target" "p_speed"
+"frags" "0.5788"
 }
 {
 "classname" "game_counter_set"
@@ -13708,15 +13707,15 @@
 }
 {
 "classname" "game_counter_set"
-"targetname" "n_eq93"
-"target" "p_speed"
-"frags" "0.5889"
+"targetname" "n_eq92"
+"target" "p_sfreq"
+"frags" "0.1484"
 }
 {
 "classname" "game_counter_set"
 "targetname" "n_eq93"
-"target" "p_hz"
-"frags" "0.2068"
+"target" "p_speed"
+"frags" "0.5889"
 }
 {
 "classname" "game_counter_set"
@@ -13732,6 +13731,12 @@
 }
 {
 "classname" "game_counter_set"
+"targetname" "n_eq94"
+"target" "p_sfreq"
+"frags" "0.2583"
+}
+{
+"classname" "game_counter_set"
 "targetname" "n_eq95"
 "target" "p_speed"
 "frags" "0.5991"
@@ -13740,6 +13745,12 @@
 "classname" "game_counter_set"
 "targetname" "n_eq95"
 "target" "p_hz"
+"frags" "0.3048"
+}
+{
+"classname" "game_counter_set"
+"targetname" "n_eq95"
+"target" "p_sfreq"
 "frags" "0.3048"
 }
 {
@@ -13763,6 +13774,12 @@
 {
 "classname" "game_counter_set"
 "targetname" "n_eq96"
+"target" "p_sfreq"
+"frags" "0.3477"
+}
+{
+"classname" "game_counter_set"
+"targetname" "n_eq96"
 "target" "slipm4"
 "master" "ms_phs"
 }
@@ -13776,6 +13793,12 @@
 "classname" "game_counter_set"
 "targetname" "n_eq97"
 "target" "p_hz"
+"frags" "0.3879"
+}
+{
+"classname" "game_counter_set"
+"targetname" "n_eq97"
+"target" "p_sfreq"
 "frags" "0.3879"
 }
 {
@@ -13799,6 +13822,12 @@
 {
 "classname" "game_counter_set"
 "targetname" "n_eq98"
+"target" "p_sfreq"
+"frags" "0.4262"
+}
+{
+"classname" "game_counter_set"
+"targetname" "n_eq98"
 "target" "slipm2"
 "master" "ms_phs"
 }
@@ -13812,6 +13841,12 @@
 "classname" "game_counter_set"
 "targetname" "n_eq99"
 "target" "p_hz"
+"frags" "0.4634"
+}
+{
+"classname" "game_counter_set"
+"targetname" "n_eq99"
+"target" "p_sfreq"
 "frags" "0.4634"
 }
 {
@@ -13853,6 +13888,12 @@
 {
 "classname" "game_counter_set"
 "targetname" "n_eq100"
+"target" "p_sfreq"
+"frags" "0.5000"
+}
+{
+"classname" "game_counter_set"
+"targetname" "n_eq100"
 "target" "s_turb"
 "frags" "0.392157"
 }
@@ -13866,6 +13907,12 @@
 "classname" "game_counter_set"
 "targetname" "n_eq101"
 "target" "p_hz"
+"frags" "0.5366"
+}
+{
+"classname" "game_counter_set"
+"targetname" "n_eq101"
+"target" "p_sfreq"
 "frags" "0.5366"
 }
 {
@@ -13889,6 +13936,12 @@
 {
 "classname" "game_counter_set"
 "targetname" "n_eq102"
+"target" "p_sfreq"
+"frags" "0.5738"
+}
+{
+"classname" "game_counter_set"
+"targetname" "n_eq102"
 "target" "slip2"
 "master" "ms_phs"
 }
@@ -13902,6 +13955,12 @@
 "classname" "game_counter_set"
 "targetname" "n_eq103"
 "target" "p_hz"
+"frags" "0.6121"
+}
+{
+"classname" "game_counter_set"
+"targetname" "n_eq103"
+"target" "p_sfreq"
 "frags" "0.6121"
 }
 {
@@ -13925,6 +13984,12 @@
 {
 "classname" "game_counter_set"
 "targetname" "n_eq104"
+"target" "p_sfreq"
+"frags" "0.6523"
+}
+{
+"classname" "game_counter_set"
+"targetname" "n_eq104"
 "target" "slip4"
 "master" "ms_phs"
 }
@@ -13938,6 +14003,12 @@
 "classname" "game_counter_set"
 "targetname" "n_eq105"
 "target" "p_hz"
+"frags" "0.6952"
+}
+{
+"classname" "game_counter_set"
+"targetname" "n_eq105"
+"target" "p_sfreq"
 "frags" "0.6952"
 }
 {
@@ -13960,15 +14031,15 @@
 }
 {
 "classname" "game_counter_set"
-"targetname" "n_eq107"
-"target" "p_speed"
-"frags" "0.6634"
+"targetname" "n_eq106"
+"target" "p_sfreq"
+"frags" "0.7417"
 }
 {
 "classname" "game_counter_set"
 "targetname" "n_eq107"
-"target" "p_hz"
-"frags" "0.7932"
+"target" "p_speed"
+"frags" "0.6634"
 }
 {
 "classname" "game_counter_set"
@@ -13984,15 +14055,15 @@
 }
 {
 "classname" "game_counter_set"
-"targetname" "n_eq109"
-"target" "p_speed"
-"frags" "0.6748"
+"targetname" "n_eq108"
+"target" "p_sfreq"
+"frags" "0.8516"
 }
 {
 "classname" "game_counter_set"
 "targetname" "n_eq109"
-"target" "p_hz"
-"frags" "0.9192"
+"target" "p_speed"
+"frags" "0.6748"
 }
 {
 "classname" "game_counter_set"
@@ -14004,6 +14075,12 @@
 "classname" "game_counter_set"
 "targetname" "n_eq110"
 "target" "p_hz"
+"frags" "1.0000"
+}
+{
+"classname" "game_counter_set"
+"targetname" "n_eq110"
+"target" "p_sfreq"
 "frags" "1.0000"
 }
 {
@@ -16070,14 +16147,14 @@
 }
 {
 "classname" "game_counter_set"
-"targetname" "q45"
-"target" "cb_prot"
+"targetname" "q46"
+"target" "prot"
 "master" "ms_ng_ge13"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q45"
-"target" "cb_prot"
+"targetname" "q46"
+"target" "prot"
 "master" "ms_nx_ge60"
 }
 {
@@ -16208,435 +16285,75 @@
 }
 {
 "classname" "game_counter_set"
-"targetname" "TS"
-"master" "ms_g_gt0"
-"target" "q64"
+"targetname" "prot"
+"target" "r_exc"
+"master" "ms_hexc"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q64"
-"target" "g_dn"
+"targetname" "prot"
+"target" "r_plc"
+"master" "ms_plc"
+}
+{
+"classname" "game_counter_set"
+"targetname" "prot"
+"target" "r_avr"
+"master" "ms_avr"
+}
+{
+"classname" "game_counter_set"
+"targetname" "TK"
+"target" "gshut"
 "master" "ms_tr"
 }
 {
 "classname" "game_counter_set"
-"targetname" "TS"
-"master" "ms_ntr"
-"target" "q65"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q65"
+"targetname" "gshut"
+"target" "g_dn"
 "master" "ms_g_gt0"
-"target" "q66"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q66"
-"master" "ms_nplc"
-"target" "q67"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q67"
-"master" "ms_o_gt0"
-"target" "q68"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q68"
+"targetname" "gshut"
 "target" "g_dn"
-"master" "ms_k_gl_a"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q65"
-"master" "ms_o_ge3"
-"target" "q69"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q69"
-"master" "ms_ng_max"
-"target" "q70"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q70"
-"master" "ms_nplc"
-"target" "q71"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q71"
-"target" "g_up"
-"master" "ms_k_gr_a"
-}
-{
-"classname" "game_counter_set"
-"targetname" "TS"
-"master" "ms_ncb"
-"target" "q72"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q72"
-"master" "ms_ntr"
-"target" "q73"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q73"
-"master" "ms_nbrake"
-"target" "q74"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q74"
-"master" "ms_plc"
-"target" "q75"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q75"
-"master" "ms_o_ge3"
-"target" "q76"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q76"
-"master" "ms_nn_ge90"
-"target" "q77"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q77"
-"target" "g_up"
-"master" "ms_ng_ge25"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q77"
-"target" "g_dn"
-"master" "ms_g_ge26"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q76"
-"master" "ms_n_ge90"
-"target" "q78"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q78"
-"target" "g_dn"
-"master" "ms_g_ge16"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q78"
-"target" "g_up"
-"master" "ms_ng_ge15"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q73"
-"master" "ms_plc"
-"target" "q79"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q79"
 "master" "ms_g_gt0"
-"target" "q80"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q80"
-"master" "ms_o_gt0"
-"target" "q81"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q81"
+"targetname" "gshut"
 "target" "g_dn"
-"master" "ms_brake"
+"master" "ms_g_gt0"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q72"
-"master" "ms_exc"
-"target" "q82"
+"targetname" "gshut"
+"target" "g_dn"
+"master" "ms_g_gt0"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q82"
-"master" "ms_avr"
-"target" "q83"
+"targetname" "gshut"
+"target" "g_dn"
+"master" "ms_g_gt0"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q83"
-"target" "x_dn"
-"master" "ms_x_ge101"
+"targetname" "gshut"
+"target" "g_dn"
+"master" "ms_g_gt0"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q72"
-"master" "ms_nv_max"
-"target" "q84"
+"targetname" "gshut"
+"target" "g_dn"
+"master" "ms_g_gt0"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q84"
-"master" "ms_dvn_pos"
-"target" "q85"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q85"
-"target" "v_up"
-"master" "ms_dvx_pos"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q72"
-"master" "ms_v_gt0"
-"target" "q86"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q86"
-"master" "ms_ndvn_neg"
-"target" "q87"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q87"
-"target" "v_dn"
-"master" "ms_dvx_neg"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q86"
-"target" "v_dn"
-"master" "ms_dvn_neg"
-}
-{
-"classname" "game_counter_set"
-"targetname" "TS"
-"master" "ms_nexc"
-"target" "q88"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q88"
-"target" "x_dn"
-"master" "ms_x_gt0"
-}
-{
-"classname" "game_counter_set"
-"targetname" "TS"
-"master" "ms_exc"
-"target" "q89"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q89"
-"master" "ms_navr"
-"target" "q90"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q90"
-"master" "ms_k_fa_a"
-"target" "q91"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q91"
-"master" "ms_nx_max"
-"target" "q92"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q92"
-"target" "x_up"
-"master" "ms_k_fa_u"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q91"
-"master" "ms_x_gt0"
-"target" "q93"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q93"
-"target" "x_dn"
-"master" "ms_nk_fa_u"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q89"
-"master" "ms_avr"
-"target" "q94"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q94"
-"target" "x_up"
-"master" "ms_nx_ge100"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q94"
-"target" "x_dn"
-"master" "ms_x_ge106"
-}
-{
-"classname" "game_counter_set"
-"targetname" "TS"
-"master" "ms_cb"
-"target" "q95"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q95"
-"master" "ms_exc"
-"target" "q96"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q96"
-"master" "ms_avr"
-"target" "q97"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q97"
-"target" "x_up"
-"master" "ms_nx_ge104"
-}
-{
-"classname" "game_counter_set"
-"targetname" "TS"
-"master" "ms_phs"
-"target" "q98"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q98"
-"master" "ms_n_ge100"
-"target" "q99"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q99"
-"master" "ms_nn_ge101"
-"target" "q100"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q100"
-"master" "ms_npok"
-"target" "q101"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q101"
-"master" "ms_nv_ge106"
-"target" "q102"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q102"
-"master" "ms_inph"
-"target" "q103"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q103"
-"target" "pok=1"
-"master" "ms_v_ge95"
-}
-{
-"classname" "game_counter_set"
-"targetname" "TS"
-"master" "ms_pok"
-"target" "q104"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q104"
-"master" "ms_nperm"
-"target" "q105"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q105"
-"target" "perm=1"
-"master" "ms_hss"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q104"
-"target" "pok=0"
-"master" "ms_nphs"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q104"
-"target" "pok=0"
-"master" "ms_ninph"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q104"
-"target" "pok=0"
-"master" "ms_nn_ge100"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q104"
-"target" "pok=0"
-"master" "ms_n_ge101"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q104"
-"target" "pok=0"
-"master" "ms_nv_ge95"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q104"
-"target" "pok=0"
-"master" "ms_v_ge106"
-}
-{
-"classname" "game_counter_set"
-"targetname" "TS"
-"master" "ms_npok"
-"target" "q106"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q106"
-"target" "perm=0"
-"master" "ms_perm"
-}
-{
-"classname" "game_counter_set"
-"targetname" "TS"
-"master" "ms_nhss"
-"target" "q107"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q107"
-"target" "perm=0"
-"master" "ms_perm"
+"targetname" "gshut"
+"target" "g_dn"
+"master" "ms_g_gt0"
 }
 {
 "classname" "game_counter_set"
@@ -16648,11 +16365,11 @@
 "classname" "game_counter_set"
 "targetname" "r_gt_ev"
 "master" "ms_ntr"
-"target" "q108"
+"target" "q64"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q108"
+"targetname" "q64"
 "target" "prot"
 "master" "ms_hgt"
 }
@@ -16666,53 +16383,53 @@
 "classname" "game_counter_set"
 "targetname" "TS2"
 "master" "ms_ncb"
-"target" "q109"
+"target" "q65"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q109"
+"targetname" "q65"
 "master" "ms_nbrake"
-"target" "q110"
+"target" "q66"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q110"
+"targetname" "q66"
 "master" "ms_nn_max"
-"target" "q111"
+"target" "q67"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q111"
+"targetname" "q67"
 "target" "n_up"
 "master" "ms_en_hi"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q110"
+"targetname" "q66"
 "master" "ms_g_gt0"
-"target" "q112"
+"target" "q68"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q112"
+"targetname" "q68"
 "master" "ms_n_gt0"
-"target" "q113"
+"target" "q69"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q113"
+"targetname" "q69"
 "target" "n_dn"
 "master" "ms_en_lo"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q109"
+"targetname" "q65"
 "master" "ms_n_gt0"
-"target" "q114"
+"target" "q70"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q114"
+"targetname" "q70"
 "target" "n_dn"
 "master" "ms_brake"
 }
@@ -16720,83 +16437,503 @@
 "classname" "game_counter_set"
 "targetname" "TS4"
 "master" "ms_ncb"
-"target" "q115"
+"target" "q71"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q115"
+"targetname" "q71"
 "master" "ms_nbrake"
-"target" "q116"
+"target" "q72"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q116"
+"targetname" "q72"
 "master" "ms_nn_max"
-"target" "q117"
+"target" "q73"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q117"
+"targetname" "q73"
 "master" "ms_nen_hi"
-"target" "q118"
+"target" "q74"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q118"
+"targetname" "q74"
 "target" "n_up"
 "master" "ms_en_md"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q116"
+"targetname" "q72"
 "master" "ms_g_gt0"
-"target" "q119"
+"target" "q75"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q119"
+"targetname" "q75"
 "master" "ms_n_gt0"
-"target" "q120"
+"target" "q76"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q120"
+"targetname" "q76"
 "master" "ms_nen_lo"
-"target" "q121"
+"target" "q77"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q121"
+"targetname" "q77"
 "target" "n_dn"
 "master" "ms_en_ml"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q116"
+"targetname" "q72"
 "master" "ms_n_gt0"
-"target" "q122"
+"target" "q78"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q122"
+"targetname" "q78"
 "master" "ms_en_neg"
-"target" "q123"
+"target" "q79"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q123"
+"targetname" "q79"
 "target" "n_dn"
 "master" "ms_ng_gt0"
 }
 {
 "classname" "game_counter_set"
-"targetname" "r_exc_ev"
+"targetname" "TS"
 "master" "ms_ntr"
-"target" "q124"
+"target" "q80"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q124"
+"targetname" "q80"
+"master" "ms_g_gt0"
+"target" "q81"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q81"
+"master" "ms_nplc"
+"target" "q82"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q82"
+"master" "ms_o_gt0"
+"target" "q83"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q83"
+"target" "g_dn"
+"master" "ms_k_gl_a"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q80"
+"master" "ms_o_ge3"
+"target" "q84"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q84"
+"master" "ms_ng_max"
+"target" "q85"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q85"
+"master" "ms_nplc"
+"target" "q86"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q86"
+"target" "g_up"
+"master" "ms_k_gr_a"
+}
+{
+"classname" "game_counter_set"
+"targetname" "TS"
+"master" "ms_ncb"
+"target" "q87"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q87"
+"master" "ms_ntr"
+"target" "q88"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q88"
+"master" "ms_nbrake"
+"target" "q89"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q89"
+"master" "ms_plc"
+"target" "q90"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q90"
+"master" "ms_o_ge3"
+"target" "q91"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q91"
+"master" "ms_nn_ge90"
+"target" "q92"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q92"
+"target" "g_up"
+"master" "ms_ng_ge25"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q92"
+"target" "g_dn"
+"master" "ms_g_ge26"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q91"
+"master" "ms_n_ge90"
+"target" "q93"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q93"
+"target" "g_dn"
+"master" "ms_g_ge16"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q93"
+"target" "g_up"
+"master" "ms_ng_ge15"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q88"
+"master" "ms_g_gt0"
+"target" "q94"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q94"
+"master" "ms_plc"
+"target" "q95"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q95"
+"master" "ms_o_gt0"
+"target" "q96"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q96"
+"target" "g_dn"
+"master" "ms_brake"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q87"
+"master" "ms_exc"
+"target" "q97"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q97"
+"master" "ms_avr"
+"target" "q98"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q98"
+"target" "x_dn"
+"master" "ms_x_ge101"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q87"
+"master" "ms_nv_max"
+"target" "q99"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q99"
+"master" "ms_dvn_pos"
+"target" "q100"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q100"
+"target" "v_up"
+"master" "ms_dvx_pos"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q87"
+"master" "ms_v_gt0"
+"target" "q101"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q101"
+"master" "ms_ndvn_neg"
+"target" "q102"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q102"
+"target" "v_dn"
+"master" "ms_dvx_neg"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q101"
+"target" "v_dn"
+"master" "ms_dvn_neg"
+}
+{
+"classname" "game_counter_set"
+"targetname" "TS"
+"master" "ms_nexc"
+"target" "q103"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q103"
+"target" "x_dn"
+"master" "ms_x_gt0"
+}
+{
+"classname" "game_counter_set"
+"targetname" "TS"
+"master" "ms_exc"
+"target" "q104"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q104"
+"master" "ms_navr"
+"target" "q105"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q105"
+"master" "ms_k_fa_a"
+"target" "q106"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q106"
+"master" "ms_nx_max"
+"target" "q107"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q107"
+"target" "x_up"
+"master" "ms_k_fa_u"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q106"
+"master" "ms_x_gt0"
+"target" "q108"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q108"
+"target" "x_dn"
+"master" "ms_nk_fa_u"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q104"
+"master" "ms_avr"
+"target" "q109"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q109"
+"target" "x_up"
+"master" "ms_nx_ge100"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q109"
+"target" "x_dn"
+"master" "ms_x_ge106"
+}
+{
+"classname" "game_counter_set"
+"targetname" "TS"
+"master" "ms_cb"
+"target" "q110"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q110"
+"master" "ms_exc"
+"target" "q111"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q111"
+"master" "ms_avr"
+"target" "q112"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q112"
+"target" "x_up"
+"master" "ms_nx_ge104"
+}
+{
+"classname" "game_counter_set"
+"targetname" "TS"
+"master" "ms_phs"
+"target" "q113"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q113"
+"master" "ms_n_ge100"
+"target" "q114"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q114"
+"master" "ms_nn_ge101"
+"target" "q115"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q115"
+"master" "ms_npok"
+"target" "q116"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q116"
+"master" "ms_nv_ge106"
+"target" "q117"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q117"
+"master" "ms_inph"
+"target" "q118"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q118"
+"target" "pok=1"
+"master" "ms_v_ge95"
+}
+{
+"classname" "game_counter_set"
+"targetname" "TS"
+"master" "ms_pok"
+"target" "q119"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q119"
+"master" "ms_nperm"
+"target" "q120"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q120"
+"target" "perm=1"
+"master" "ms_hss"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q119"
+"target" "pok=0"
+"master" "ms_nphs"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q119"
+"target" "pok=0"
+"master" "ms_ninph"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q119"
+"target" "pok=0"
+"master" "ms_nn_ge100"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q119"
+"target" "pok=0"
+"master" "ms_n_ge101"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q119"
+"target" "pok=0"
+"master" "ms_nv_ge95"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q119"
+"target" "pok=0"
+"master" "ms_v_ge106"
+}
+{
+"classname" "game_counter_set"
+"targetname" "TS"
+"master" "ms_npok"
+"target" "q121"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q121"
+"target" "perm=0"
+"master" "ms_perm"
+}
+{
+"classname" "game_counter_set"
+"targetname" "TS"
+"master" "ms_nhss"
+"target" "q122"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q122"
+"target" "perm=0"
+"master" "ms_perm"
+}
+{
+"classname" "game_counter_set"
+"targetname" "r_exc_ev"
+"master" "ms_ntr"
+"target" "q123"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q123"
 "target" "exc=1"
 "master" "ms_hexc"
 }
@@ -16858,41 +16995,41 @@
 "classname" "game_counter_set"
 "targetname" "r_plc_ev"
 "master" "ms_phs"
+"target" "q124"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q124"
+"master" "ms_plc"
 "target" "q125"
 }
 {
 "classname" "game_counter_set"
 "targetname" "q125"
-"master" "ms_plc"
+"master" "ms_n_ge100"
 "target" "q126"
 }
 {
 "classname" "game_counter_set"
 "targetname" "q126"
+"target" "slip1"
+"master" "ms_nn_ge101"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q124"
 "master" "ms_n_ge100"
 "target" "q127"
 }
 {
 "classname" "game_counter_set"
 "targetname" "q127"
-"target" "slip1"
-"master" "ms_nn_ge101"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q125"
-"master" "ms_n_ge100"
+"master" "ms_nplc"
 "target" "q128"
 }
 {
 "classname" "game_counter_set"
 "targetname" "q128"
-"master" "ms_nplc"
-"target" "q129"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q129"
 "target" "slip0"
 "master" "ms_nn_ge101"
 }
@@ -16924,41 +17061,41 @@
 "classname" "game_counter_set"
 "targetname" "r_52_ev"
 "master" "ms_ncb"
+"target" "q129"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q129"
+"master" "ms_ntr"
 "target" "q130"
 }
 {
 "classname" "game_counter_set"
 "targetname" "q130"
-"master" "ms_ntr"
+"master" "ms_pok"
 "target" "q131"
 }
 {
 "classname" "game_counter_set"
 "targetname" "q131"
-"master" "ms_pok"
-"target" "q132"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q132"
 "target" "cb_close"
 "master" "ms_h52"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q131"
+"targetname" "q130"
 "master" "ms_npok"
+"target" "q132"
+}
+{
+"classname" "game_counter_set"
+"targetname" "q132"
+"master" "ms_h52"
 "target" "q133"
 }
 {
 "classname" "game_counter_set"
 "targetname" "q133"
-"master" "ms_h52"
-"target" "q134"
-}
-{
-"classname" "game_counter_set"
-"targetname" "q134"
 "target" "oop"
 "master" "ms_nhss"
 }
@@ -17001,11 +17138,11 @@
 "classname" "game_counter_set"
 "targetname" "pf_band"
 "master" "ms_ng_ge55"
-"target" "q135"
+"target" "q134"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q135"
+"targetname" "q134"
 "target" "pf1=1"
 "master" "ms_g_ge30"
 }
@@ -17270,11 +17407,11 @@
 "classname" "game_counter_set"
 "targetname" "T64"
 "master" "ms_nrq_max"
-"target" "q136"
+"target" "q135"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q136"
+"targetname" "q135"
 "target" "rq_up"
 "master" "ms_rup"
 }
@@ -17282,11 +17419,11 @@
 "classname" "game_counter_set"
 "targetname" "T64"
 "master" "ms_nrup"
-"target" "q137"
+"target" "q136"
 }
 {
 "classname" "game_counter_set"
-"targetname" "q137"
+"targetname" "q136"
 "target" "rq_dn"
 "master" "ms_rq_gt0"
 }
@@ -17307,12 +17444,6 @@
 "targetname" "init"
 "target" "p_fa"
 "frags" "1.0000"
-}
-{
-"classname" "game_counter_set"
-"targetname" "init"
-"target" "p_sfreq"
-"frags" "0.5000"
 }
 {
 "classname" "game_counter_set"

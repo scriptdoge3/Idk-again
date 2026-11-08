@@ -283,8 +283,11 @@ def _build(L):
     display('v', ptr('p_volts'), lambda x: x / 125, vals=list(range(0, 72, 4)) + list(range(72, 109)) + list(range(110, 121, 2)))
     # frequency: the generator's follows its speed (60 Hz at 100 %), shown on a 54-66 Hz scale; the station
     # bus is fed from the grid at 60 Hz
-    display('n', ptr('p_hz'), lambda x: min(1, max(0, (0.6 * x - 54) / 12)), vals=range(89, 112))
-    ptr('p_sfreq')
+    hz = lambda x: min(1, max(0, (0.6 * x - 54) / 12)); hz_vals = [90, 92, 94] + list(range(95, 106)) + [106, 108, 110]
+    display('n', ptr('p_hz'), hz, vals=hz_vals)
+    # the station bus is on the grid only through 52G: closed, it reads 60 Hz (the unit is held at 100 % on
+    # line); open, it is not synchronized and follows the generator
+    display('n', ptr('p_sfreq'), hz, vals=hz_vals)
     fx = list(range(0, 72, 6)) + list(range(72, 121, 2))
     display('x', ptr('p_exc'), lambda x: x / 120, vals=fx)
     # thyristor firing angle: field current goes as cos(alpha); 90 deg = no field, 0 deg = full field (x = 120)
@@ -337,11 +340,15 @@ def _build(L):
     L.rule('T8', ['!brake', 'a_gt0'], 'a_dn')                         # released brakes leak a little more
 
     # ------------------------------------------------------- protection
-    # 'prot' trips the unit: the gate closes fast, 41 and 52G open, and the gate-trip handle flips to TRIP.
+    # 'prot' trips the unit: the wicket gate shuts at once, 52G and the 41 field breaker open, the PLC and the
+    # AVR trip off, and the gate-trip handle flips to TRIP.
     L.relay('prot', 'tr=1'); L.relay('prot', 'exc=0')
     L.rule('prot', ['cb'], 'cb_prot')
+    L.rule('prot', ['hexc'], 'r_exc'); L.rule('prot', ['plc'], 'r_plc'); L.rule('prot', ['avr'], 'r_avr')   # handles to OPEN / OFF
     alarm('prot')
-    L.rule('TS', ['tr', 'g_gt0'], 'g_dn')                             # emergency closing, 10 %/s
+    L.rule('TK', ['tr'], 'gshut')                                     # the gate shuts: 8 % every 0.05 s
+    for _ in range(8):
+        L.rule('gshut', ['g_gt0'], 'g_dn')
     L.relay(vname('n', 140), 'prot'); alarm(vname('n', 140), W[0])        # overspeed, 140 %
     L.rule('T1', ['bt_max', '!tr'], 'prot')
     L.rule('T1', ['g_gt0', '!o_ge2', '!tr'], 'prot')                  # servo oil gone with the gate open
@@ -498,8 +505,8 @@ def _build(L):
             continue
         for k, P in enumerate(PF_P):
             L.display(vname('x', x), 'p_pf', pf_frac(x, P), [f'pf{k}'])
-    L.rule('T1', ['cb', '!g_ge13'], 'cb_prot')                    # reverse power (32): the unit is motoring
-    L.rule('T1', ['cb', '!x_ge60'], 'cb_prot')                    # loss of field (40): below 60 %
+    L.rule('T1', ['cb', '!g_ge13', '!tr'], 'prot')                # reverse power (32): the unit is motoring
+    L.rule('T1', ['cb', '!x_ge60', '!tr'], 'prot')                # loss of field (40): below 60 %
 
     # ---------------------------------------------------------------- river
     # no pond: the intake takes the water straight out of the river, so its depth moves as soon as the plant
@@ -539,7 +546,6 @@ def _build(L):
 
     # --------------------------------------------------------------- init
     L.display('init', 'p_pf', 0.5); L.display('init', 'p_vib', 0.02); L.display('init', 'p_fa', 1.0)
-    L.display('init', 'p_sfreq', 0.5)
     for var, p, fn in [('l', 'p_hw', lambda x: (4 + 0.25 * x) / 10), ('sg', 'p_spill', lambda x: x / 8),
                        ('rq', 'p_rq', lambda q: 0.9 * (65 + 5 * q) / 120),
                        ('bt', 'p_bt', lambda x: x / 10)]:

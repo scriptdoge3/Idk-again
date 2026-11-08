@@ -14,17 +14,21 @@ frequency meters and the PLC and AVR breakers, and the right one holds the auxil
 gauges. On every cabinet the gauges are at the top and the breakers and dials in a band across the
 middle. The spillway gate has its own panel on the left wall, beside the fire extinguisher.
 
+GEN FREQUENCY follows the unit's speed. STATION FREQUENCY reads the grid's 60 Hz while 52G is closed;
+with 52G open (before synchronizing, or after a trip) the station is not synchronized and it follows
+the generator.
+
 | Cabinet | Control | What it does |
 |---|---|---|
-| Left | WICKET GATE TRIP (red grip, yellow plate) | The emergency stop: closes the gate fast and opens 41 and 52G. Protection turns it to TRIP by itself; turning it back to NORMAL resets (it trips again if the cause is still there). |
+| Left | WICKET GATE TRIP (red grip, yellow plate) | The emergency stop. A trip (this handle or any protection) shuts the wicket gate at once (under half a second), opens 52G and the 41 field breaker, and turns the PLC and the AVR off. Protection turns this handle to TRIP by itself; turning it back to NORMAL resets (it trips again if the cause is still there). |
 | Left | SYNCHROSCOPE | Shows the phase between the generator and the grid, and puts the sync check (25) in service. The phase is there whether the switch is on or not, while the field is on and the unit is within 5 % of 60 Hz; the switch only shows it (pointer and sync lamps). The phase turns at the slip: anticlockwise (SLOW) when the unit is slower than the grid, clockwise (FAST) when faster, quicker the further off. At exactly 100 % speed it stands still wherever it is. The sync lamps are dark at 12 o'clock and brightest at 6. The green SYNC OK lamp lights while a close would be allowed: phase in the green sector, speed at 100 % and volts within 5 % (456–504 V). |
 | Left | 52G SYNC BREAKER | Closes the generator onto the grid, on the real phase. In phase (what SYNC OK shows) it closes, switch on or off. Out of phase with the synchroscope on, the sync check refuses and the handle springs back; with the synchroscope off nothing stops it and the unit trips as out of phase. Once closed the unit is locked to the grid and the phase stops. |
 | Left | 41 FIELD BREAKER | Connects the thyristor exciter. Opening it lets the field decay. |
 | Left | FIRING ANGLE dial | Sets the field (manual excitation). Off line it sets the voltage; on line it sets the reactive power, shown on the POWER FACTOR meter. The FIRING ANGLE gauge above shows the thyristor angle: field goes as cos α, so 90° is no field, about 34° is rated field and 0° is full field. |
 | Left | WICKET GATE LOWER and RAISE dials | Hold USE on RAISE to open the gate, on LOWER to close it: 1 % every 0.1 s while held. They are spring-return: let go and the dial springs back to 12 o'clock and the gate stops. |
 | Left | BRAKES dial | APPLY / RELEASE. Apply them below 30 % speed when stopping. |
-| Middle | PLC | ON: the PLC runs the gate: it brings the unit up to speed once the brakes are released, and on line it holds the river at 7.0 m deep at the intake, so the unit follows the river's flow. |
-| Middle | AVR | AUTO: the AVR runs the field: 480 V off line, slightly lagging on line. |
+| Middle | PLC | ON: the PLC runs the gate: it brings the unit up to speed once the brakes are released, and on line it holds the river at 7.0 m deep at the intake, so the unit follows the river's flow. A trip turns it OFF. |
+| Middle | AVR | AUTO: the AVR runs the field: 480 V off line, slightly lagging on line. A trip turns it to MAN. |
 | Right | OIL PUMP | Bearing lube oil. Turning the unit without it wipes the bearings in seconds (trip). |
 | Right | WATER PUMP | Bearing and generator cooling. Without it the bearings heat up in about a minute (trip). |
 | Right | HYDRAULIC PUMP | Charges the gate servo accumulator. Every gate movement uses oil; below 220 psi the gate trips. |
@@ -60,7 +64,7 @@ and up), so the same field gives a lower power factor at light load.
    Wait longer at 101 % to move it further. Close 52G while the green SYNC OK lamp is lit (pointer in
    the green, speed and volts matched). If it isn't, the close is refused and nothing trips.
 6. Open the gate to load the unit (about 190 kW at 60 % gate). Keep it above 13 %, or the reverse-power
-   relay opens 52G. Keep the field up, or loss of field trips 52G.
+   relay trips the unit. Keep the field up, or loss of field trips it.
 
 To stop: close the gate to 15 %, turn 52G to TRIP, open 41, close the gate, and apply the brakes below 30 %.
 With the PLC ON and the AVR on AUTO (middle cabinet), steps 3 and 4 happen by themselves, and the PLC
@@ -152,7 +156,7 @@ the firing-angle dial.
 `-num_edicts 2048` to Half-Life's launch options (Steam → Half-Life → Properties → Launch Options).
 Without it the map won't load ("ED_Alloc: no free edicts"). 2048 is the most the engine can handle.
 
-The map has 1,984 entities (1,977 once the lights are compiled in): the 1 % steps need a counter and a
+The map has 2,006 entities (1,999 once the lights are compiled in): the 1 % steps need a counter and a
 gauge setter for most values. The default limit is 1,200 (900 before the 25th-anniversary update), hence
 the launch option. The variables only get counters for values something listens for, and needles step
 2-4 % where they are not read closely.

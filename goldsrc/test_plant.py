@@ -149,7 +149,11 @@ run_until(lambda: False, 30); show('loaded')
 
 # emergency stop from load: the gate trip
 pk = [0]; track = lambda s: pk.__setitem__(0, max(pk[0], s.counter('n')))
-print('WICKET GATE TRIP:', sim.press('r_gt')); sim.run(10, every=track); show('tripped')
+g_trip = C('g'); print('WICKET GATE TRIP:', sim.press('r_gt')); sim.run(0.5, every=track); t_g = 0.5
+while C('g') > 0: sim.run(0.05, every=track); t_g += 0.05
+print(f'  wicket gate {g_trip} % -> 0 in {t_g - 0.375:.2f} s after the handle reached TRIP; station frequency {sim.ent("p_sfreq").pos:.2f} (gen {sim.ent("p_hz").pos:.2f})')
+sim.run(10 - t_g, every=track); show('tripped')
+print(f'  station frequency now {54 + 12 * sim.ent("p_sfreq").pos:.1f} Hz, gen {54 + 12 * sim.ent("p_hz").pos:.1f} Hz (speed {C("n")} %)')
 print(f'  peak speed {pk[0]} %, handles: 52G {sim.ent("r_52").pos} 41 {sim.ent("r_exc").pos} gate-trip {sim.ent("r_gt").pos}')
 run_until(lambda: C('n') <= 30, 200); flip('r_br'); tt = run_until(lambda: C('n') == 0, 120); print(f'brakes applied at 30 %, stopped {tt} s later')
 flip('r_gt', 1); print('gate trip reset: tr', G('tr'))
@@ -168,6 +172,8 @@ sim.press('r_52'); sim.run(0.5); print(f'52G closed blind with the synchroscope 
 flip('r_ss', 1)
 run_until(lambda: C('n') <= 30, 200); flip('r_br'); run_until(lambda: C('n') == 0, 120); flip('r_br', 0.5); flip('r_gt', 1)
 print('reset: tr', G('tr'), 'OUT OF PHASE lit', sim.ent('A02').on)
+print(f'  the trip turned the PLC off: {G("plc") == 0} (handle {sim.ent("r_plc").pos}), the AVR off: {G("avr") == 0} (handle {sim.ent("r_avr").pos}), 41 open: {G("exc") == 0} (handle {sim.ent("r_exc").pos})')
+flip('r_plc'); flip('r_avr'); print('  PLC and AVR back on:', G('plc'), G('avr'))
 
 # PLC/AVR on line, then lose the oil pump
 run_until(lambda: C('n') == 100, 120); flip('r_exc'); run_until(lambda: C('v') == 100, 30)
@@ -183,7 +189,8 @@ show('PLC level')
 print(f'  PLC following the river for 400 s: river flow {65 + 5 * min(h[2] for h in hist)}-{65 + 5 * max(h[2] for h in hist)} %, '
       f'river depth {4 + 0.25 * min(h[0] for h in hist)}-{4 + 0.25 * max(h[0] for h in hist)} m, gate {min(h[1] for h in hist)}-{max(h[1] for h in hist)} %, '
       f'spill gate {min(h[3] for h in hist)}-{max(h[3] for h in hist)}, still on line {G("cb")}')
-flip('r_lp'); tt = run_until(lambda: G('tr') == 1, 60); print(f'oil pump stopped: bearing trip after {tt} s, bt={C("bt")}'); show('lube trip')
+flip('r_lp'); tt = run_until(lambda: G('tr') == 1, 60); print(f'oil pump stopped: bearing trip after {tt} s, bt={C("bt")}'); g0 = C('g'); sim.run(1.0); show('lube trip')
+print(f'  1 s after the trip: gate {g0} -> {C("g")} %, PLC {G("plc")}, AVR {G("avr")}, 41 {G("exc")}, 52G {G("cb")}; station frequency follows the unit: {sim.ent("p_sfreq").pos == sim.ent("p_hz").pos}')
 flip('r_lp'); run_until(lambda: C('n') == 0, 400)
 flip('r_gt', 1); print('oil pump restarted, reset: tr', G('tr'))
 flip('r_ac'); tt = run_until(lambda: G('brake') == 1 and G('hbr') == 1, 120)
