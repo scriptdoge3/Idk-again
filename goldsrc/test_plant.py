@@ -73,6 +73,8 @@ def lit():
     return [dev['ann'][i].replace('|', ' ') for i in range(16) if sim.ent(f'A{i:02d}').on != bool(dev['ann_init'].get(i, 0)) ^ False]
 
 sim.run(5); show('dark')
+riv = []; sim.run(600, every=lambda s_: riv.append(C('rq')) if round(s_.time * 100) % 3200 == 0 else None)
+print('river flow, % every 32 s for 10 min (the unit stopped):', [65 + 5 * q for q in riv], ' river level', C('l'), ' spill gate', C('sg'))
 print('try to release brakes with no air:', flip('r_br', 2), ' brake', G('brake'))
 for sw in ('r_lp', 'r_wp', 'r_hp', 'r_ac'):
     flip(sw, 0.5)
@@ -175,7 +177,11 @@ print('52G turned to TRIP by hand:', sim.press('r_52')); sim.run(1); print('  cb
 print('41 turned to OPEN by hand:', sim.press('r_exc')); sim.run(1); print('  exc', G('exc'), 'handle', sim.ent('r_exc').pos)
 flip('r_exc'); run_until(lambda: C('v') == 100, 30); run_until(lambda: G('perm') == 1, 30, 0.05)
 sim.press('r_52'); sim.run(1); print('re-synchronized:', G('cb'))
-l0 = C('l'); run_until(lambda: False, 180); show('PLC level'); print(f'  PLC holding the pond: level {l0} -> {C("l")} (12 = 513.0 ft), gate {C("g")}')
+hist = []; sim.run(400, every=lambda s_: hist.append((C('l'), C('g'), C('rq'), C('sg'))) if round(s_.time * 100) % 100 == 0 else None)
+show('PLC level')
+print(f'  PLC following the river for 400 s: river flow {65 + 5 * min(h[2] for h in hist)}-{65 + 5 * max(h[2] for h in hist)} %, '
+      f'river level {min(h[0] for h in hist)}-{max(h[0] for h in hist)} (12 = 513.0 ft), gate {min(h[1] for h in hist)}-{max(h[1] for h in hist)} %, '
+      f'spill gate {min(h[3] for h in hist)}-{max(h[3] for h in hist)}, still on line {G("cb")}')
 flip('r_lp'); tt = run_until(lambda: G('tr') == 1, 60); print(f'lube oil pump stopped: bearing trip after {tt} s, bt={C("bt")}'); show('lube trip')
 flip('r_lp'); run_until(lambda: C('n') == 0, 400)
 flip('r_gt', 1); print('lube oil pump restarted, reset: tr', G('tr'))
@@ -187,7 +193,7 @@ sg0 = C('sg'); sim.ent('k_sr').hold(2.0); sim.run(0.5)
 print(f'spill gate {sg0} in AUTO; RAISE held 2 s does nothing: {C("sg")}')
 flip('r_sp'); print('CONTROL to MANUAL:', G('sman'))
 tt = sim.time; print('  RAISE to 8 (4 ft):', gate_to(8, 'k_sr', 'k_sl', 'sg'), f'in {sim.time - tt:.1f} s; pointer', round(sim.ent('p_spill').pos * 8))
-print('  LOWER to 2:', gate_to(2, 'k_sr', 'k_sl', 'sg'), ' pond level', C('l'))
+print('  LOWER to 2:', gate_to(2, 'k_sr', 'k_sl', 'sg'), ' river level', C('l'))
 l0 = C('l'); run_until(lambda: False, 120); print(f'  in MANUAL the gate stays at {C("sg")}; level {l0} -> {C("l")}')
 flip('r_sp'); run_until(lambda: False, 200); print(f'  back to AUTO: gate {C("sg")}, level {C("l")}')
 print('multi_manager re-trigger collisions:', sim.mm_ignored)

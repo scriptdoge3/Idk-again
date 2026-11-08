@@ -7,7 +7,9 @@ The unit is run by hand from these controls:
   middle (annunciator) PLC and AVR breakers
   right (auxiliaries)  lube oil pump, cooling water pump, gate servo oil pump, brake air compressor
   spillway panel       AUTO / MANUAL selector, spill gate LOWER and RAISE dials (on the wall by the extinguisher)
-With the PLC on it runs the gate (speed off line, pond level on line); with the AVR on it runs the field.
+With the PLC on it runs the gate (speed off line, river level on line); with the AVR on it runs the field.
+The plant is run-of-river: it takes its water straight from the river behind a low weir, with almost no
+storage, so on line it has to pass what the river brings, and the river's flow comes and goes by itself.
 
 Every number is a game_counter variable. A clock made of two multi_managers runs the rules; each rule is
 a chain of game_counter_set entities locked by multisource masters that read env_global flags.
@@ -20,13 +22,14 @@ Scales (one step of each variable):
   o  servo oil    10 psi above 200 psi (10 = 300 psi)
   a  brake air    12.5 psi (brakes release at 4 = 50 psi)
   bt bearing temp 10 C above 20 C (8 = alarm, 10 = trip)
-  l  pond level   0.25 ft above EL 510.0 (12 = 513.0 ft normal)
+  l  river level  at the intake, 0.25 ft above EL 510.0 (12 = 513.0 ft normal; at 515.0 it tops the weir)
+  rq river flow  65 + 5 rq % of full-gate discharge (65-85 %)
   sg spill gate   0.5 ft
 Difference variables (only their sign is needed):
   en  = T(g) - n          speed error: T is the speed the runner settles at for gate g
   dvn = n - v             the generator can't make more volts than its speed allows
   dvx = x - v             off line, the volts follow the field
-  el  = river - g - 15 sg pond balance (in % of full-gate discharge)
+  el  = river - g - 15 sg the river's balance at the intake (in % of full-gate discharge)
 """
 import math
 from hlogic import Logic, USE_ON, USE_OFF, USE_TOGGLE, vname
@@ -49,13 +52,13 @@ _old = lambda g: (10 + (g - 15) * 90 / 85) / 5 if g >= 15 else g / 15 * 2      #
 KW = [round(_interp(list(enumerate(_KW5)), _old(g))) for g in range(101)]
 VIB = [_interp(list(enumerate(_VIB5)), _old(g)) for g in range(101)]
 
-RIVER0 = 75                     # normal river flow, % of full-gate discharge
-INIT = dict(n=0, g=0, v=0, x=0, o=0, a=0, bt=2, l=12, sg=5)
-VARS = dict(n=(0, 145), g=(0, 100), v=(0, 120), x=(0, 120), o=(0, 10), a=(0, 10), bt=(0, 10), l=(0, 16), sg=(0, 8))
+RIVER0 = 75                     # river flow at the start, % of full-gate discharge (rq = 2)
+INIT = dict(n=0, g=0, v=0, x=0, o=0, a=0, bt=2, l=12, sg=5, rq=2)
+VARS = dict(n=(0, 145), g=(0, 100), v=(0, 120), x=(0, 120), o=(0, 10), a=(0, 10), bt=(0, 10), l=(0, 16), sg=(0, 8), rq=(0, 4))
 ANN = ['OVERSPEED|TRIP', 'WICKET GATE|TRIPPED', 'OUT OF PHASE|CLOSE', 'GEN BREAKER|PROT TRIP',
        'SERVO OIL|PRESS LOW', 'LUBE OIL|PUMP OFF', 'BEARING|TEMP HIGH', 'COOLING WATER|PUMP OFF',
-       'BRAKE AIR|PRESS LOW', 'BRAKES|APPLIED', 'DRAFT TUBE|PULSATION', 'POND LEVEL|HIGH',
-       'POND LEVEL|LOW', 'SPILLWAY|GATE OPEN', 'PLC OFF|GATE MANUAL', 'AVR OFF|FIELD MANUAL']
+       'BRAKE AIR|PRESS LOW', 'BRAKES|APPLIED', 'DRAFT TUBE|PULSATION', 'RIVER LEVEL|HIGH',
+       'RIVER LEVEL|LOW', 'SPILLWAY|GATE OPEN', 'PLC OFF|GATE MANUAL', 'AVR OFF|FIELD MANUAL']
 TRIP_WINDOWS = (0, 1, 2, 3, 4, 5, 6, 7, 8)   # red windows: trips and things that will cause one
 # the phase (and the synchroscope pointer): a ring of 12 path_tracks (radius R) clockwise from 12 o'clock.
 # Each one sets the sync lamps' brightness for its phase angle; the ones at 1 and 11 o'clock are the
@@ -128,6 +131,7 @@ def _build(L):
     thr('bt', 3); thr('bt', 5); thr('bt', 6); thr('bt', 8); thr('bt', 10, 'bt_max')
     thr('l', 1, 'l_gt0'); thr('l', 9, 'l_ok'); thr('l', 11); thr('l', 12); thr('l', 13); thr('l', 14); thr('l', 16, 'l_max')
     thr('sg', 1, 'sg_gt0'); thr('sg', 8, 'sg_max')
+    thr('rq', 1, 'rq_gt0'); thr('rq', 4, 'rq_max')
 
     # ------------------------------------------------- coupled increments
     L.inc_listener('n', 'up', 'en_c', USE_OFF); L.inc_listener('n', 'dn', 'en_c', USE_ON)
@@ -154,6 +158,8 @@ def _build(L):
     L.inc_listener('g', 'up', 'el_c', USE_OFF); L.inc_listener('g', 'dn', 'el_c', USE_ON)
     L.inc_listener('sg', 'up', adder('el_sub', 'el_c', 15, USE_OFF), USE_ON)     # a spill step is 15 % of full gate
     L.inc_listener('sg', 'dn', adder('el_add', 'el_c', 15, USE_ON), USE_ON)
+    L.inc_listener('rq', 'up', adder('el_add', 'el_c', 5, USE_ON), USE_ON)          # a river step is 5 %
+    L.inc_listener('rq', 'dn', adder('el_sub', 'el_c', 5, USE_OFF), USE_ON)
     L.dir_flag('g', 'gdir')
     # T(g) lookup: arriving at gate % v adds T(v)-T(v-1) to en; leaving it downward removes it
     for v in range(1, 101):
@@ -271,15 +277,15 @@ def _build(L):
     # needles move in 1 % steps where they are read closely (speed 86-112 %, volts 72-108 %), 2-4 % elsewhere
     # (each position is two entities)
     display('n', ptr('p_speed'), lambda x: x / 150, vals=list(range(0, 86, 2)) + list(range(86, 113)) + list(range(114, 146, 2)))
-    display('g', ptr('p_gate'), lambda x: x / 100, vals=list(range(0, 41)) + list(range(42, 101, 2)))
-    display('g', ptr('p_kw'), lambda x: KW[x] / 320, vals=list(range(13, 101, 2)), conds=['cb'])
+    display('g', ptr('p_gate'), lambda x: x / 100, vals=list(range(0, 31)) + list(range(32, 101, 2)))
+    display('g', ptr('p_kw'), lambda x: KW[x] / 320, vals=list(range(13, 101, 3)), conds=['cb'])
     display('g', ptr('p_vib'), lambda x: VIB[x] / 20, vals=list(range(0, 101, 5)), conds=['cb'])
     display('v', ptr('p_volts'), lambda x: x / 125, vals=list(range(0, 72, 4)) + list(range(72, 109)) + list(range(110, 121, 2)))
     # frequency: the generator's follows its speed (60 Hz at 100 %), shown on a 54-66 Hz scale; the station
     # bus is fed from the grid at 60 Hz
     display('n', ptr('p_hz'), lambda x: min(1, max(0, (0.6 * x - 54) / 12)), vals=range(89, 112))
     ptr('p_sfreq')
-    fx = list(range(0, 68, 4)) + list(range(68, 121, 2))
+    fx = list(range(0, 72, 6)) + list(range(72, 121, 2))
     display('x', ptr('p_exc'), lambda x: x / 120, vals=fx)
     # thyristor firing angle: field current goes as cos(alpha); 90 deg = no field, 0 deg = full field (x = 120)
     display('x', ptr('p_fa'), lambda x: math.degrees(math.acos(x / 120)) / 90, vals=fx)
@@ -288,6 +294,7 @@ def _build(L):
     display('a', ptr('p_air'), lambda x: 12.5 * x / 150, vals=[0, 2, 4, 6, 8, 10])
     display('bt', ptr('p_bt'), lambda x: x / 10)
     display('l', ptr('p_hw'), lambda x: (1 + 0.25 * x) / 6)
+    display('rq', ptr('p_rq'), lambda q: 0.9 * (65 + 5 * q) / 120)          # river flow, cfs on a 0-120 scale
     display('sg', ptr('p_spill'), lambda x: x / 8)
     for p, flg, ev, val in (('p_lube', 'lube', 'r_lp_ev', 0.6), ('p_cw', 'cool', 'r_wp_ev', 0.62)):
         ptr(p)
@@ -372,7 +379,7 @@ def _build(L):
     # two spring-return dials: hold LOWER to close the gate, RAISE to open it (1 % every 0.1 s)
     spring('k_gl', 'g', 'dn', ['!plc', '!tr', 'g_gt0', 'o_gt0'], 'LOWER')
     spring('k_gr', 'g', 'up', ['!plc', '!tr', '!g_max', 'o_ge3'], 'RAISE')
-    # PLC: off line it acts as the governor (open to 25 %, then hold speed-no-load), on line it holds the pond
+    # PLC: off line it acts as the governor (open to 25 %, then hold speed-no-load), on line it holds the river level
     base = ['plc', '!cb', '!tr', 'o_ge3', '!brake']
     L.rule('TS', base + ['!n_ge90', '!g_ge25'], 'g_up')
     L.rule('TS', base + ['!n_ge90', 'g_ge26'], 'g_dn')
@@ -494,11 +501,19 @@ def _build(L):
     L.rule('T1', ['cb', '!g_ge13'], 'cb_prot')                    # reverse power (32): the unit is motoring
     L.rule('T1', ['cb', '!x_ge60'], 'cb_prot')                    # loss of field (40): below 60 %
 
-    # ----------------------------------------------------------------- pond
+    # ---------------------------------------------------------------- river
+    # run-of-river: the intake is on the river behind a low weir with almost no storage, so the level moves
+    # as soon as the plant and the spillway take more or less than the river brings. At 515.0 ft the river
+    # tops the weir and goes over it.
     L.rule('T8', ['el_pos', '!l_max'], 'l_up')
     L.rule('T8', ['el_neg', 'l_gt0'], 'l_dn')
-    # spillway gate, from its own panel: AUTO opens it above 513.5 ft while the pond still rises and closes it
-    # below 513.25 ft while it falls; MANUAL runs it from the LOWER / RAISE dials, 0.5 ft a second
+    # the river's flow rises and falls between 65 and 85 % of full-gate discharge, a step every 32 s
+    flag('rup', 1)
+    L.add('game_counter', targetname='T16', frags=0, health=4, spawnflags=2, target='T64')
+    L.rule('T64', ['rup', '!rq_max'], 'rq_up'); L.rule('T64', ['!rup', 'rq_gt0'], 'rq_dn')
+    L.setf(vname('rq', 4), 'rup', 0); L.setf(vname('rq', 0), 'rup', 1)
+    # spillway gate in the weir, from its own panel: AUTO opens it above 513.5 ft while the river still rises
+    # and closes it below 513.25 ft while it falls; MANUAL runs it from the LOWER / RAISE dials, 0.5 ft a second
     selector('r_sp', 'sman', 'CONTROL', ('AUTO', 'MANUAL'))
     L.rule('T8', ['!sman', 'l_ge14', 'el_pos', '!sg_max'], 'sg_up')
     L.rule('T8', ['!sman', 'l_max', '!el_pos', '!sg_max'], 'sg_up')
@@ -527,6 +542,7 @@ def _build(L):
     L.display('init', 'p_pf', 0.5); L.display('init', 'p_vib', 0.02); L.display('init', 'p_fa', 1.0)
     L.display('init', 'p_sfreq', 0.5)
     for var, p, fn in [('l', 'p_hw', lambda x: (1 + 0.25 * x) / 6), ('sg', 'p_spill', lambda x: x / 8),
+                       ('rq', 'p_rq', lambda q: 0.9 * (65 + 5 * q) / 120),
                        ('bt', 'p_bt', lambda x: x / 10)]:
         L.display('init', p, fn(INIT[var]))
     dev['flags_init'] = fi

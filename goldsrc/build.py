@@ -801,8 +801,9 @@ def build_panels(dev):
     # ------------------------------------------- spillway panel, on the wall beside the extinguisher
     w0, e0 = len(world), len(E)
     D = doors[SP]
-    gauge(SP, 10, 12, 'POND LEVEL', [(509, 515, 1, 1, 0.25, hw_fmt)], 'FT|513.0 NORMAL', ptr='p_hw', red=(514, 515), xr=5)
-    gauge(SP, 30, 12, 'SPILL GATE', [(0, 4, 1, 1, 0.25, None)], 'FT OPEN', ptr='p_spill', xl=5)
+    gauge(SP, 7, 12, 'RIVER LEVEL', [(509, 515, 1, 1, 0.25, hw_fmt)], 'FT|513.0 NORMAL', ptr='p_hw', red=(514, 515), xl=5.5, xr=5)
+    gauge(SP, 20, 12, 'RIVER FLOW', [(0, 120, 40, 20, 5, None)], 'CFS|FULL GATE 90', ptr='p_rq', xl=5, xr=5)
+    gauge(SP, 33, 12, 'SPILL GATE', [(0, 4, 1, 1, 0.25, None)], 'FT OPEN', ptr='p_spill', xl=5, xr=5.5)
     rot(SP, 8, 32, 'r_sp', dial=True)
     D.plate(27.5, 26.6, 13, 1.4, 'GATE', px=0.8)
     spring_dial(SP, 22, 32, 'k_sl', ccw=True); spring_dial(SP, 33, 32, 'k_sr', ccw=True)
