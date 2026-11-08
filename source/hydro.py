@@ -26,6 +26,7 @@ XS = 0.5               # reactance between the internal EMF and the grid, pu
 XT = 0.06              # step-up transformer reactance: the terminal volts rise with the vars
 DSW = 0.27             # damper winding damping on line, pu torque per % slip
 GOV_KP, GOV_KI, GOV_KD = 1.5, 0.3, 1.0   # PLC governor PID: % gate per % speed error, per % s, per %/s
+FL = 0.03              # intake and penstock head loss at full flow, pu
 HEAD0 = 12.2           # rated head, m (40 ft) at 7.0 m river depth; the tailwater is 5.2 m below the intake bed
 
 # Francis runner: torque = A(g) h - B(g) sqrt(h) w (falls linearly with speed), friction and windage
@@ -65,9 +66,11 @@ def build():
     m = Map()
     F = Program(m, 'f', DT_FAST)          # fast: gate travel, runner, rotor, synchronizing, 52G
     M = Program(m, 'm', DT_MED)           # medium: gate commands, governor, excitation, protection, brakes
-    S = Program(m, 's', DT_SLOW)          # slow: river, spillway, auxiliaries, bearings, alarms, sound levels
-    # fast ticks fall on odd server ticks, medium ones on 6 mod 8, slow ones on 0 mod 8: never together
-    F.start_delay, M.start_delay, S.start_delay = 0.1, 0.115, 0.145
+    S = Program(m, 's', DT_SLOW)          # slow: river, spillway, auxiliaries, bearings, sound levels
+    A = Program(m, 'a', DT_SLOW)          # annunciator
+    # fast ticks fall on odd server ticks, medium ones on 6 mod 8, slow and annunciator ones on 0 mod 8,
+    # half a period apart: no two loops ever share a tick
+    F.start_delay, M.start_delay, S.start_delay, A.start_delay = 0.1, 0.115, 0.145, 0.265
     dev = {'needles': {}, 'switches': {}, 'dials': {}, 'lamps': {}, 'windows': [], 'sounds': {}, 'scope': None}
     df, dm, ds = DT_FAST, DT_MED, DT_SLOW
 
@@ -104,10 +107,12 @@ def build():
         dev['dials'][name] = {'ent': e, 'label': label, 'spring': spring}
         return v
 
-    def needle(P, name, frac, imm=False, cond=None):
-        """meter needle: a momentary_rot_button set to the value (0..1; the button clamps it). It moves at
-        250 degrees a second, a damped switchboard movement: full scale in about a second."""
-        e = m.ent('momentary_rot_button', name, distance=250, speed=250, spawnflags=1 + 128, startposition=0)
+    def needle(P, name, frac, imm=False, cond=None, speed=None):
+        """meter needle: a momentary_rot_button set to the value (0..1; the button clamps it). Its speed is
+        matched to how often its loop updates it, so it glides from one value to the next like a damped
+        switchboard movement instead of jumping and waiting."""
+        speed = speed or {'f': 300, 'm': 150, 's': 70}[P.name]
+        e = m.ent('momentary_rot_button', name, distance=250, speed=speed, spawnflags=1 + 128, startposition=0)
         f = C(frac)
         if cond is not None:
             f = gate(clamp(f, 0, 1), cond, 0, 1)
@@ -163,7 +168,7 @@ def build():
     # fast
     n = F.var('n', 0, 0, 170)                       # speed, %
     g = F.var('g', 0, 0, 100)                       # wicket gate, %
-    tlp = F.var('tlp', 0, -3, 3)                    # water column: the torque the flow has caught up to
+    qf = F.var('qf', 0, 0, 2)                       # water column: flow through the turbine, pu of full-gate flow
     dl = F.var('dl', 0, -BIGT, BIGT, clamp=False)   # load angle on line, deg
     th = F.var('th', 0, -BIGT, BIGT, clamp=False)   # phase between the unit and the grid, deg
     pe = F.var('pe', 0, -5, 5, clamp=False)         # electrical power, pu
@@ -192,14 +197,14 @@ def build():
     hpu = S.flag('hpu'); comp = S.flag('comp')     # hydraulic pump and air compressor running
     lp = S.var('lp', 0, 0, 60)                      # lube oil pressure, psi
     cw = S.var('cw', 0, 0, 100)                     # cooling water flow, gpm
-    horn_t = S.var('horn_t', 0, 0, 6)
     c_bt = S.flag('c_bt')                           # bearing at the high-high trip
     # each program reads the others' values through mirrors (one tick of theirs late)
     x_f, v_f, exc_f, tr_f, grate_f, lv_f = (F.mirror(vv, vv.name + '_f') for vv in (x, v, exc, tr, grate, lv))
     n_m, g_m, cb_m, pe_m, qe_m, dl_m, oop_m = (M.mirror(vv, vv.name + '_m') for vv in (n, g, cb, pe, qe, dl, c_oop))
     hp_m, air_m, lv_m, q_m, sg_m, cbt_m = (M.mirror(vv, vv.name + '_m') for vv in (hp, air, lv, q, sg, c_bt))
     plc_m, avr_m = M.mirror(plc, 'plc_m'), M.mirror(avr, 'avr_m')
-    n_s, g_s, v_s, pe_s, cb_s, plc_s, avr_s, brk_s = (S.mirror(vv, vv.name + '_s') for vv in (n, g, v, pe, cb, plc, avr, brake))
+    n_s, g_s, v_s, pe_s, cb_s, plc_s, avr_s, brk_s, qf_s = (S.mirror(vv, vv.name + '_s') for vv in (n, g, v, pe, cb, plc, avr, brake, qf))
+    qf_m = M.mirror(qf, 'qf_m')
     head = lambda lvr: aff(lvr, 1 / HEAD0, (HEAD0 - 7.0) / HEAD0)                  # head, pu
     shead = lambda lvr: aff(lvr, 0.5 / HEAD0, 0.5 + 0.5 * (HEAD0 - 7.0) / HEAD0)   # its square root (near 1)
 
@@ -217,9 +222,19 @@ def build():
     # to the grid through XS: the load angle dl sets the power, the field sets the vars, and the damper
     # windings damp the swings.
     X = x_f.r
-    Tt = 0.018 * G * head(lv_f.r) - pwl(G, B_PTS) * shead(lv_f.r) * w
-    F.set(tlp, tlp.r + df * (Tt - tlp.r) / (TW / 2))
-    Tm = Tt + clamp(3 * (tlp.r - Tt), -0.3, 0.3)
+    # Nonlinear water column (inelastic, as in the IEEE hydro turbine models): the water in the intake and
+    # penstock accelerates under the head the river gives less what the turbine takes, TW dq/dt = h0 - h -
+    # FL q^2, and the turbine passes q = G sqrt(h). Solved semi-implicitly so it stays stable as the gate
+    # closes. Opening the gate fast drops the head (the power dips first); closing it fast raises it (water
+    # hammer, limited at 2.6 pu by the relief valve).
+    Ge = clamp(G * 0.01, 0.005, None)               # gate opening, pu (closed gates still leak a little)
+    cw_ = df / TW
+    q_new = (qf.r + cw_ * (head(lv_f.r) - FL * sq(qf.r))) / (1 + cw_ * qf.r / sq(Ge))
+    F.set(qf, q_new)
+    rh = clamp(q_new / Ge, 0, 1.6)                  # sqrt of the head at the turbine, pu
+    hh = sq(rh)                                     # head at the turbine, pu
+    Tt = 0.018 * G * hh - pwl(G, B_PTS) * rh * w
+    Tm = Tt
     Pe = CB * 0.02 * X * sin_deg(dl.r)              # electrical power, pu (E = field / 100, XS = 0.5)
     Qe = CB * (0.02 * X * cos_deg(dl.r) - 2)        # reactive power, pu (lagging +)
     F.set(pe, Pe)
@@ -263,6 +278,7 @@ def build():
 
     # ------------------------------------------------------------ fast meters and lamps
     needle(F, 'p_kw', Pe * PBASE / 320)                     # 0-320 kW
+    needle(F, 'p_scp', (hh * HEAD0 + 5.2) * 1.422 / 60)    # scroll case pressure, 0-60 psi (head + tailwater)
     pf_ang = pwl(Qe / clamp(Pe, 0.03, None), ATAN_PTS)
     needle(F, 'p_pf', sel(CB, 0.5 + pf_ang / 120, 0.5))
     needle(F, 'p_speed', N / 150)
@@ -376,7 +392,7 @@ def build():
     # ------------------------------------------------------------ river
     # no pond: the intake takes its water straight out of the river (7.0 m normal, 9.0 m bank full), and the
     # head on the runner rises and falls with it (12.2 m at 7.0 m)
-    qt = Gs * shead(lv.r)                           # turbine flow, % of full-gate flow at rated head
+    qt = 100 * qf_s.r                               # turbine flow, % of full-gate flow at rated head
     el = q.r - qt - 100 * sg.r                      # river balance, % of full-gate discharge
     S.set(lv, lv.r + ds * 0.004 * el)
     # the river's flow rises and falls between 65 and 85 %, 0.15 % a second
@@ -422,41 +438,80 @@ def build():
     needle(S, 'p_spill', sg.r / 1.2)
 
     # ------------------------------------------------------------ annunciator
-    alarm = m.ent('logic_relay', 'alarm', spawnflags=2, StartDisabled=1)
-    alarm.out('OnTrigger', 's_horn', 'PlaySound').out('OnTrigger', 's_relay', 'PlaySound').out('OnTrigger', horn_t.ent, 'SetValue', 6)
-    S.add(horn_t, -ds * step(horn_t.r, 0.001))
-    horn_t.on_fall('s_horn', 'StopSound')
-    keep = NOT(rst.r)
-    slow_lit = {
-        'bth': step(bt.r, 76), 'vib': cb_s.r * step(Gs, 25) * below(Gs, 50),
-        'hyd': below(hp.r, 240), 'oilp': NOT(lube.r), 'watp': NOT(cool.r), 'air': below(air.r, 50),
-        'brk': brk_s.r, 'rhi': step(lv.r, 7.5), 'rlo': below(lv.r, 6.25), 'spill': step(sg.r, 0.01),
-        'plc': NOT(plc_s.r), 'avr': NOT(avr_s.r)}
-    for i, (key, legend, kind) in enumerate(ANN_WINDOWS):
-        if key in slow_lit:                                        # alarms and status follow their condition
-            f = S.flag(f'w_{key}')
-            S.set(f, slow_lit[key])
+    # ISA manual-reset sequence (ISA-18.1 "M"): a new alarm flashes its window and sounds the horn;
+    # ACKNOWLEDGE makes it steady and silences the horn; once the condition has cleared, RESET puts the
+    # window out; TEST lights every window while held in. Trip windows take the protective relays' targets,
+    # which stay up until the lockout is reset with the WICKET GATE TRIP handle.
+    ack = A.var('ack', 0, 0, 1); arst = A.var('arst', 0, 0, 1); atest = A.flag('atest')
+    for name, label, var, wait in (('b_ack', 'ACKNOWLEDGE', ack, 0.4), ('b_rst', 'RESET', arst, 0.4), ('b_test', 'TEST', atest, 3)):
+        e = m.ent('func_button', name, spawnflags=1024, speed=20, lip=1, wait=wait, movedir='0 90 0', sounds=0)
+        if var is atest:
+            e.out('OnIn', var.ent, 'SetValue', 1).out('OnOut', var.ent, 'SetValue', 0)
         else:
-            f = M.flag(f'w_{key}')
-            if key in causes:                                      # trips latch until the reset
-                M.set(f, OR(causes[key], f.r * keep))
-            elif key == 'gbkr':                                    # 52G opened by protection (cleared when it closes again)
-                M.set(f, OR(CBm * tr_new, f.r * keep * NOT(CBm)))
-            else:                                                  # 86 lockout
-                M.set(f, TR)
+            e.out('OnPressed', var.ent, 'SetValue', 1)
+        e.out('OnPressed', 's_click', 'PlaySound')
+        dev.setdefault('buttons', {})[name] = {'ent': e, 'label': label}
+    blink = A.flag('blink')
+    A.set(blink, NOT(blink.r))                      # windows flash at about 2 Hz
+    ACK, RST, TEST = ack.r, arst.r, atest.r
+    A.add(ack, -ACK); A.add(arst, -RST)
+    am = lambda vv: A.mirror(vv, vv.name + '_a').r
+    keep = NOT(rst.r)
+    trips = {}
+    for key in ('ovsp', 'lock', 'gbkr', 'oop', 'rp', 'lof', 'ov', 'bthh'):
+        t = M.flag(f't_{key}')
+        if key in causes:                                          # protective relay targets: latch until the reset
+            M.set(t, OR(causes[key], t.r * keep))
+        elif key == 'gbkr':                                        # 52G opened by protection (cleared when it closes again)
+            M.set(t, OR(CBm * tr_new, t.r * keep * NOT(CBm)))
+        else:                                                      # 86 lockout
+            M.set(t, TR)
+        trips[key] = A.mirror(t, f't_{key}_a').r
+    raw = dict(trips)
+    ga, cba = am(g), am(cb)
+    lva = am(lv)
+    raw.update({
+        'bth': step(am(bt), 76), 'vib': cba * step(ga, 25) * below(ga, 50),
+        'hyd': below(am(hp), 240), 'oilp': NOT(am(lube)), 'watp': NOT(am(cool)), 'air': below(am(air), 50),
+        'brk': am(brake), 'rhi': step(lva, 7.5), 'rlo': below(lva, 6.25), 'spill': step(am(sg), 0.01),
+        'plc': NOT(am(plc)), 'avr': NOT(am(avr))})
+    unacked, news = [], []
+    for i, (key, legend, kind) in enumerate(ANN_WINDOWS):
+        lit = A.flag(f'w_{key}')
+        if kind == 'status':                                       # status points: lit while true, no horn
+            A.set(lit, OR(raw[key], TEST))
+        else:
+            ua, aa = A.flag(f'ua_{key}'), A.flag(f'aa_{key}')    # unacknowledged (flashing), acknowledged (steady)
+            new = raw[key] * NOT(ua.r) * NOT(aa.r)
+            ua_new = OR(ua.r * NOT(ACK), new)
+            aa_new = OR(aa.r * NOT(RST * NOT(raw[key])), ua.r * ACK)
+            A.set(ua, ua_new); A.set(aa, aa_new)
+            A.set(lit, OR(aa_new, ua_new * blink.r, TEST))
+            unacked.append(ua_new); news.append(new)
         e = m.ent('func_brush', f'A{i:02d}', StartDisabled=1, Solidity=1)
-        f.on_rise(e, 'Enable').on_fall(e, 'Disable')
-        if kind != 'status':
-            f.on_rise(alarm, 'Trigger')
+        lit.on_rise(e, 'Enable').on_fall(e, 'Disable')
         dev['windows'].append({'ent': e, 'legend': legend, 'kind': kind})
+    # the horn sounds while any alarm is unacknowledged; a relay clicks for each new one
+    horn, anew = A.flag('horn'), A.flag('anew')
+    tot_u, tot_n = unacked[0], news[0]
+    for u_, n_ in zip(unacked[1:], news[1:]):
+        tot_u, tot_n = tot_u + u_, tot_n + n_
+    A.set(horn, step(tot_u, 0.5)); A.set(anew, step(tot_n, 0.5))
+    h_on, h_off, r_new = armed_relay('horn_on'), armed_relay('horn_off'), armed_relay('anew_on')
+    horn.on_rise(h_on, 'Trigger').on_fall(h_off, 'Trigger'); anew.on_rise(r_new, 'Trigger')
+    h_on.out('OnTrigger', 's_horn', 'PlaySound'); h_off.out('OnTrigger', 's_horn', 'StopSound')
+    r_new.out('OnTrigger', 's_relay', 'PlaySound')
+    dev['ack_at_start'] = ack
 
     # ------------------------------------------------------------ sounds
     # the turbine's pitch follows its speed and its loudness the water through it; the generator hums
     # louder with volts and load; the pump and the compressor run when their pressure switches call
-    S.sink('s_turb', 'Pitch', clamp(Ns, 25, 150))
-    S.sink('s_turb', 'Volume', clamp(1.5 + 0.06 * qt + 2 * ws, 0, 10))
-    S.sink('s_water', 'Volume', clamp(0.5 + 0.11 * qt, 0, 10))
-    S.sink('s_hum', 'Volume', clamp(0.035 * v_s.r + 6 * relu(pe_s.r), 0, 10))
+    # (pitch and loudness from the medium loop, 8 times a second, so they slide smoothly)
+    qtm = 100 * qf_m.r
+    M.sink('s_turb', 'Pitch', clamp(Nm, 25, 150))
+    M.sink('s_turb', 'Volume', clamp(1.5 + 0.06 * qtm + 0.02 * Nm, 0, 10))
+    M.sink('s_water', 'Volume', clamp(0.5 + 0.11 * qtm, 0, 10))
+    M.sink('s_hum', 'Volume', clamp(0.035 * V + 6 * relu(Pm), 0, 10))
     for nm, cond in (('s_turb', spin_s), ('s_water', step(Gs, 0.5)), ('s_hum', step(v_s.r, 3)),
                      ('s_pump', hpu.r), ('s_comp', comp.r)):
         f = S.flag(f'snd_{nm}')
@@ -471,11 +526,14 @@ def build():
     F.compile()
     M.compile()
     S.compile()
-    # arm the sounds and the horn once the first ticks have set every flag
+    A.compile()
+    # the alarms standing when the map starts are acknowledged, as an operator would have left them;
+    # then the sounds and the horn are armed
+    m['a_auto'].out('OnMapSpawn', dev['ack_at_start'].ent, 'SetValue', 1, 0.6)
     for e in m.ents:
-        if e.cls == 'logic_relay' and (e.name == 'alarm' or e.name.endswith(('_on', '_off', '_brk_r'))):
-            m['f_auto'].out('OnMapSpawn', e, 'Enable', None, 1.0)
-    return m, (F, M, S), dev
+        if e.cls == 'logic_relay' and e.name.endswith(('_on', '_off', '_brk_r')):
+            m['f_auto'].out('OnMapSpawn', e, 'Enable', None, 1.5)
+    return m, (F, M, S, A), dev
 
 
 BIGT = 1.0e4

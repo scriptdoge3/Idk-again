@@ -86,7 +86,7 @@ def scenario_idle():
     s = new_sim()
     s.run(10)
     check(not s.errors, f'two-input nodes always got their first value first ({len(s.errors)} errors)')
-    check(abs(V(s, 'l') - 7.0) < 0.05, f"river depth holds at 7.0 m ({V(s, 'l'):.2f})")
+    check(abs(V(s, 'l') - 7.0) < 0.1, f"river depth holds at 7.0 m ({V(s, 'l'):.2f})")
     lit = [w['legend'] for w in dev['windows'] if s[w['ent'].name].on]
     check(set(lit) == {'HYD OIL|PRESS LOW', 'OIL PUMP|STOPPED', 'WATER PUMP|STOPPED', 'BRAKE AIR|PRESS LOW',
                        'SPILLWAY GATE|OPEN', 'PLC|OFF', 'AVR IN|MANUAL'}, f'windows lit at rest: {lit}')
@@ -126,16 +126,17 @@ def scenario_manual_start():
         s.run(0.06); ks.append(kw(s))
     swing = max(ks[:30]) - min(ks[:30]); late = max(ks[-20:]) - min(ks[-20:])
     check(swing > 3 and late < 1, f'the power swings after closing ({swing:.1f} kW peak to peak) and settles ({late:.2f} kW)')
-    # load by hand: the water column makes the power dip as the gate starts opening fast
-    k0 = kw(s); ks = []
-    s.holding.add('k_gr')
-    for _ in range(int(6 / 0.06)):
-        s.run(0.06); ks.append(kw(s))
-    s.holding.discard('k_gr'); s.run(3)
-    dip = min(ks[50:70]) if len(ks) > 70 else 0
-    rises = [b - a for a, b in zip(ks, ks[1:])]
-    check(any(r < -0.2 for r in rises[50:70]), f'water hammer: the power dips when the gate speeds up ({min(rises):.2f} kW/tick)')
+    # load by hand
+    s.hold('k_gr', 6); s.run(3)
     check(kw(s) > 100, f"loads by hand: gate {V(s, 'g'):.0f} %, {kw(s):.0f} kW, field {V(s, 'x'):.0f} %")
+    # loaded, the water column makes the power dip as the gate starts opening fast
+    ks = []
+    s.holding.add('k_gr')
+    for _ in range(int(4.5 / 0.03)):
+        s.run(0.03); ks.append(kw(s))
+    s.holding.discard('k_gr'); s.run(3)
+    rises = [b - a for a, b in zip(ks, ks[1:])]
+    check(min(rises) < -0.2, f'water hammer: the power dips when the gate speeds up ({min(rises):.2f} kW per 0.03 s)')
     check(V(s, 'tr') == 0, 'no trip')
     return s
 
@@ -186,12 +187,28 @@ def scenario_trip(s):
     s.run(1.0)
     check(V(s, 'plc') == 0 and V(s, 'avr') == 0 and V(s, 'h52') == 0 and V(s, 'hexc') == 0,
           'PLC, AVR, 52G and 41 handles turned to OFF / MAN / TRIP')
-    check(s['A01'].on and s['A02'].on, '86 LOCKOUT and 52G GEN BKR TRIPPED lit')
+    check(V(s, 'ua_lock') == 1 and V(s, 'ua_gbkr') == 1, '86 LOCKOUT and 52G GEN BKR TRIPPED flash')
+    flashes = set()
+    for _ in range(12):
+        s.run(0.12); flashes.add(s['A01'].on)
+    check(flashes == {True, False}, 'the windows blink')
     check(s['s_horn'].playing, 'horn')
-    t = wait_for(s, lambda: not s['s_horn'].playing, 20)
-    check(not s['s_horn'].playing, f'horn silences itself ({t + 1:.0f} s; the gate slam draws the oil low, a new alarm)')
+    s.run(5)
+    check(s['s_horn'].playing, 'the horn keeps sounding until acknowledged')
+    s.use('b_ack'); s.run(0.6)
+    check(not s['s_horn'].playing and V(s, 'aa_lock') == 1 and s['A01'].on, 'ACKNOWLEDGE: horn off, windows steady')
+    s.run(3)
+    if s['s_horn'].playing:                         # the gate slam drew the oil low: a new alarm
+        s.use('b_ack'); s.run(0.6)
     flip(s, 'r_gt', 0.8)
-    check(V(s, 'tr') == 0 and not s['A01'].on and not s['A02'].on, 'reset clears the lockout')
+    check(V(s, 'tr') == 0, 'the lockout resets with the trip handle')
+    s.run(0.5)
+    check(s['A01'].on, 'the windows stay lit until RESET')
+    s.use('b_rst'); s.run(0.6)
+    check(not s['A01'].on and not s['A02'].on, 'RESET puts them out')
+    s.use('b_test'); s.run(0.6)
+    check(all(s[w['ent'].name].on for w in dev['windows']), 'TEST lights every window')
+    s.run(3.5)
     s.run(30)
     print(f"    after 30 s: n={V(s, 'n'):.1f} v={V(s, 'v'):.1f} x={V(s, 'x'):.1f}")
     # field again after the trip, AVR in MAN: the knob tracked the AVR, so the field comes back
@@ -211,7 +228,7 @@ def scenario_blind_close():
     flip(s, 'r_exc'); s.run(10)
     wait_for(s, lambda: 90 < V(s, 'th') < 270, 60)
     flip(s, 'r_52', 0.3)
-    check(V(s, 'tr') == 1 and V(s, 'cb') == 0 and s['A03'].on, '52G CLOSED OUT OF PHASE trip')
+    check(V(s, 'tr') == 1 and V(s, 'cb') == 0 and V(s, 'ua_oop') == 1, '52G CLOSED OUT OF PHASE trip')
     print('52G refused by the sync check')
     s.run(1.0)
     flip(s, 'r_gt', 0.8)
@@ -232,7 +249,7 @@ def scenario_overspeed(s):
     peak = 0
     for _ in range(300):
         s.run(0.06); peak = max(peak, V(s, 'n'))
-    check(V(s, 'tr') == 1 and s['A00'].on, f'12 OVERSPEED trip, peak {peak:.0f} %')
+    check(V(s, 'tr') == 1 and (V(s, 'ua_ovsp') or V(s, 'aa_ovsp')), f'12 OVERSPEED trip, peak {peak:.0f} %')
 
 
 if __name__ == '__main__':

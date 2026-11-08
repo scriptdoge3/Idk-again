@@ -332,7 +332,10 @@ class FuncRotButton(Mover):
 
 
 class FuncButton(FuncRotButton):
-    pass
+    """linear push button: modelled as 1 unit of travel at its speed"""
+    def spawn(self):
+        super().spawn()
+        self.dist = 1.0
 
 
 class MomentaryRotButton(Mover):

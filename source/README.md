@@ -11,25 +11,23 @@ the console. The textures and sounds are packed inside the BSP, and no launch op
 
 ## Entities and speed
 
-The map has 851 entities, and only 72 of them use network slots: the needles, switches, dials, lamps,
-annunciator windows and sounds. The plant logic (775 entities: `math_counter`, `math_remap`,
-`logic_relay`, `logic_timer`, `logic_auto`) is server-only and uses none. Half-Life 2 allows 2048 of
-each kind.
+The map has 1,249 entities, and only 76 of them use network slots: the needles, switches, dials,
+pushbuttons, lamps, annunciator windows and sounds. The plant logic (1,168 entities: `math_counter`,
+`math_remap`, `logic_relay`, `logic_timer`, `logic_auto`) is server-only and uses none. Half-Life 2 allows
+2048 of each kind. The room's detail is world geometry (`func_detail`), which costs nothing while playing.
 
 What limits the logic is speed, not entity count. Each output the engine fires finds its target by
 name, and that lookup compares the name against every named entity in the map. So the cost is events
-times entities. The plant therefore runs as three loops, started on different server ticks so they never
-land on the same one:
+times entities. The plant therefore runs as four loops, started on different server ticks so no two land on the same one:
 
 | Loop | Every | Runs |
 |---|---|---|
-| fast | 0.03 s | gate travel, runner and water column, rotor speed and swing, phase, 52G closing, the speed, gate, kW, power factor, frequency and synchroscope needles |
-| medium | 0.12 s | gate commands (dials, PLC governor, river control), excitation and AVR, protection and trips, brakes, the volts, field and firing-angle needles |
-| slow | 0.24 s | river and spillway, pumps and compressor, bearings, alarm and status windows, sound levels |
+| fast | 0.03 s | gate travel, runner and water column, rotor speed and swing, phase, 52G closing, the speed, gate, kW, power factor, scroll case, frequency and synchroscope needles |
+| medium | 0.12 s | gate commands (dials, PLC governor, river control), excitation and AVR, protection and trips, brakes, the volts, field and firing-angle needles, sound pitch and loudness |
+| slow | 0.24 s | river and spillway, pumps and compressor, bearings, their meters |
+| annunciator | 0.24 s (half a period after slow) | the 20 windows' alarm sequence, horn, ACKNOWLEDGE / RESET / TEST |
 
-In all they handle about 14,000 events a second, at most about 430 in one server tick. That's less work
-than the first Half-Life 2 version, whose single loop ran every 0.06 s, while the rotor and synchroscope
-now update twice as often. Sine and cosine are short formulas instead of tables, sibling `math_remap`s
+In all they handle about 18,000 events a second, at most about 640 in one server tick. Sine and cosine are short formulas instead of tables, sibling `math_remap`s
 fed by the same value share one name (one event reaches them all), and node names are one to three
 characters that usually differ in the first, which keeps each name comparison as short as possible.
 
@@ -40,8 +38,11 @@ The plant is a per-unit machine model, the kind used in hydro studies:
 - **Runner:** Francis turbine torque falls with speed (stall torque 1.8 pu at full gate, runaway 160 %).
   The head is the river's: it rises and falls with the depth at the intake (12.2 m at 7.0 m), and power
   goes with it.
-- **Water column:** the flow takes about a second to follow the gate (water starting time 1 s). Open the
-  gate fast and the power dips before it rises; close it fast and it kicks up.
+- **Water column:** a nonlinear inelastic water column, as in the IEEE hydro turbine models. The water in
+  the intake and penstock (starting time 1 s) accelerates under the river's head less what the turbine
+  takes, and the turbine passes q = G sqrt(h). Open the gate fast and the head drops, so the power dips
+  before it rises; close it fast and the head jumps (water hammer, up to 2.6 times normal before the relief
+  valve). The SCROLL CASE PRESS meter on the auxiliaries panel shows it.
 - **Rotor:** mechanical starting time 6 s, friction and windage, air brakes. Off line the speed settles
   where the gate's torque meets the losses (speed-no-load at 15 % gate). Coasting down with the gate shut
   takes minutes, so the brakes matter.
@@ -58,14 +59,14 @@ The plant is a per-unit machine model, the kind used in hydro studies:
   opens, the manual setting goes back to the no-load field.
 - **PLC governor:** PID speed control. The gate is limited to 25 % while starting, and the integrator waits
   at the speed-no-load gate until 90 % speed, so start-up overshoots only about 2 %. On a full load
-  rejection the speed peaks around 126 % and comes back to speed-no-load without tripping. With the PLC off
+  rejection the speed peaks around 120 % and comes back to speed-no-load without tripping. With the PLC off
   nothing catches it, and 12 overspeed trips at 140 %.
 - **Auxiliaries:** the hydraulic pump runs on its pressure switch (on below 270 psi, off at 300) and the
   air compressor on its own (100 / 125 psi); you hear them start and stop. Bearings warm with speed and
   load over about a minute (52-60 C with cooling water); without it they head for 120 C, and without lube
   oil they wipe in seconds.
 - **Sound:** the turbine's pitch follows its speed and its loudness the water through it; the water noise
-  follows the flow; the generator hums louder with volts and load.
+  follows the flow; the generator hums louder with volts and load. They update 8 times a second.
 - **Light:** the ceiling troffers light the room (texture lights), with finer lightmaps on the panels.
 
 ## Controls
@@ -74,7 +75,8 @@ The cabinets and the spillway panel are laid out as in the GoldSrc map. These th
 
 | Control | Now |
 |---|---|
-| Meters | Switchboard meters with a 250-degree scale. The needles move smoothly to any value. |
+| Meters | Switchboard meters with a 250-degree scale. Each needle's speed is matched to how often its loop updates it, so it glides between values like a damped movement. New: SCROLL CASE PRESS (auxiliaries panel). |
+| ACKNOWLEDGE / RESET / TEST | Pushbuttons under the PLC and AVR switches (see the annunciator below). |
 | WICKET GATE LOWER / RAISE | Spring-return dials. Held, they move the gate 0.25 %/s for the first second, 2.5 %/s for the next two, then 10 %/s. Short taps trim the speed finely for synchronizing. |
 | FIRING ANGLE | The knob's position is the firing angle: left stop 90 degrees (no field), right stop 0 degrees (the exciter's ceiling, 140 % field). Like every Source wheel, each new grab turns the other way. With the AVR on AUTO the knob follows the AVR, so switching back to MAN doesn't bump the field. |
 | SYNCHROSCOPE | The pointer is the real phase angle. It turns at the slip (216 degrees a second per 1 % of speed off 100 %, at most one turn a second): clockwise when fast, anticlockwise when slow. The sync lamps are dark at 12 o'clock. |
@@ -113,8 +115,28 @@ is still there.
 | 38 BRG TEMP HIGH-HIGH | bearing at 90 C (no lube oil wipes it in seconds, no cooling water cooks it in about a minute) |
 | (lockout only) | hydraulic oil under 210 psi with the gate open; river under 4.75 m with the unit turning |
 
-The annunciator has the GoldSrc map's 20 windows. Trips stay lit until the reset, alarms and status
-follow their condition, and the horn sounds for 6 s on each new trip or alarm.
+The annunciator has the GoldSrc map's 20 windows and works like a real one (ISA-18.1 manual reset):
+
+1. A new alarm or trip flashes its window, the horn sounds and a relay clicks.
+2. ACKNOWLEDGE: every flashing window goes steady and the horn stops.
+3. When the condition has cleared, RESET puts its window out. A window whose condition is still there
+   stays lit. Trip windows show the protective relays' targets, which stay up until you reset the
+   lockout with the WICKET GATE TRIP handle, so reset the handle first, then RESET.
+4. TEST lights every window for a few seconds.
+
+PLC OFF, AVR IN MANUAL, BRAKES APPLIED and SPILLWAY GATE OPEN are status windows: lit while true, no
+flashing or horn. The alarms standing when the map loads start acknowledged.
+
+## The room
+
+Round the panels, all as world brushes (they cost nothing while playing): an EXIT sign and an emergency
+light over the door, a fire alarm pull station, light switches and a thermostat, a NOTICE sign on the door;
+the start-up and synchronizing / shutdown procedures framed on the right wall, a first aid kit and a
+calendar; the shift log whiteboard, a WARNING sign and a filing cabinet on the back wall; conduit from a
+junction box up the wall and along the ceiling; on the desk an HMI screen with the plant's single-line
+and trend, a keyboard, the log book, a telephone and a mug; an anti-fatigue mat and a yellow-and-black
+keep-clear line in front of the panels; smoke detectors and return-air grilles in the ceiling; hinges on
+the cabinet doors and DANGER labels on the cabinet ends.
 
 ## How the logic works
 

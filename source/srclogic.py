@@ -408,7 +408,7 @@ class Program:
 
         def new(cls, **kv):
             n[0] += 1
-            e = m.ent(cls, _short(n[0]) + self.name[-1], **kv)
+            e = m.ent(cls, _short(n[0]) + '$' + self.name[-1], **kv)
             self.nodes.append(e)
             return e
 
