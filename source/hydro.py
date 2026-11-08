@@ -1,14 +1,13 @@
 """
-Sable Creek Unit 1 for Half-Life 2: the plant as two tick programs of logic entities (see srclogic.py):
-a fast one (every 0.03 s: gate, runner, rotor, field, synchronizing, protection, the main meters) and a
-slow one (every 0.24 s: river, spillway, pumps, compressor, bearings, alarms, sound levels).
+Sable Creek Unit 1 for Half-Life 2: the plant as four tick programs of logic entities (see srclogic.py):
+fast (0.03 s), medium (0.12 s), slow (0.24 s) and the annunciator (0.24 s).
 
-The controls are the ones of the GoldSrc map:
-  left (unit control)   SYNCHRONIZING, 52G GEN BREAKER, 41 FIELD BREAKER, WICKET GATE TRIP switches;
-                        WICKET GATE LOWER and RAISE dials (spring-return), BRAKES dial, FIRING ANGLE knob
-  middle (annunciator)  PLC and AVR switches
-  right (auxiliaries)   OIL PUMP, WATER PUMP, HYDRAULIC PUMP, AIR COMPRESSOR switches
-  spillway panel        CONTROL MODE dial (AUTO / MANUAL), spill GATE LOWER and RAISE dials
+The controls (nameplates as engraved; the variable names inside are the GoldSrc map's):
+  left (unit control)   SYNCHRONIZING, 52G GEN BREAKER, 41 FIELD BREAKER, 86 UNIT LOCKOUT switches;
+                        WICKET GATE LOWER and RAISE dials (spring-return), BRAKES dial, MANUAL FIELD ADJUST knob
+  middle (annunciator)  GOVERNOR and VOLTAGE REGULATOR switches (MAN / AUTO; plc, avr inside)
+  right (auxiliaries)   LUBE OIL PUMP, COOLING WATER PUMP, GOVERNOR OIL PUMP, AIR COMPRESSOR switches
+  spillway panel        GATE CONTROL dial (AUTO / MANUAL), spill GATE LOWER and RAISE dials
 
 Units: speed n, gate g, volts v and field x in % (100 % = 100 rpm, 480 V, rated field); hydraulic oil hp
 and brake air in psi; bearing temperature bt in deg C; river depth l in m at the intake; river flow q in %
@@ -53,10 +52,10 @@ ANN_WINDOWS = [
     ('oop', '52G CLOSED|OUT OF PHASE', 'trip'), ('rp', '32 REVERSE|POWER', 'trip'),
     ('lof', '40 LOSS OF|FIELD', 'trip'), ('ov', '59 GEN|OVERVOLTAGE', 'trip'), ('bthh', '38 BRG TEMP|HIGH-HIGH', 'trip'),
     ('bth', '38 BRG TEMP|HIGH', 'alarm'), ('vib', '39 VIBRATION|HIGH', 'alarm'),
-    ('hyd', 'HYD OIL|PRESS LOW', 'alarm'), ('oilp', 'OIL PUMP|STOPPED', 'alarm'), ('watp', 'WATER PUMP|STOPPED', 'alarm'),
+    ('hyd', 'GOV OIL|PRESS LOW', 'alarm'), ('oilp', 'LUBE OIL|PRESS LOW', 'alarm'), ('watp', 'COOLING WATER|FLOW LOW', 'alarm'),
     ('air', 'BRAKE AIR|PRESS LOW', 'alarm'), ('brk', 'BRAKES|APPLIED', 'status'),
-    ('rhi', 'RIVER DEPTH|HIGH', 'alarm'), ('rlo', 'RIVER DEPTH|LOW', 'alarm'), ('spill', 'SPILLWAY GATE|OPEN', 'status'),
-    ('plc', 'PLC|OFF', 'status'), ('avr', 'AVR IN|MANUAL', 'status')]
+    ('rhi', 'HEADWATER|LEVEL HIGH', 'alarm'), ('rlo', 'HEADWATER|LEVEL LOW', 'alarm'), ('spill', 'SPILLWAY GATE|OPEN', 'status'),
+    ('plc', 'GOVERNOR|IN MANUAL', 'status'), ('avr', 'VOLT REG|IN MANUAL', 'status')]
 
 INIT = dict(n=0, g=0, v=0, x=0, hp=0, air=0, bt=24, l=7, q=75, sg=0.75)
 
@@ -147,20 +146,20 @@ def build():
     hss = switch(F, 'r_ss', 'hss', 'SYNCHRONIZING', ('OFF', 'ON'))
     h52 = switch(F, 'r_52', 'h52', '52G GEN BREAKER', ('TRIP', 'CLOSE'), speed=900)
     hexc_m = switch(M, 'r_exc', 'hexc', '41 FIELD BREAKER', ('TRIP', 'CLOSE'))
-    hgt_m = switch(M, 'r_gt', 'hgt', 'WICKET GATE TRIP', ('RESET', 'TRIP'), grip='red')
-    plc = switch(F, 'r_plc', 'plc', 'PLC', ('OFF', 'ON'))
-    avr = switch(F, 'r_avr', 'avr', 'AVR', ('MAN', 'AUTO'))
-    lube = switch(S, 'r_lp', 'lube', 'OIL PUMP', ('STOP', 'RUN'))
-    cool = switch(S, 'r_wp', 'cool', 'WATER PUMP', ('STOP', 'RUN'))
-    hhp = switch(S, 'r_hp', 'hhp', 'HYDRAULIC PUMP', ('STOP', 'RUN'))
-    hac = switch(S, 'r_ac', 'hac', 'AIR COMPRESSOR', ('STOP', 'RUN'))
+    hgt_m = switch(M, 'r_gt', 'hgt', '86 UNIT LOCKOUT', ('RESET', 'TRIP'), grip='red')
+    plc = switch(F, 'r_plc', 'plc', 'GOVERNOR', ('MAN', 'AUTO'))
+    avr = switch(F, 'r_avr', 'avr', 'VOLTAGE REGULATOR', ('MAN', 'AUTO'))
+    lube = switch(S, 'r_lp', 'lube', 'LUBE OIL PUMP', ('OFF', 'ON'))
+    cool = switch(S, 'r_wp', 'cool', 'COOLING WATER PUMP', ('OFF', 'ON'))
+    hhp = switch(S, 'r_hp', 'hhp', 'GOVERNOR OIL PUMP', ('OFF', 'AUTO'))
+    hac = switch(S, 'r_ac', 'hac', 'AIR COMPRESSOR', ('OFF', 'AUTO'))
     hbr_m = switch(M, 'r_br', 'hbr', 'BRAKES', ('APPLY', 'RELEASE'), kind='sel')
-    sman = switch(S, 'r_sp', 'sman', 'CONTROL MODE', ('AUTO', 'MANUAL'), kind='sel')
+    sman = switch(S, 'r_sp', 'sman', 'GATE CONTROL', ('AUTO', 'MANUAL'), kind='sel')
     kgl = dial(M, 'k_gl', 'kgl', 'LOWER')
     kgr = dial(M, 'k_gr', 'kgr', 'RAISE')
     ksl = dial(S, 'k_sl', 'ksl', 'LOWER')
     ksr = dial(S, 'k_sr', 'ksr', 'RAISE')
-    kfa_m = dial(M, 'k_fa', 'kfa', 'FIRING ANGLE', spring=False, start=KNOB0)
+    kfa_m = dial(M, 'k_fa', 'kfa', 'MANUAL FIELD ADJUST', spring=False, start=KNOB0)
     rst = M.var('rst', 0, 0, 1)                     # reset request: the trip handle turned back to RESET
     m['r_gt'].out('OnOut', rst.ent, 'SetValue', 1)
 
@@ -384,7 +383,7 @@ def build():
 
     # ------------------------------------------------------------ medium meters and lamps
     needle(M, 'p_volts', V / 125)                           # 0-600 V
-    needle(M, 'p_exc', X / 120)                             # 0-5 A
+    needle(M, 'p_exc', X / 120)                             # 0-60 A
     needle(M, 'p_fa', 1 - EXC * k_cmd)                      # firing angle 0-90 deg
     lamp('LP_exc', exc, ('red', 'green'))
     lamp('LP_brake', brake, ('red', 'green'))
@@ -445,7 +444,7 @@ def build():
     # ISA manual-reset sequence (ISA-18.1 "M"): a new alarm flashes its window and sounds the horn;
     # ACKNOWLEDGE makes it steady and silences the horn; once the condition has cleared, RESET puts the
     # window out; TEST lights every window while held in. Trip windows take the protective relays' targets,
-    # which stay up until the lockout is reset with the WICKET GATE TRIP handle.
+    # which stay up until the 86 lockout is reset.
     ack = A.var('ack', 0, 0, 1); arst = A.var('arst', 0, 0, 1); atest = A.flag('atest')
     for name, label, var, wait in (('b_ack', 'ACKNOWLEDGE', ack, 0.4), ('b_rst', 'RESET', arst, 0.4), ('b_test', 'TEST', atest, 3)):
         e = m.ent('func_button', name, spawnflags=1024, speed=20, lip=1, wait=wait, movedir='0 90 0', sounds=0)
@@ -476,7 +475,7 @@ def build():
     lva = am(lv)
     raw.update({
         'bth': step(am(bt), 76), 'vib': cba * step(ga, 25) * below(ga, 50),
-        'hyd': below(am(hp), 240), 'oilp': NOT(am(lube)), 'watp': NOT(am(cool)), 'air': below(am(air), 50),
+        'hyd': below(am(hp), 240), 'oilp': below(am(lp), 20), 'watp': below(am(cw), 35), 'air': below(am(air), 50),
         'brk': am(brake), 'rhi': step(lva, 7.5), 'rlo': below(lva, 6.25), 'spill': step(am(sg), 0.01),
         'plc': NOT(am(plc)), 'avr': NOT(am(avr))})
     unacked, news = [], []

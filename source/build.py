@@ -146,7 +146,8 @@ def window_texture(name, legend, kind, lit):
     d.rectangle([6, 6, 249, 121], fill=(on_c if lit else off_c) + (255,))
     fg = (24, 14, 10, 255) if lit else off_fg + (255,)
     a, b = legend.split('|')
-    gb.text(d, im, (128, 42), a, 32, fg); gb.text(d, im, (128, 86), b, 32, fg)
+    sq = lambda ln: min(0.86, 0.86 * 12 / len(ln))       # 13-letter lines a little narrower, clear of the frame
+    gb.text(d, im, (128, 42), a, 32, fg, squeeze=sq(a)); gb.text(d, im, (128, 86), b, 32, fg, squeeze=sq(b))
     TEX[name] = im.convert('RGB')
     if lit:
         UNLIT.add(name)
@@ -187,8 +188,8 @@ def build_panels(m, dev):
     sw = dev['switches']
     dl = dev['dials']
     lamps = dev['lamps']
-    doors = [gb.Door(0, 'UNIT 1 - UNIT CONTROL', '+CP1'), gb.Door(1, 'UNIT 1 - ANNUNCIATOR', '+CP2'),
-             gb.Door(2, 'UNIT 1 - AUXILIARIES', '+CP3'), gb.Door(gb.SP, 'SPILLWAY GATE', '+SP1', w=gb.SP_W, h=gb.SP_H, louvres=False)]
+    doors = [gb.Door(0, 'UNIT 1 GENERATOR CONTROL', 'CP-1'), gb.Door(1, 'UNIT 1 ANNUNCIATOR', 'CP-2'),
+             gb.Door(2, 'UNIT 1 AUXILIARIES', 'CP-3'), gb.Door(gb.SP, 'SPILLWAY GATE CONTROL', 'SP-1', w=gb.SP_W, h=gb.SP_H, louvres=False)]
     nd = [0]
     door_xy = gb.door_xy
 
@@ -329,7 +330,7 @@ def build_panels(m, dev):
     lampw(0, 51.5, ROW1 + 5, 'L_perm', ('SYNC CHECK',))
     gauge(0, 7, ROW2, 'UNIT SPEED', [(0, 150, 25, 25, 5, None)], 'RPM', 'p_speed', red=(140, 150), xr=5)
     gauge(0, 17, ROW2, 'GATE POSITION', [(0, 100, 20, 10, 2, None)], 'PERCENT OPEN', 'p_gate', xl=5, xr=5)
-    gauge(0, 27, ROW2, 'FIELD CURRENT', [(0, 5, 1, 1, 0.2, None)], 'DC AMPS', 'p_exc', xl=5, xr=5)
+    gauge(0, 27, ROW2, 'FIELD CURRENT', [(0, 60, 10, 10, 2, None)], 'DC AMPS', 'p_exc', xl=5, xr=5)
     gauge(0, 37, ROW2, 'FIRING ANGLE', [(0, 90, 15, 15, 5, None)], 'DEGREES', 'p_fa', xl=5)
     D.section(1.5, 40, 53, 44, 'CONTROLS')
     cs_switch(0, 8, CTL, 'r_ss')
@@ -340,9 +341,9 @@ def build_panels(m, dev):
     spring_dial(0, 6, CTL + 21, 'k_gl'); spring_dial(0, 16, CTL + 21, 'k_gr')
     rot(0, 30, CTL + 21, 'r_br', dial=True)
     lampw(0, 30, CTL + 28.5, 'LP_brake', ('APPLIED', 'RELEASED'))
-    knob_panel(0, 45, CTL + 21, 'k_fa', 'FIRING ANGLE')
+    knob_panel(0, 45, CTL + 21, 'k_fa', dl['k_fa']['label'])
 
-    # ------------------------------------------- middle: the annunciator, the PLC and the AVR
+    # ------------------------------------------- middle: the annunciator, the governor and the voltage regulator
     D = doors[1]
     W(door_xy(1, 0.5, 0)[0], -0.9, gb.DOOR_TOP - 30.5, door_xy(1, 55.5, 0)[0], -0.5, gb.DOOR_TOP - 4.5, tex='sc_black')
     for i, w in enumerate(dev['windows']):
@@ -350,8 +351,8 @@ def build_panels(m, dev):
         u, v = 6.55 + c * 10.725, 8 + r * 6.2
         world.append(gb.front_box(1, u, v, 10.3, 5.8, -1.4, -0.9, window_texture(f'scw{i:02d}d', w['legend'], w['kind'], False)))
         place(w['ent'], [gb.front_box(1, u, v, 10.3, 5.8, -1.7, -1.4, window_texture(f'scw{i:02d}l', w['legend'], w['kind'], True))])
-    gauge(1, 22, 37, 'GEN FREQUENCY', [(54, 66, 2, 1, 0.2, None)], 'Hz', 'p_hz', xr=6)
-    gauge(1, 34, 37, 'STATION FREQUENCY', [(54, 66, 2, 1, 0.2, None)], 'Hz', 'p_sfreq', xl=6)
+    gauge(1, 22, 37, 'GEN FREQUENCY', [(54, 66, 2, 1, 0.2, None)], 'HERTZ', 'p_hz', xr=6)
+    gauge(1, 34, 37, 'BUS FREQUENCY', [(54, 66, 2, 1, 0.2, None)], 'HERTZ', 'p_sfreq', xl=6)
     cs_switch(1, 17, CTL, 'r_plc')
     cs_switch(1, 39, CTL, 'r_avr')
     # annunciator pushbuttons: ACKNOWLEDGE (amber), RESET and TEST (black)
@@ -362,14 +363,14 @@ def build_panels(m, dev):
     # ------------------------------------------- right: auxiliaries
     D = doors[2]
     D.section(1.5, 5.5, 53, 32.5, 'METERS')
-    gauge(2, 7, ROW1, 'OIL PRESSURE', [(0, 60, 10, 10, 2, None)], 'PSI', 'p_lube', red=(0, 20), xr=5)
-    gauge(2, 17, ROW1, 'WATER FLOW', [(0, 100, 20, 10, 5, None)], 'GPM', 'p_cw', red=(0, 35), xl=5, xr=5)
-    gauge(2, 27, ROW1, 'BEARING TEMP', [(20, 100, 20, 10, 5, None)], 'DEG C', 'p_bt', red=(76, 100), xl=5, xr=5)
-    gauge(2, 37, ROW1, 'VIBRATION', [(0, 20, 5, 5, 1, None)], 'MILS P-P', 'p_vib', red=(12, 20), xl=5)
-    gauge(2, 7, ROW2, 'HYDRAULIC PRESS', [(0, 400, 100, 50, 10, None)], 'PSI', 'p_opu', red=(0, 220), xr=5)
+    gauge(2, 7, ROW1, 'LUBE OIL PRESS', [(0, 60, 10, 10, 2, None)], 'PSI', 'p_lube', red=(0, 20), xr=5)
+    gauge(2, 17, ROW1, 'COOLING WATER', [(0, 100, 20, 10, 5, None)], 'GPM', 'p_cw', red=(0, 35), xl=5, xr=5)
+    gauge(2, 27, ROW1, 'THRUST BRG TEMP', [(20, 100, 20, 10, 5, None)], 'DEG C', 'p_bt', red=(76, 100), xl=5, xr=5)
+    gauge(2, 37, ROW1, 'SHAFT VIBRATION', [(0, 20, 5, 5, 1, None)], 'MILS P-P', 'p_vib', red=(12, 20), xl=5)
+    gauge(2, 7, ROW2, 'GOV OIL PRESS', [(0, 400, 100, 50, 10, None)], 'PSI', 'p_opu', red=(0, 220), xr=5)
     gauge(2, 17, ROW2, 'BRAKE AIR PRESS', [(0, 150, 25, 25, 5, None)], 'PSI', 'p_air', red=(0, 50), xl=5, xr=5)
     gauge(2, 27, ROW2, 'NET HEAD', [(0, 60, 10, 10, 2, None)], 'FEET', 'p_head', xl=5)
-    D.section(1.5, 40, 53, 22, 'PUMPS')
+    D.section(1.5, 40, 53, 22, 'AUXILIARY MOTORS')
     for u, nm in ((8, 'r_lp'), (21, 'r_wp'), (34, 'r_hp'), (47, 'r_ac')):
         cs_switch(2, u, CTL, nm)
 
@@ -379,7 +380,7 @@ def build_panels(m, dev):
     D = doors[gb.SP]
     for nm in ('p_hw', 'p_rq', 'p_spill', 'r_sp', 'k_sl', 'k_sr'):
         wall_ents.append(m[nm])
-    gauge(gb.SP, 7, 12, 'RIVER DEPTH', [(0, 10, 1, 1, 0.25, None)], 'METERS', 'p_hw', red=(9, 10), xl=5.5, xr=6.5)
+    gauge(gb.SP, 7, 12, 'HEADWATER LEVEL', [(0, 10, 1, 1, 0.25, None)], 'METERS', 'p_hw', red=(9, 10), xl=5.5, xr=6.5)
     gauge(gb.SP, 20, 12, 'RIVER FLOW', [(0, 120, 20, 20, 5, None)], 'CFS', 'p_rq', xl=6.5, xr=6.5)
     gauge(gb.SP, 33, 12, 'GATE OPENING', [(0, 1.2, 0.2, 0.2, 0.05, lambda v: f'{v:.1f}')], 'METERS', 'p_spill', xl=6.5, xr=5.5)
     rot(gb.SP, 8, 32, 'r_sp', dial=True)
@@ -543,17 +544,17 @@ def build_details():
 
     # ------------------------------------------------ right wall (x = 160): procedures, first aid, calendar
     procedure_sheet('sc_proc1', 'UNIT 1 START-UP', [
-        ('BEFORE STARTING', ['OIL PUMP, WATER PUMP: RUN', 'HYDRAULIC PUMP, AIR COMPRESSOR: RUN',
-                             'WAIT FOR HYDRAULIC PRESS 300 PSI', 'BRAKES: RELEASE']),
-        ('TO SPEED-NO-LOAD', ['PLC: ON  (IT OPENS THE GATE AND HOLDS SPEED)', 'OR BY HAND: WICKET GATE RAISE TO 25 %,',
+        ('BEFORE STARTING', ['LUBE OIL PUMP, COOLING WATER PUMP: ON', 'GOVERNOR OIL PUMP, AIR COMPRESSOR: AUTO',
+                             'WAIT FOR GOV OIL PRESS 300 PSI', 'BRAKES: RELEASE']),
+        ('TO SPEED-NO-LOAD', ['GOVERNOR: AUTO  (OPENS GATE, HOLDS SPEED)', 'OR IN MAN: WICKET GATE RAISE TO 25 %,',
                               '   LOWER TO ABOUT 15 % PAST 80 % SPEED']),
-        ('EXCITATION', ['AVR: AUTO', '41 FIELD BREAKER: CLOSE ABOVE 90 % SPEED', 'CHECK GENERATOR VOLTS 480 V'])])
+        ('EXCITATION', ['VOLTAGE REGULATOR: AUTO', '41 FIELD BREAKER: CLOSE ABOVE 90 % SPEED', 'CHECK GENERATOR VOLTS 480 V'])])
     procedure_sheet('sc_proc2', 'SYNCHRONIZING / SHUTDOWN', [
         ('SYNCHRONIZING', ['SYNCHRONIZING: ON', 'SET SPEED SO THE POINTER CREEPS CLOCKWISE',
                            '52G: CLOSE WHILE SYNC CHECK IS LIT', 'SYNCHRONIZING: OFF']),
-        ('NORMAL SHUTDOWN', ['LOWER THE GATE TO ABOUT 15 %', '52G: TRIP, THEN 41: TRIP', 'PLC: OFF, LOWER THE GATE TO 0 %',
+        ('NORMAL SHUTDOWN', ['LOWER THE GATE TO ABOUT 15 %', '52G: TRIP, THEN 41: TRIP', 'GOVERNOR: MAN, LOWER THE GATE TO 0 %',
                              'BRAKES: APPLY BELOW 30 % SPEED']),
-        ('ALARMS', ['ACKNOWLEDGE, FIND AND CORRECT THE CAUSE,', 'THEN RESET. TRIPS: RESET THE WICKET GATE', 'TRIP HANDLE FIRST.'])])
+        ('ALARMS', ['ACKNOWLEDGE, FIND AND CORRECT THE CAUSE,', 'THEN RESET. TRIPS: RESET THE 86 UNIT', 'LOCKOUT FIRST.'])])
     for (y0, y1), tex in (((-8, 20), 'sc_proc1'), ((-42, -14), 'sc_proc2')):    # start-up on the left as you face the wall
         W(159, y0 - 1, 47, 160, y1 + 1, 88, tex='sc_wood')                       # board
         on_wall_mx(y0, y1, 48.5, 87, tex, depth=1.6)
@@ -581,8 +582,8 @@ def build_details():
     d.rectangle([0, 0, 511, 255], outline=(150, 150, 150), width=6)
     gb.text(d, im, (256, 30), 'SHIFT LOG  -  UNIT 1', 26, (20, 40, 120), squeeze=0.95)
     log = ['06:00  TOOK OVER. UNIT 1 AVAILABLE.', '07:15  RIVER RISING - WATCH THE SPILLWAY.',
-           '09:40  HYD PUMP CYCLING NORMAL (270 / 300 PSI).', '11:05  52G CLOSED, PLC HOLDING DEPTH 7.0 M.',
-           '13:30  BEARING TEMP 55 C. VIB NORMAL.', 'NOTE: AVOID 25-50 % GATE ON LINE (ROUGH ZONE).']
+           '09:40  GOV OIL PUMP CYCLING (270 / 300 PSI).', '11:05  52G CLOSED, HEADWATER HELD AT 7.0 M.',
+           '13:30  THRUST BRG 55 C. VIBRATION NORMAL.', 'NOTE: AVOID 25-50 % GATE ON LINE (ROUGH ZONE).']
     lines_text(d, im, 22, 76, log, 18, (30, 30, 40), gap=1.5, bold=False, squeeze=0.82)
     finish('sc_whiteboard', im)
     W(-82, -232, 44, -8, -231, 92, tex='sc_metal')
@@ -615,7 +616,7 @@ def build_details():
     d.rectangle([20, 150, 492, 360], outline=(60, 80, 120), width=2)
     for k in range(1, 6):
         d.line([(20, 150 + k * 35), (492, 150 + k * 35)], fill=(30, 45, 80))
-    gb.text(d, im, (30, 165), 'TREND  -  KW  /  RIVER DEPTH', 12, wht, anchor='lm')
+    gb.text(d, im, (30, 165), 'TREND  -  KW  /  HEADWATER LEVEL', 12, wht, anchor='lm')
     pts = [(20 + i * 6, 300 - 90 * (1 - math.exp(-i / 18)) + 6 * math.sin(i / 3)) for i in range(79)]
     d.line(pts, fill=grn, width=3)
     d.line([(20 + i * 6, 250 + 12 * math.sin(i / 9)) for i in range(79)], fill=blue, width=2)
@@ -633,7 +634,7 @@ def build_details():
     d.line([(128, 0), (128, 191)], fill=(150, 140, 120), width=3)
     for k in range(10):
         d.line([(10, 24 + k * 16), (118, 24 + k * 16)], fill=(170, 190, 220)); d.line([(138, 24 + k * 16), (246, 24 + k * 16)], fill=(170, 190, 220))
-    lines_text(d, im, 12, 20, ['UNIT 1', 'GATE 65 %', 'DEPTH 7.0', 'ALL NORMAL'], 11, (30, 40, 110), gap=1.45, bold=False)
+    lines_text(d, im, 12, 20, ['UNIT 1', 'GATE 65 %', 'HW LEVEL 7.0', 'ALL NORMAL'], 11, (30, 40, 110), gap=1.45, bold=False)
     finish('sc_logbook', im)
     top_art(116, 132, -172, -160, 40, 41.2, 'sc_logbook', side='sc_white')
     im, d = tex_img('sc_phone', (64, 64), (34, 34, 36))

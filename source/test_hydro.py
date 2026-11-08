@@ -88,8 +88,8 @@ def scenario_idle():
     check(not s.errors, f'two-input nodes always got their first value first ({len(s.errors)} errors)')
     check(abs(V(s, 'l') - 7.0) < 0.1, f"river depth holds at 7.0 m ({V(s, 'l'):.2f})")
     lit = [w['legend'] for w in dev['windows'] if s[w['ent'].name].on]
-    check(set(lit) == {'HYD OIL|PRESS LOW', 'OIL PUMP|STOPPED', 'WATER PUMP|STOPPED', 'BRAKE AIR|PRESS LOW',
-                       'SPILLWAY GATE|OPEN', 'PLC|OFF', 'AVR IN|MANUAL'}, f'windows lit at rest: {lit}')
+    check(set(lit) == {'GOV OIL|PRESS LOW', 'LUBE OIL|PRESS LOW', 'COOLING WATER|FLOW LOW', 'BRAKE AIR|PRESS LOW',
+                       'SPILLWAY GATE|OPEN', 'GOVERNOR|IN MANUAL', 'VOLT REG|IN MANUAL'}, f'windows lit at rest: {lit}')
     check(not s['s_horn'].playing, 'no horn at start')
     check(abs(s['k_fa'].pos() - hydro.KNOB0) < 0.01, 'firing-angle knob at rated no-load field')
 
@@ -186,7 +186,7 @@ def scenario_trip(s):
     check(V(s, 'g') < 1, f"gate shut at once ({V(s, 'g'):.1f} %)")
     s.run(1.0)
     check(V(s, 'plc') == 0 and V(s, 'avr') == 0 and V(s, 'h52') == 0 and V(s, 'hexc') == 0,
-          'PLC, AVR, 52G and 41 handles turned to OFF / MAN / TRIP')
+          'governor, voltage regulator, 52G and 41 handles turned to MAN / MAN / TRIP')
     check(V(s, 'ua_lock') == 1 and V(s, 'ua_gbkr') == 1, '86 LOCKOUT and 52G GEN BKR TRIPPED flash')
     flashes = set()
     for _ in range(12):

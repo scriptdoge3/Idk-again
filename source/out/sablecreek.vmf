@@ -2864,7 +2864,6 @@ entity
 	"startvalue" "0"
 	connections
 	{
-		"OutValue" "lube_a,SetValueNoFire,,0,-1"
 		"OnGetValue" "l1$s,InValue,,0,-1"
 	}
 }
@@ -3090,7 +3089,6 @@ entity
 	"startvalue" "0"
 	connections
 	{
-		"OutValue" "cool_a,SetValueNoFire,,0,-1"
 		"OnGetValue" "r1$s,InValue,,0,-1"
 		"OnGetValue" "y2$s,SetValueNoFire,,0,-1"
 	}
@@ -6234,6 +6232,7 @@ entity
 	"startvalue" "0"
 	connections
 	{
+		"OutValue" "lp_a,SetValueNoFire,,0,-1"
 		"OnGetValue" "m1$s,InValue,,0,-1"
 		"OnGetValue" "j1$s,SetValueNoFire,,0,-1"
 	}
@@ -6248,6 +6247,7 @@ entity
 	"startvalue" "0"
 	connections
 	{
+		"OutValue" "cw_a,SetValueNoFire,,0,-1"
 		"OnGetValue" "s1$s,InValue,,0,-1"
 		"OnGetValue" "p1$s,SetValueNoFire,,0,-1"
 	}
@@ -11103,7 +11103,7 @@ entity
 {
 	"id" "1034"
 	"classname" "math_counter"
-	"targetname" "lube_a"
+	"targetname" "lp_a"
 	"min" "0"
 	"max" "0"
 	"startvalue" "0"
@@ -11116,7 +11116,7 @@ entity
 {
 	"id" "1035"
 	"classname" "math_counter"
-	"targetname" "cool_a"
+	"targetname" "cw_a"
 	"min" "0"
 	"max" "0"
 	"startvalue" "0"
@@ -12546,7 +12546,7 @@ entity
 	connections
 	{
 		"OnGetValue" "b5$a,SetValueNoFire,,0,-1"
-		"OnGetValue" "f5$a,InValue,,0,-1"
+		"OnGetValue" "g5$a,InValue,,0,-1"
 		"OnGetValue" "n5$a,SetValueNoFire,,0,-1"
 	}
 }
@@ -12667,7 +12667,7 @@ entity
 	connections
 	{
 		"OnGetValue" "s5$a,SetValueNoFire,,0,-1"
-		"OnGetValue" "w5$a,InValue,,0,-1"
+		"OnGetValue" "x5$a,InValue,,0,-1"
 		"OnGetValue" "46$a,SetValueNoFire,,0,-1"
 	}
 }
@@ -22896,10 +22896,10 @@ entity
 		"OnTrigger" "hp_a,GetValue,,0,-1"
 		"OnTrigger" "aa_hyd,GetValue,,0,-1"
 		"OnTrigger" "ua_oilp,GetValue,,0,-1"
-		"OnTrigger" "lube_a,GetValue,,0,-1"
+		"OnTrigger" "lp_a,GetValue,,0,-1"
 		"OnTrigger" "aa_oilp,GetValue,,0,-1"
 		"OnTrigger" "ua_watp,GetValue,,0,-1"
-		"OnTrigger" "cool_a,GetValue,,0,-1"
+		"OnTrigger" "cw_a,GetValue,,0,-1"
 		"OnTrigger" "aa_watp,GetValue,,0,-1"
 		"OnTrigger" "ua_air,GetValue,,0,-1"
 		"OnTrigger" "air_a,GetValue,,0,-1"
@@ -25461,11 +25461,11 @@ entity
 	"targetname" "e5$a"
 	"in1" "0"
 	"in2" "1"
-	"out1" "1"
-	"out2" "0"
+	"out1" "20001"
+	"out2" "19001"
 	connections
 	{
-		"OutValue" "d5$a,SetValueNoFire,,0,-1"
+		"OutValue" "f5$a,InValue,,0,-1"
 	}
 }
 entity
@@ -25475,11 +25475,13 @@ entity
 	"targetname" "f5$a"
 	"in1" "0"
 	"in2" "1"
-	"out1" "1"
-	"out2" "0"
+	"out1" "0"
+	"out2" "1"
+	"spawnflags" "2"
 	connections
 	{
-		"OutValue" "g5$a,InValue,,0,-1"
+		"OutValue" "d5$a,Multiply,,0,-1"
+		"OutValue" "l5$a,InValue,,0,-1"
 	}
 }
 entity
@@ -25489,11 +25491,11 @@ entity
 	"targetname" "g5$a"
 	"in1" "0"
 	"in2" "1"
-	"out1" "0"
-	"out2" "1"
+	"out1" "1"
+	"out2" "0"
 	connections
 	{
-		"OutValue" "d5$a,Multiply,,0,-1"
+		"OutValue" "d5$a,SetValueNoFire,,0,-1"
 	}
 }
 entity
@@ -25520,7 +25522,7 @@ entity
 	connections
 	{
 		"OutValue" "aa_oilp,SetValue,,0,-1"
-		"OutValue" "p5$a,SetValueNoFire,,0,-1"
+		"OutValue" "p5$a,Add,,0,-1"
 	}
 }
 entity
@@ -25551,11 +25553,11 @@ entity
 {
 	"id" "2145"
 	"classname" "math_remap"
-	"targetname" "e5$a"
+	"targetname" "l5$a"
 	"in1" "0"
 	"in2" "1"
-	"out1" "0"
-	"out2" "1"
+	"out1" "1"
+	"out2" "0"
 	connections
 	{
 		"OutValue" "k5$a,Multiply,,0,-1"
@@ -25620,7 +25622,7 @@ entity
 	"max" "0"
 	connections
 	{
-		"OutValue" "p5$a,Add,,0,-1"
+		"OutValue" "p5$a,SetValueNoFire,,0,-1"
 	}
 }
 entity
@@ -25681,11 +25683,11 @@ entity
 	"targetname" "v5$a"
 	"in1" "0"
 	"in2" "1"
-	"out1" "1"
-	"out2" "0"
+	"out1" "35001"
+	"out2" "34001"
 	connections
 	{
-		"OutValue" "u5$a,SetValueNoFire,,0,-1"
+		"OutValue" "w5$a,InValue,,0,-1"
 	}
 }
 entity
@@ -25695,11 +25697,13 @@ entity
 	"targetname" "w5$a"
 	"in1" "0"
 	"in2" "1"
-	"out1" "1"
-	"out2" "0"
+	"out1" "0"
+	"out2" "1"
+	"spawnflags" "2"
 	connections
 	{
-		"OutValue" "x5$a,InValue,,0,-1"
+		"OutValue" "u5$a,Multiply,,0,-1"
+		"OutValue" "26$a,InValue,,0,-1"
 	}
 }
 entity
@@ -25709,11 +25713,11 @@ entity
 	"targetname" "x5$a"
 	"in1" "0"
 	"in2" "1"
-	"out1" "0"
-	"out2" "1"
+	"out1" "1"
+	"out2" "0"
 	connections
 	{
-		"OutValue" "u5$a,Multiply,,0,-1"
+		"OutValue" "u5$a,SetValueNoFire,,0,-1"
 	}
 }
 entity
@@ -25740,7 +25744,7 @@ entity
 	connections
 	{
 		"OutValue" "aa_watp,SetValue,,0,-1"
-		"OutValue" "66$a,SetValueNoFire,,0,-1"
+		"OutValue" "66$a,Add,,0,-1"
 	}
 }
 entity
@@ -25771,11 +25775,11 @@ entity
 {
 	"id" "2162"
 	"classname" "math_remap"
-	"targetname" "v5$a"
+	"targetname" "26$a"
 	"in1" "0"
 	"in2" "1"
-	"out1" "0"
-	"out2" "1"
+	"out1" "1"
+	"out2" "0"
 	connections
 	{
 		"OutValue" "16$a,Multiply,,0,-1"
@@ -25840,7 +25844,7 @@ entity
 	"max" "0"
 	connections
 	{
-		"OutValue" "66$a,Add,,0,-1"
+		"OutValue" "66$a,SetValueNoFire,,0,-1"
 	}
 }
 entity

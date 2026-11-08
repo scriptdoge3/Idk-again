@@ -11,8 +11,8 @@ the console. The textures and sounds are packed inside the BSP, and no launch op
 
 ## Entities and speed
 
-The map has 1,249 entities, and only 76 of them use network slots: the needles, switches, dials,
-pushbuttons, lamps, annunciator windows and sounds. The plant logic (1,168 entities: `math_counter`,
+The map has 1,263 entities, and only 76 of them use network slots: the needles, switches, dials,
+pushbuttons, lamps, annunciator windows and sounds. The plant logic (1,182 entities: `math_counter`,
 `math_remap`, `logic_relay`, `logic_timer`, `logic_auto`) is server-only and uses none. Half-Life 2 allows
 2048 of each kind. The room's detail is world geometry (`func_detail`), which costs nothing while playing.
 
@@ -23,7 +23,7 @@ times entities. The plant therefore runs as four loops, started on different ser
 | Loop | Every | Runs |
 |---|---|---|
 | fast | 0.03 s | gate travel, runner and water column, rotor speed and swing, phase, 52G closing, the speed, gate, kW, power factor, net head, frequency and synchroscope needles |
-| medium | 0.12 s | gate commands (dials, PLC governor, river control), excitation and AVR, protection and trips, brakes, the volts, field and firing-angle needles, sound pitch and loudness |
+| medium | 0.12 s | gate commands (dials, governor, headwater control), excitation and voltage regulator, protection and trips, brakes, the volts, field and firing-angle needles, sound pitch and loudness |
 | slow | 0.24 s | river and spillway, pumps and compressor, bearings, their meters |
 | annunciator | 0.24 s (half a period after slow) | the 20 windows' alarm sequence, horn, ACKNOWLEDGE / RESET / TEST |
 
@@ -55,15 +55,15 @@ The plant is a per-unit machine model, the kind used in hydro studies:
 - **Exciter:** static and fed from the generator's own terminals, so its ceiling is 1.4 times the volts.
   With no volts it can't build the field: closing 41 flashes the field from the station battery until
   the volts pass 40 %. The field current follows the exciter through the winding (1.5 s).
-- **AVR:** PI control. Off line it holds 480 V; on line it holds 0.95 power factor lagging, as small hydro
+- **Voltage regulator:** PI control. Off line it holds 480 V; on line it holds 0.95 power factor lagging, as small hydro
   units on a distribution grid do. In MAN it tracks the knob, so switching to AUTO is bumpless. When 41
   opens, the manual setting goes back to the no-load field.
-- **PLC governor:** PID speed control. The gate is limited to 25 % while starting, and the integrator waits
+- **Governor:** digital PID speed control. The gate is limited to 25 % while starting, and the integrator waits
   at the speed-no-load gate until 90 % speed, so start-up overshoots only about 2 %. On a full load
-  rejection the speed peaks around 118 % and comes back to speed-no-load without tripping. With the PLC off
+  rejection the speed peaks around 118 % and comes back to speed-no-load without tripping. With the governor in MAN
   nothing catches it, and 12 overspeed trips at 140 %.
-- **Auxiliaries:** the hydraulic pump runs on its pressure switch (on below 270 psi, off at 300) and the
-  air compressor on its own (100 / 125 psi); you hear them start and stop. Bearings warm with speed and
+- **Auxiliaries:** in AUTO the governor oil pump runs on its pressure switch (on below 270 psi, off at 300)
+  and the air compressor on its own (100 / 125 psi); you hear them start and stop. Bearings warm with speed and
   load over about a minute (52-60 C with cooling water); without it they head for 120 C, and without lube
   oil they wipe in seconds.
 - **Sound:** the turbine's pitch follows its speed and its loudness the water through it; the water noise
@@ -77,34 +77,46 @@ The cabinets and the spillway panel are laid out as in the GoldSrc map. These th
 | Control | Now |
 |---|---|
 | Meters | Switchboard meters with a 250-degree scale. Each needle's speed is matched to how often its loop updates it, so it glides between values like a damped movement. New: NET HEAD (auxiliaries panel). |
-| ACKNOWLEDGE / RESET / TEST | Pushbuttons under the PLC and AVR switches (see the annunciator below). |
+| ACKNOWLEDGE / RESET / TEST | Pushbuttons under the GOVERNOR and VOLTAGE REGULATOR switches (see the annunciator below). |
 | WICKET GATE LOWER / RAISE | Spring-return dials. Held, they move the gate 0.25 %/s for the first second, 2.5 %/s for the next two, then 10 %/s. Short taps trim the speed finely for synchronizing. |
-| FIRING ANGLE | The knob's position is the firing angle: left stop 90 degrees (no field), right stop 0 degrees (the exciter's ceiling, 140 % field). Like every Source wheel, each new grab turns the other way. With the AVR on AUTO the knob follows the AVR, so switching back to MAN doesn't bump the field. |
+| MANUAL FIELD ADJUST | The knob's position is the exciter's firing angle (FIRING ANGLE meter): left stop 90 degrees (no field), right stop 0 degrees (the exciter's ceiling, 140 % field). Like every Source wheel, each new grab turns the other way. With the voltage regulator on AUTO the knob follows it, so switching back to MAN doesn't bump the field. |
 | SYNCHROSCOPE | The pointer is the real phase angle. It turns at the slip (216 degrees a second per 1 % of speed off 100 %, at most one turn a second): clockwise when fast, anticlockwise when slow. The sync lamps are dark at 12 o'clock. |
 | Spillway GATE dials | Turn clockwise, like the others. |
 
+## Nameplates
+
+The panels are engraved the way a small US hydro plant's are: protective relays and breakers by their IEEE
+C37.2 device numbers (12 overspeed, 32 reverse power, 38 bearing, 39 vibration, 40 loss of field, 41 field
+breaker, 52G generator breaker, 59 overvoltage, 86 lockout relay), and alarms on the process condition
+(LUBE OIL PRESS LOW, COOLING WATER FLOW LOW, GOV OIL PRESS LOW) instead of on a pump being stopped. The
+cabinets are CP-1 (UNIT 1 GENERATOR CONTROL), CP-2 (UNIT 1 ANNUNCIATOR), CP-3 (UNIT 1 AUXILIARIES) and
+SP-1 (SPILLWAY GATE CONTROL). Pumps that run on a pressure switch have OFF / AUTO switches, and the others
+have OFF / ON. The river level at the intake is the HEADWATER LEVEL, the grid side of 52G is the BUS
+FREQUENCY, and the field current reads in amps (0-60 A, 50 A at rated no-load field).
+
 ## Starting the unit
 
-1. OIL PUMP, WATER PUMP, HYDRAULIC PUMP and AIR COMPRESSOR to RUN. Wait about 15 s for HYDRAULIC
-   PRESS to reach 300 psi (the gate won't open below 230 psi).
+1. LUBE OIL PUMP and COOLING WATER PUMP to ON, GOVERNOR OIL PUMP and AIR COMPRESSOR to AUTO. Wait
+   about 15 s for GOV OIL PRESS to reach 300 psi (the gate won't open below 230 psi).
 2. BRAKES to RELEASE.
-3. Either turn the PLC ON (it brings the unit to speed in about 20 s and settles it a hair fast about
+3. Either turn the GOVERNOR to AUTO (it brings the unit to speed in about 20 s and settles it a hair fast about
    15 s later), or by hand: hold RAISE to about 25 % gate, and once speed passes 80 % hold LOWER back to
    about 15 %.
-4. AVR to AUTO, then 41 FIELD BREAKER to CLOSE (it closes from 90 % speed). The field flashes and the
+4. VOLTAGE REGULATOR to AUTO, then 41 FIELD BREAKER to CLOSE (it closes from 90 % speed). The field flashes and the
    volts come up to 480 V in a few seconds.
 5. SYNCHRONIZING ON. Close 52G while the SYNC CHECK lamp is lit: phase within 10 degrees of 12 o'clock,
    speed within 0.33 % (0.2 Hz slip) and volts within 5 %. By hand, trim the speed with short taps on
    RAISE / LOWER until the pointer creeps. Each tap takes 15-20 s to show fully in the speed, so tap,
    wait, and tap again.
-6. Load: with the PLC on, it opens the gate to pass the river and holds the depth at 7.0 m (never below
+6. Load: with the governor in AUTO, it opens the gate to pass the river and holds the headwater at 7.0 m (never below
    17 % gate). By hand, hold RAISE. Watch the kW needle dip as the gate starts moving fast.
 
 ## Protection
 
-Any trip shuts the wicket gate at once, opens 52G and 41, turns the PLC OFF and the AVR to MAN, and
-turns the WICKET GATE TRIP handle to TRIP. Turn it back to RESET to reset; it trips again if the cause
-is still there.
+Any trip operates the 86 unit lockout relay: it shuts the wicket gate at once, opens 52G and 41, turns the
+governor and the voltage regulator to MAN, and turns the 86 UNIT LOCKOUT handle to TRIP. Turning the
+handle to TRIP by hand trips the unit too. Turn it back to RESET to reset; it trips again if the cause is
+still there.
 
 | Trip | Cause |
 |---|---|
@@ -114,7 +126,7 @@ is still there.
 | 40 LOSS OF FIELD | on line with the field under 60 %, or the rotor slipping poles |
 | 59 GEN OVERVOLTAGE | off line at 115 % volts |
 | 38 BRG TEMP HIGH-HIGH | bearing at 90 C (no lube oil wipes it in seconds, no cooling water cooks it in about a minute) |
-| (lockout only) | hydraulic oil under 210 psi with the gate open; river under 4.75 m with the unit turning |
+| (lockout only) | governor oil under 210 psi with the gate open; headwater under 4.75 m with the unit turning |
 
 The annunciator has the GoldSrc map's 20 windows and works like a real one (ISA-18.1 manual reset):
 
@@ -122,10 +134,10 @@ The annunciator has the GoldSrc map's 20 windows and works like a real one (ISA-
 2. ACKNOWLEDGE: every flashing window goes steady and the horn stops.
 3. When the condition has cleared, RESET puts its window out. A window whose condition is still there
    stays lit. Trip windows show the protective relays' targets, which stay up until you reset the
-   lockout with the WICKET GATE TRIP handle, so reset the handle first, then RESET.
+   lockout with the 86 UNIT LOCKOUT handle, so reset the handle first, then RESET.
 4. TEST lights every window for a few seconds.
 
-PLC OFF, AVR IN MANUAL, BRAKES APPLIED and SPILLWAY GATE OPEN are status windows: lit while true, no
+GOVERNOR IN MANUAL, VOLT REG IN MANUAL, BRAKES APPLIED and SPILLWAY GATE OPEN are status windows: lit while true, no
 flashing or horn. The alarms standing when the map loads start acknowledged.
 
 ## The room
@@ -154,9 +166,9 @@ reads another loop's variables through mirrors: the original's `OutValue` sets t
 
 `srcsim.py` simulates those entities as the Source SDK code does: the event queue, the reverse order
 of an output's actions, the relays, timers rounded to ticks, the buttons and wheels, 32-bit floats.
-`python3 test_hydro.py` runs start-up by hand and by PLC, synchronizing (and the swing after it),
+`python3 test_hydro.py` runs start-up by hand and by the governor, synchronizing (and the swing after it),
 loading (and the water-hammer dip), the power factor on line, a trip and reset, a load rejection with the
-PLC on, the out-of-phase close, the refused close and overspeed, and checks that every two-value node got
+governor in AUTO, the out-of-phase close, the refused close and overspeed, and checks that every two-value node got
 its values in order on every tick.
 
 ## Building
