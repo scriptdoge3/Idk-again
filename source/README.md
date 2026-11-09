@@ -11,9 +11,9 @@ the console. The textures and sounds are packed inside the BSP, and no launch op
 
 ## Entities and speed
 
-The map has 1,651 entities, and only 146 of them use network slots: the needles, switches, dials,
-pushbuttons, lamps, annunciator windows and sounds (93), and the 53 models that move with them. The 62 fixed
-models are static props, which cost nothing. The plant logic (1,438 entities: `math_counter`,
+The map has 1,666 entities, and only 150 of them use network slots: the needles, switches, dials,
+pushbuttons, lamps, annunciator windows and sounds (95), and the 55 models that move with them. The 62 fixed
+models are static props, which cost nothing. The plant logic (1,449 entities: `math_counter`,
 `math_remap`, `logic_relay`, `logic_timer`, `logic_auto`) is server-only and uses none. Half-Life 2 allows
 2048 of each kind. The room's detail is world geometry (`func_detail`), which costs nothing while playing.
 
@@ -103,6 +103,8 @@ The cabinets and the spillway panel are laid out as in the GoldSrc map. These th
 | GOV MODE, AVR MODE | MAN / AUTO. A trip drops both to MAN; AUTO is blocked until 86U is reset. |
 | LUBE OIL PUMP, CW PUMP | STOP / START. |
 | HPU PUMP, AIR COMP | OFF / AUTO (they run on their pressure switches). |
+| BRAKES | RELEASE / APPLY; the target is red with APPLY selected (as at the start). The brakes go on only below 30 % speed and with air. |
+| GATE MODE (SP-1) | MAN / AUTO for the spill gate; it starts in AUTO. |
 | CP-2 meters | GATE POS by GOV MODE, GEN FREQ, BUS FREQ, FIELD AMPS by AVR MODE. |
 | CP-3 meters | LUBE OIL PRESS, CW FLOW, THRUST BRG TEMP, SHAFT VIB; HPU PRESS, BRAKE AIR PRESS, NET HEAD, STATOR TEMP. |
 | SP-1 meters | FOREBAY LEVEL 0-35 ft (23.0 normal, alarms at 24.6 HI and 20.5 LO, bank full 29.5), INFLOW in cfs, spill GATE POS 0-4 ft. In AUTO the spill gate opens above 24.6 ft and closes below 23.8 ft. |
@@ -173,7 +175,7 @@ GOV and AVR to MAN. RESET on 86U resets it; it trips again if the cause remains.
 
 Immediate: 52G and 41 open at once. Quick: they open as the gate passes speed-no-load.
 
-Annunciator: 24 backlit windows in four rows of six (electrical trips, mechanical trips, alarms, levels and
+Annunciator: 24 backlit windows (4.4 x 3.1 in each) in four rows of six (electrical trips, mechanical trips, alarms, levels and
 status), red for trips, amber for alarms, white for status, legends with their IEEE C37.2 device numbers
 (63Q oil pressure, 63A air pressure, 71 level, 80 flow). ISA-18.1 manual reset: a new alarm flashes its
 window and sounds the horn; ACK makes it steady and silences the horn; RESET clears windows whose condition
@@ -192,13 +194,13 @@ boxes round them. Floor, walls and ceiling have their own surface properties (fo
 
 The cabinets are built, not painted: a frame flush with each door and a 0.3 gap round it with a dark
 gasket, black joints between sections, two barrel hinges and a latch per door, stamped vents with real
-slats, a top cap and a plinth. Control switches have black engraved escutcheons; dials and selector switches
+slats, a top cap and a plinth. Control switches have black engraved escutcheons, their nameplates above them; dials
 sit on raised brushed-aluminium ones; the annunciator has a raised frame and a grid between its
 windows; nameplates are raised laminate plates. Door art is 16 texels per unit.
 
 The panel hardware is studio models (`srcparts.py`): meter cases, pointers, breaker control switches
 (escutcheon, target flag, L handle), knurled
-knobs, the selector bar handle, pushbutton caps and bezels, lamp bezels, bosses, hinges and
+knobs, pushbutton caps and bezels, lamp bezels, hinges and
 latches. Fixed parts are `prop_static`. A moving part is a `prop_dynamic` parented to the brush entity
 that moves; that entity is still there for the player to use, but it isn't drawn (`rendermode 10`). On
 the spillway panel, which faces into the room from the wall, each model's angles are its parent's turned

@@ -3,11 +3,11 @@ Sable Creek Unit 1 for Half-Life 2: the plant as five tick programs of logic ent
 fast (0.03 s), medium (0.12 s), slow (0.24 s) and the annunciator's two halves (0.24 s each).
 
 The controls (nameplates as engraved; the variable names inside are the GoldSrc map's):
-  CP-1  25 SYNC, 52G GEN BKR, 41 FIELD BKR, 86U LOCKOUT switches; WICKET GATE LOWER / RAISE dials
-        (spring-return), BRAKES dial, FIRING ANGLE knob
+  CP-1  25 SYNC, 52G GEN BKR, 41 FIELD BKR, 86U LOCKOUT, BRAKES switches; WICKET GATE LOWER / RAISE dials
+        (spring-return), FIRING ANGLE knob
   CP-2  GOV MODE and AVR MODE switches (MAN / AUTO; plc, avr inside); ACK, RESET, TEST
   CP-3  LUBE OIL PUMP, CW PUMP (STOP / START), HPU PUMP, AIR COMP (OFF / AUTO)
-  SP-1  GATE MODE dial (AUTO / MAN), spill GATE LOWER / RAISE dials
+  SP-1  GATE MODE switch (MAN / AUTO), spill GATE LOWER / RAISE dials
 
 The plant is run-of-river: no storage, the forebay is the river behind the diversion weir, and what the
 unit doesn't take goes over the spillway. The runner sits in an open flume (no penstock, no scroll case).
@@ -102,17 +102,6 @@ def build():
         tick (which sets every flag) stays quiet"""
         return m.ent('logic_relay', name, spawnflags=2, StartDisabled=1)
 
-    def switch(P, name, var, label, pos, grip='black', speed=240, kind='cs'):
-        """maintained switch, two positions 90 degrees apart: OUT = pos[0] (left), IN = pos[1] (right).
-        The handle's position is the variable (of program P)."""
-        e = m.ent('func_rot_button', name, distance=90, speed=speed, spawnflags=32 + 1024 + 128, sounds=0, wait=-1)
-        v = P.flag(var)
-        e.out('OnIn', v.ent, 'SetValue', 1)
-        e.out('OnOut', v.ent, 'SetValue', 0)
-        e.out('OnPressed', 's_click', 'PlaySound')
-        dev['switches'][name] = {'ent': e, 'label': label, 'pos': pos, 'grip': grip, 'kind': kind}
-        return v
-
     def breaker_switch(P, name, label, pos=('TRIP', 'CLOSE'), grip='black'):
         """Breaker-type control switch, spring return: the handle hangs at normal; turned right (pos[1]) or
         left (pos[0]) it sends a pulse and springs back. It is two buttons, one each way, on the two halves of
@@ -126,13 +115,16 @@ def build():
         for e in (rt, lt):
             e.out('OnPressed', 's_click', 'PlaySound')
         P.add(vr, -vr.r); P.add(vl, -vl.r)
-        dev['switches'][name] = {'ents': (lt, rt), 'label': label, 'pos': pos, 'grip': grip, 'kind': 'breaker'}
+        dev['switches'][name] = {'ents': (lt, rt), 'label': label, 'pos': pos, 'grip': grip, 'init': 0}
         return vr, vl
 
-    def held(P, var, on, off):
-        """the state a spring-return switch sets: on with its right pulse, off with its left"""
-        f = P.flag(var)
+    def held(P, var, on, off, init=0, name=None):
+        """the state a spring-return switch sets: on with its right pulse, off with its left. init: the state
+        at the start (the named switch's target then starts red)"""
+        f = P.flag(var, init)
         P.set(f, OR(on.r, f.r * NOT(off.r)))
+        if name:
+            dev['switches'][name]['init'] = init
         return f
 
     def target(flag, name):
@@ -200,8 +192,10 @@ def build():
     plc, avr = F.flag('plc'), F.flag('avr')         # GOV / AVR in AUTO (set below: a trip drops them to MAN)
     for f_, nm in ((hss, 'r_ss'), (plc, 'r_plc'), (avr, 'r_avr'), (lube, 'r_lp'), (cool, 'r_wp'), (hhp, 'r_hp'), (hac, 'r_ac')):
         target(f_, nm)
-    hbr_m = switch(M, 'r_br', 'hbr', 'BRAKES', ('APPLY', 'RELEASE'), kind='sel')
-    sman = switch(S, 'r_sp', 'sman', 'GATE MODE', ('AUTO', 'MAN'), kind='sel')
+    # the brakes start applied and the spill gate in AUTO
+    bapp = held(M, 'bapp', *breaker_switch(M, 'r_br', 'BRAKES', ('RELEASE', 'APPLY')), init=1, name='r_br')
+    sauto = held(S, 'sauto', *breaker_switch(S, 'r_sp', 'GATE MODE', ('MAN', 'AUTO')), init=1, name='r_sp')
+    target(bapp, 'r_br'); target(sauto, 'r_sp')
     kgl = dial(M, 'k_gl', 'kgl', 'LOWER')
     kgr = dial(M, 'k_gr', 'kgr', 'RAISE')
     ksl = dial(S, 'k_sl', 'ksl', 'LOWER')
@@ -446,7 +440,7 @@ def build():
     M.set(topen, tr_new * NOT(mech_new * CBm * step(Gm, SNL_GATE + 1)))
     M.set(grate, (d_man + d_plc_off + d_plc_on) * NOT(tr_new) - GATE_CLOSE * tr_new)
     # generator air brakes: applied by air (50 psi at least), only below 30 % speed; springs release them
-    M.set(brake, NOT(hbr_m.r) * step(air_m.r, 50) * OR(BRK, below(Nm, 30)))
+    M.set(brake, bapp.r * step(air_m.r, 50) * OR(BRK, below(Nm, 30)))
 
     # ------------------------------------------------------------ medium meters and lamps
     needle(M, 'p_volts', V / 125)                           # 0-600 V
@@ -480,12 +474,12 @@ def build():
     S.set(rup, clamp(rup.r + below(q.r, 65) - step(q.r, 85), 0, 1))
     # spillway gate: AUTO opens it above 7.5 m while the river still rises (or at 9.0 m) and closes it below
     # 7.25 m while it falls; with the PLC on line it gives the water to the unit first. MANUAL: the dials.
-    auto = NOT(sman.r)
+    auto = sauto.r
     s_open = auto * OR(step(lv.r, 7.5) * step(el, 0.01), step(lv.r, 9.0))
     s_close = auto * below(lv.r, 7.25) * below(el, -0.01)
     s_plc = auto * plc_s.r * cb_s.r * below(lv.r, 7.5) * below(Gs, 99.5)
     S.set(sg, sg.r + ds * (0.0375 * (s_open - s_close) - 0.01875 * s_plc
-                           + 0.15 * sman.r * (step(ksr.r, 0.5) - step(ksl.r, 0.5))))
+                           + 0.15 * NOT(auto) * (step(ksr.r, 0.5) - step(ksl.r, 0.5))))
 
     # ------------------------------------------------------------ auxiliaries
     S.set(lp, lp.r + ds * 2 * (36 * lube.r - lp.r))

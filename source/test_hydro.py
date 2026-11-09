@@ -79,7 +79,7 @@ def start_aux(s):
     for sw in ('r_lp', 'r_wp', 'r_hp', 'r_ac'):
         flip(s, sw + '_r', 0.5)
     s.run(16)
-    flip(s, 'r_br')                    # BRAKES to RELEASE
+    flip(s, 'r_br_l')                  # BRAKES to RELEASE
 
 
 def scenario_idle():

@@ -152,7 +152,7 @@ def lens_texture(name, colors, lit):
 # annunciator window lenses, kind: (lit, unlit). Backlit acrylic: the engraved legend is black either way.
 ANN_LENS = {'trip': ((255, 70, 48), (176, 112, 104)), 'alarm': ((255, 180, 44), (186, 164, 112)),
             'status': ((255, 250, 232), (182, 184, 176))}
-ANN_W, ANN_H = 8.4, 5.8       # window size, units
+ANN_W, ANN_H = 5.9, 4.1       # window size, units (4.4 x 3.1 in)
 
 
 def window_texture(name, legend, kind, lit):
@@ -471,28 +471,6 @@ def build_panels(m, dev):
             place(ents[0], [lensp(u, cols[0], True)])
             plate(ci, u, v + 2.2, 5.4, 1.5, labels[0], px=0.62)
 
-    def rot(ci, u, v, name, dial=False):
-        """maintained rotary switch, 90 degrees clockwise: a bar knob, or a bigger dial with a white pointer"""
-        r = sw[name]
-        x, z = door_xy(ci, u, v)
-        k = 1.4 if dial else 1.0
-        half = round((2.6 * k + 0.4) * 4) / 4
-        D = doors[ci]
-        esc_plate(ci, u, v, half)
-        gb.text(D.d, D.img, (u * gb.PPU, (v - half - 0.7) * gb.PPU), r['pos'][0], 0.85 * gb.PPU, (20, 20, 20, 255))
-        gb.text(D.d, D.img, ((u + half + 0.3) * gb.PPU, v * gb.PPU), r['pos'][1], 0.85 * gb.PPU, (20, 20, 20, 255), anchor='lm')
-        plate(ci, u, v - half - 2.4, 7.6, 1.4, r['label'], px=0.8)
-        if dial:
-            prop(ci, 'boss_l', (x, -1.0, z))
-            pl = lambda poly: [(x + px * k, z + pz * k) for px, pz in poly]
-            brushes = [prism(pl(gb.BAR), -2.6, -1.4, 'y', 'sc_knob'), prism(pl(gb.BAR_TIP), -2.6, -1.4, 'y', 'sc_white')]
-        else:
-            brushes = [Box(x - 0.45, -1.6, z - 1.7, x + 0.45, -0.6, z + 1.7, tex='sc_knob')]
-        brushes.append(hit(ci, u, v, 2.6 * k + 0.2))
-        place(r['ent'], brushes + [Box(x - 0.5, -1.6, z - 0.5, x + 0.5, -0.6, z + 0.5, tex='ORIGIN')])
-        if dial:
-            prop(ci, 'barknob', (x, -1.1, z), r['ent'])
-
     def cs_switch(ci, u, v, name):
         """breaker-type control switch, spring return: a black escutcheon engraved with its two positions
         (left = pos[0], right = pos[1]), a target window (red with the breaker closed, the pump running, AUTO
@@ -503,8 +481,8 @@ def build_panels(m, dev):
         x, z = door_xy(ci, u, v)
         lt, rt = r['ents']
         prop(ci, f"sb_plate_{srcparts.sb_key(r['pos'])}", (x, -0.5, z))
-        prop(ci, 'sb_flag', (x, -0.5, z), name=f'{name}_flag', skin=1)
-        plate(ci, u, v + 5.7, min(11.5, 0.5 * len(r['label']) + 1.6), 1.4, r['label'], px=0.75)   # below the grip
+        prop(ci, 'sb_flag', (x, -0.5, z), name=f'{name}_flag', skin=0 if r['init'] else 1)
+        plate(ci, u, v - 4.3, min(11.5, 0.5 * len(r['label']) + 1.6), 1.4, r['label'], px=0.75)   # above the plate: the handle hangs over anything below
         full = hit(ci, u, v, 4.2)                       # one clip hole for the whole plate
         (x0, y0, z0), (x1, y1, z1) = full.lo, full.hi
         org = lambda: Box(x - 0.5, -2.6, z - 0.5, x + 0.5, -1.6, z + 0.5, tex='ORIGIN')
@@ -597,16 +575,15 @@ def build_panels(m, dev):
     cs_switch(0, 47, CTL, 'r_gt')
     plate(0, 11, CTL + 15.6, 13, 1.4, 'WICKET GATE', px=0.8)
     spring_dial(0, 6, CTL + 21, 'k_gl'); spring_dial(0, 16, CTL + 21, 'k_gr')
-    rot(0, 30, CTL + 21, 'r_br', dial=True)
-    lampw(0, 30, CTL + 28.5, 'LP_brake', ('APPLIED', 'RELEASED'))
+    cs_switch(0, 30, CTL + 21, 'r_br'); lampw(0, 30, CTL + 30, 'LP_brake', ('APPLIED', 'RELEASED'))
     knob_panel(0, 45, CTL + 21, 'k_fa', dl['k_fa']['label'])
 
     # ------------------------------------------- middle: the annunciator, the governor and the voltage regulator
     D = doors[1]
     # The annunciator: a lightbox of 24 windows, 4 rows of 6, behind a black bezel grid in a raised frame.
     # Each window is a dark lens in the world and a lit one (a func_brush the logic shows) just in front.
-    AU, AV, PU, PV = 6.0, 8.3, 8.8, 6.2                # first window's centre and the pitch
-    W(door_xy(1, 1.0, 0)[0], -0.9, gb.DOOR_TOP - 30.6, door_xy(1, 55.0, 0)[0], -0.5, gb.DOOR_TOP - 4.6, tex='sc_black')
+    PU, PV = 6.2, 4.4                                  # window pitch
+    AU, AV = 28 - 2.5 * PU, 17.6 - 1.5 * PV            # first window's centre: the grid is centred on the door
     for i, w in enumerate(dev['windows']):
         c, r = i % 6, i // 6
         u, v = AU + c * PU, AV + r * PV
@@ -615,12 +592,13 @@ def build_panels(m, dev):
     ann = lambda u0, v0, u1, v1, y0, tex='sc_black': world.append(Box(door_xy(1, u0, 0)[0], y0, door_xy(1, 0, v1)[1], door_xy(1, u1, 0)[0], -0.9,
                                                                       door_xy(1, 0, v0)[1], tex=tex))
     ul, ur, vt, vb = AU - PU / 2, AU + 5.5 * PU, AV - PV / 2, AV + 3.5 * PV      # the grid's outer edges
+    W(door_xy(1, ul - 0.5, 0)[0], -0.9, door_xy(1, 0, vb + 0.5)[1], door_xy(1, ur + 0.5, 0)[0], -0.5, door_xy(1, 0, vt - 0.5)[1], tex='sc_black')
     for c in range(1, 6):                              # bezel bars between the windows
-        ann(ul + c * PU - 0.2, vt, ul + c * PU + 0.2, vb, -1.9)
+        ann(ul + c * PU - 0.15, vt, ul + c * PU + 0.15, vb, -1.9)
     for r_ in range(1, 4):
-        ann(ul, vt + r_ * PV - 0.2, ur, vt + r_ * PV + 0.2, -1.9)
-    ann(ul - 0.6, vt - 0.6, ur + 0.6, vt + 0.2, -2.2, 'sc_bezel'); ann(ul - 0.6, vb - 0.2, ur + 0.6, vb + 0.6, -2.2, 'sc_bezel')   # frame
-    ann(ul - 0.6, vt + 0.2, ul + 0.2, vb - 0.2, -2.2, 'sc_bezel'); ann(ur - 0.2, vt + 0.2, ur + 0.6, vb - 0.2, -2.2, 'sc_bezel')
+        ann(ul, vt + r_ * PV - 0.15, ur, vt + r_ * PV + 0.15, -1.9)
+    ann(ul - 0.5, vt - 0.5, ur + 0.5, vt + 0.15, -2.2, 'sc_bezel'); ann(ul - 0.5, vb - 0.15, ur + 0.5, vb + 0.5, -2.2, 'sc_bezel')   # frame
+    ann(ul - 0.5, vt + 0.15, ul + 0.15, vb - 0.15, -2.2, 'sc_bezel'); ann(ur - 0.15, vt + 0.15, ur + 0.5, vb - 0.15, -2.2, 'sc_bezel')
     gauge(1, 10, 37, 'GATE POS', [(0, 100, 20, 10, 2, None)], 'PERCENT', 'p_gate')          # by GOV MODE
     gauge(1, 22, 37, 'GEN FREQ', [(54, 66, 2, 1, 0.2, None)], 'Hz', 'p_hz')
     gauge(1, 34, 37, 'BUS FREQ', [(54, 66, 2, 1, 0.2, None)], 'Hz', 'p_sfreq')
@@ -655,12 +633,12 @@ def build_panels(m, dev):
     wall_ents = []
     D = doors[gb.SP]
     title_plates(gb.SP)
-    for nm in ('p_hw', 'p_rq', 'p_spill', 'r_sp', 'k_sl', 'k_sr'):
+    for nm in ('p_hw', 'p_rq', 'p_spill', 'r_sp_l', 'r_sp_r', 'k_sl', 'k_sr'):
         wall_ents.append(m[nm])
     gauge(gb.SP, 7, 12, 'FOREBAY LEVEL', [(0, 35, 5, 5, 1, None)], 'FT', 'p_hw', red=(29.5, 35), xl=5.5, xr=6.5)
     gauge(gb.SP, 20, 12, 'INFLOW', [(0, 120, 20, 20, 5, None)], 'CFS', 'p_rq', xl=6.5, xr=6.5)
     gauge(gb.SP, 33, 12, 'GATE POS', [(0, 4, 1, 1, 0.25, None)], 'FT', 'p_spill', xl=6.5, xr=5.5)
-    rot(gb.SP, 8, 32, 'r_sp', dial=True)
+    cs_switch(gb.SP, 8, 32, 'r_sp')
     plate(gb.SP, 27.5, 26.6, 13, 1.4, 'GATE', px=0.8)
     spring_dial(gb.SP, 22, 32, 'k_sl'); spring_dial(gb.SP, 33, 32, 'k_sr')
     W(-1, 0, gb.SP_TOP - gb.SP_H - 1, gb.SP_W + 1, 6, gb.SP_TOP + 1, tex='sc_paintd', scale=0.5)

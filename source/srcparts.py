@@ -91,19 +91,6 @@ def knob():
     return mb
 
 
-def barknob():
-    """Selector-switch bar handle (brakes, spillway mode): a bar across a round hub, the top end white.
-    Origin: the pivot (world y = -1.1); the handle stands from y = -0.3 to -1.6."""
-    mb = MeshBuilder()
-    mb.revolve('sc_m_black', [(0.0, 0.3), (1.15, 0.3), (1.15, 0.9), (1.0, 1.05), (0.0, 1.05)], 28)
-    def section(z, hw, mat):
-        return [(hw * math.copysign(abs(math.cos(a)) ** 0.5, math.cos(a)), -0.95 - 0.55 * math.copysign(abs(math.sin(a)) ** 0.5, math.sin(a)), z)
-                for a in (2 * math.pi * k / 12 for k in range(12))]
-    mb.loft('sc_m_black', [section(z, hw, None) for z, hw in ((-2.75, 0.45), (-2.5, 0.65), (1.4, 0.65))])
-    mb.loft('sc_m_white', [section(z, hw, None) for z, hw in ((1.4, 0.65), (2.6, 0.5), (2.8, 0.3))])
-    return mb
-
-
 def button(mat):
     """Pushbutton cap: a short cylinder with a domed face. Origin: the cap face centre (world y = -2.6);
     the cap runs back into its bezel to y = +1.6."""
@@ -118,13 +105,6 @@ def lamp_bezel():
     mb = MeshBuilder()
     mb.revolve('sc_m_black', [(1.45, 0.0), (1.45, 0.75), (1.3, 1.0), (1.08, 1.12)], 28)
     mb.revolve('sc_m_chrome', [(1.08, 1.12), (0.98, 1.1), (0.95, 0.95), (0.95, 0.0)], 28)
-    return mb
-
-
-def boss(r):
-    """Chrome boss a switch or knob turns on. Origin: on its escutcheon (world y = -1.0)."""
-    mb = MeshBuilder()
-    mb.revolve('sc_m_chrome', [(r, 0.0), (r, 0.3), (r - 0.18, 0.48), (0.0, 0.48)], 32)
     return mb
 
 
@@ -223,6 +203,8 @@ def sb_face_texture(words, window=True):
         font = ImageFont.load_default()
     for word, ang, dx in ((words[0], 30, -1.42), (words[1], -30, 1.48)):
         t = Image.new('RGBA', (140, 44), (0, 0, 0, 0)); ImageDraw.Draw(t).text((70, 22), word, font=font, fill=(238, 236, 228), anchor='mm')
+        if len(word) > 5:                               # long words condensed to a five-letter width
+            t = t.resize((int(140 * 5.4 / len(word)), 44), Image.Resampling.LANCZOS)
         t = t.rotate(ang, resample=Image.Resampling.BICUBIC, expand=True)
         im.paste(t, (int(c + dx * ppu - t.width / 2), int(c - 1.15 * ppu - t.height / 2)), t)
     return im
@@ -261,7 +243,8 @@ def sb_handle(grip='sc_m_black'):
 
 
 # the engraved legends (left, right) of the control switches; each gets its face texture and plate model
-SB_FACES = [('TRIP', 'CLOSE'), ('OFF', 'ON'), ('RESET', 'TRIP'), ('MAN', 'AUTO'), ('STOP', 'START'), ('OFF', 'AUTO')]
+SB_FACES = [('TRIP', 'CLOSE'), ('OFF', 'ON'), ('RESET', 'TRIP'), ('MAN', 'AUTO'), ('STOP', 'START'), ('OFF', 'AUTO'),
+            ('RELEASE', 'APPLY')]
 sb_key = lambda words: '_'.join(words).lower()
 TEXTURES = {f'sc_m_sb_{sb_key(w)}': (lambda w=w: sb_face_texture(w)) for w in SB_FACES}
 MATERIALS.update({'sc_m_screw': ((150, 152, 155), False), 'sc_m_flag_red': ((205, 30, 24), False),
@@ -274,11 +257,9 @@ PARTS = {
     'needle': lambda: needle(GR - 0.45),
     'needle_scope': lambda: needle(GR - 0.5, tail=1.3, w=0.3, hub=0.55),
     'knob': knob,
-    'barknob': barknob,
     'button_amber': lambda: button('sc_m_amber'),
     'button_black': lambda: button('sc_m_black'),
     'lamp_bezel': lamp_bezel,
-    'boss_l': lambda: boss(1.5),
     'pb_bezel': pb_bezel,
     'hinge': hinge,
     'latch': latch,
