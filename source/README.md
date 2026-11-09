@@ -11,9 +11,9 @@ the console. The textures and sounds are packed inside the BSP, and no launch op
 
 ## Entities and speed
 
-The map has 1,385 entities, and only 118 of them use network slots: the needles, switches, dials,
-pushbuttons, lamps, annunciator windows and sounds (77), and the 41 models that move with them. The 52 fixed
-models are static props, which cost nothing. The plant logic (1,210 entities: `math_counter`,
+The map has 1,462 entities, and only 140 of them use network slots: the needles, switches, dials,
+pushbuttons, lamps, annunciator windows and sounds (88), and the 52 models that move with them. The 53 fixed
+models are static props, which cost nothing. The plant logic (1,264 entities: `math_counter`,
 `math_remap`, `logic_relay`, `logic_timer`, `logic_auto`) is server-only and uses none. Half-Life 2 allows
 2048 of each kind. The room's detail is world geometry (`func_detail`), which costs nothing while playing.
 
@@ -79,14 +79,19 @@ The cabinets and the spillway panel are laid out as in the GoldSrc map. These th
 |---|---|
 | Meters | 250-degree switchboard meters: square flange, round bezel, pointer with a counterweight; needle speed matched to its loop's update rate. |
 | CP-1 meters | TURBINE RPM, GEN VOLTS, GEN AMPS, KW; EXC FIRING ANGLE, POWER FACTOR, GRID VOLTS, SYNCHROSCOPE (sync lamps and 25 PERM beside it). GRID VOLTS is the 480 V bus the utility feeds; the grid is stiff, so it reads 480 V. GEN AMPS is apparent power over volts, \|S\| by alpha-max-plus-beta-min (within 4 %). |
-| 52G, 41 | Breaker control switches, spring return: the L handle hangs at normal; E on the TRIP side of the plate turns it to TRIP, on the CLOSE side to CLOSE, and it springs back. The breaker latches; the target window shows red after a close and green after a trip (a model skin the logic sets), including a protective trip, which leaves the handle where it is. A close is refused without the sync check (52G) or below 90 % speed (41). |
-| 25 SYNC | The same escutcheon engraved OFF / ON (no target) and the same handle; maintained. |
+| Control switches | All breaker-type (SB style), spring return: the L handle hangs at normal; E on the left half of the plate turns it left, on the right half right, and it springs back. The state latches in the logic and shows in the target window (a model skin the logic sets): red closed / running / ON / AUTO / locked out, green otherwise. A protective trip changes the targets, not the handles. |
+| 52G, 41 | TRIP / CLOSE. A close is refused without the sync check (52G) or below 90 % speed (41). |
+| 25 SYNC | OFF / ON. |
+| 86U | RESET / TRIP, red handle. |
+| GOV MODE, AVR MODE | MAN / AUTO. A trip drops both to MAN; AUTO is blocked until 86U is reset. |
+| LUBE OIL PUMP, CW PUMP | STOP / START. |
+| HPU PUMP, AIR COMP | OFF / AUTO (they run on their pressure switches). |
 | CP-2 meters | GATE POS by GOV MODE, GEN FREQ, BUS FREQ, FIELD AMPS by AVR MODE. |
 | ACK / RESET / TEST | Pushbuttons under GOV MODE and AVR MODE. |
 | WICKET GATE LOWER / RAISE | Spring-return. Held: 0.25 %/s for 1 s, 2.5 %/s for 2 s, then 10 %/s. |
 | FIRING ANGLE knob | Position = firing angle, 90 deg (left stop) to 0 deg (right stop, 140 % field). Each new grab reverses direction (Source wheel). Tracks the AVR in AUTO for a bumpless transfer. |
 | SYNCHROSCOPE | Real phase angle; 216 deg/s per 1 % slip, max 1 rev/s. Sync lamps dark at 12 o'clock. |
-| Hit areas | Each control has an invisible player-clip disc over its plate, and a clip layer in front of each panel has a hole over each control. E takes the control under the crosshair; between controls it does nothing. |
+| Hit areas | Each control has an invisible player-clip box over its plate, and a clip layer in front of each panel has a hole over each control. E takes the control under the crosshair; between controls it does nothing. |
 
 ## Nameplates
 
@@ -97,7 +102,7 @@ LOF = loss of field, OV = overvoltage. Field current reads 0-60 A (50 A at rated
 
 ## Starting the unit
 
-1. LUBE OIL PUMP ON, CW PUMP ON, HPU PUMP AUTO, AIR COMP AUTO. HPU PRESS to 300 psi in about 15 s (gate
+1. LUBE OIL PUMP START, CW PUMP START, HPU PUMP AUTO, AIR COMP AUTO. HPU PRESS to 300 psi in about 15 s (gate
    blocked below 230 psi).
 2. BRAKES RELEASE.
 3. GOV MODE AUTO: 90 % speed in about 20 s, settles slightly fast. GOV MODE MAN: RAISE to 25 % gate,
@@ -110,8 +115,8 @@ LOF = loss of field, OV = overvoltage. Field current reads 0-60 A (50 A at rated
 
 ## Protection
 
-A trip operates 86U: wicket gate shut, 52G and 41 open, GOV and AVR to MAN, 86U handle to TRIP. Turning
-the handle to TRIP trips the unit. RESET it to reset; it trips again if the cause remains.
+A trip operates 86U: wicket gate shut, 52G and 41 open, GOV and AVR to MAN, 86U target red. 86U to TRIP
+trips the unit; RESET resets it, and it trips again if the cause remains.
 
 | Trip | Cause |
 |---|---|
@@ -134,13 +139,13 @@ The GoldSrc map's room: the three cabinets, the spillway panel, door, extinguish
 
 The cabinets are built, not painted: a frame flush with each door and a 0.3 gap round it with a dark
 gasket, black joints between sections, two barrel hinges and a latch per door, stamped vents with real
-slats, a top cap and a plinth. Switches and dials sit on raised brushed-aluminium escutcheons (the 86U
-lockout's is black, under a red handle); the annunciator has a raised frame and a grid between its
+slats, a top cap and a plinth. Control switches have black engraved escutcheons; dials and selector switches
+sit on raised brushed-aluminium ones; the annunciator has a raised frame and a grid between its
 windows; nameplates are raised laminate plates. Door art is 16 texels per unit.
 
 The panel hardware is studio models (`srcparts.py`): meter cases, pointers, breaker control switches
-(escutcheon, target flag, L handle), pistol-grip handles, knurled
-knobs, the selector bar handle, pushbutton caps and bezels, lamp bezels, switch bosses, hinges and
+(escutcheon, target flag, L handle), knurled
+knobs, the selector bar handle, pushbutton caps and bezels, lamp bezels, bosses, hinges and
 latches. Fixed parts are `prop_static`. A moving part is a `prop_dynamic` parented to the brush entity
 that moves; that entity is still there for the player to use, but it isn't drawn (`rendermode 10`). On
 the spillway panel, which faces into the room from the wall, each model's angles are its parent's turned

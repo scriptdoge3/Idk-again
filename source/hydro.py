@@ -96,21 +96,31 @@ def build():
         dev['switches'][name] = {'ent': e, 'label': label, 'pos': pos, 'grip': grip, 'kind': kind}
         return v
 
-    def breaker_switch(P, name, label):
-        """Breaker control switch, spring return: the handle hangs at normal; turned to CLOSE (right) or TRIP
-        (left) it sends a pulse and springs back. It is two buttons, one for each way, on the two halves of
-        the plate; the TRIP one is parented to the CLOSE one, so the one handle shows both. Returns the close
-        and trip pulses (one tick each)."""
-        cl = m.ent('func_rot_button', f'{name}_c', distance=45, speed=600, spawnflags=1024 + 128, sounds=0, wait=0.35)
-        tp = m.ent('func_rot_button', f'{name}_t', distance=45, speed=600, spawnflags=1024 + 128 + 2, sounds=0, wait=0.35,
-                   parentname=f'{name}_c')
-        vc, vt = P.var(f'{name}_cc', 0, 0, 1), P.var(f'{name}_tc', 0, 0, 1)
-        cl.out('OnIn', vc.ent, 'SetValue', 1); tp.out('OnIn', vt.ent, 'SetValue', 1)
-        for e in (cl, tp):
+    def breaker_switch(P, name, label, pos=('TRIP', 'CLOSE'), grip='black'):
+        """Breaker-type control switch, spring return: the handle hangs at normal; turned right (pos[1]) or
+        left (pos[0]) it sends a pulse and springs back. It is two buttons, one each way, on the two halves of
+        the plate; the left one is parented to the right one, so the one handle shows both. The state lives in
+        the logic and shows on the target flag. Returns the right and left pulses (one tick each)."""
+        rt = m.ent('func_rot_button', f'{name}_r', distance=45, speed=600, spawnflags=1024 + 128, sounds=0, wait=0.35)
+        lt = m.ent('func_rot_button', f'{name}_l', distance=45, speed=600, spawnflags=1024 + 128 + 2, sounds=0, wait=0.35,
+                   parentname=f'{name}_r')
+        vr, vl = P.var(f'{name}_rp', 0, 0, 1), P.var(f'{name}_lp', 0, 0, 1)
+        rt.out('OnIn', vr.ent, 'SetValue', 1); lt.out('OnIn', vl.ent, 'SetValue', 1)
+        for e in (rt, lt):
             e.out('OnPressed', 's_click', 'PlaySound')
-        P.add(vc, -vc.r); P.add(vt, -vt.r)
-        dev['switches'][name] = {'ents': (tp, cl), 'label': label, 'pos': ('TRIP', 'CLOSE'), 'grip': 'black', 'kind': 'breaker'}
-        return vc, vt
+        P.add(vr, -vr.r); P.add(vl, -vl.r)
+        dev['switches'][name] = {'ents': (lt, rt), 'label': label, 'pos': pos, 'grip': grip, 'kind': 'breaker'}
+        return vr, vl
+
+    def held(P, var, on, off):
+        """the state a spring-return switch sets: on with its right pulse, off with its left"""
+        f = P.flag(var)
+        P.set(f, OR(on.r, f.r * NOT(off.r)))
+        return f
+
+    def target(flag, name):
+        """the switch's target flag: red (skin 0) while the flag is on, green (skin 1) while off"""
+        flag.on_rise(f'{name}_flag', 'Skin', 0).on_fall(f'{name}_flag', 'Skin', 1)
 
     def dial(P, name, var, label, spring=True, start=0.0):
         """momentary_rot_button: its position (0..1) is the variable. Spring-return dials turn to their stop
@@ -159,16 +169,20 @@ def build():
     sound('s_click', 'sablecreek/switch.wav', 8, loop=False, radius=300)
 
     # ------------------------------------------------------------ controls
-    hss = switch(F, 'r_ss', 'hss', '25 SYNC', ('OFF', 'ON'))
+    ss_on, ss_off = breaker_switch(F, 'r_ss', '25 SYNC', ('OFF', 'ON'))
     c52, t52 = breaker_switch(F, 'r_52', '52G GEN BKR')
     c41, t41 = breaker_switch(M, 'r_exc', '41 FIELD BKR')
-    hgt_m = switch(M, 'r_gt', 'hgt', '86U LOCKOUT', ('RESET', 'TRIP'), grip='red')
-    plc = switch(F, 'r_plc', 'plc', 'GOV MODE', ('MAN', 'AUTO'))
-    avr = switch(F, 'r_avr', 'avr', 'AVR MODE', ('MAN', 'AUTO'))
-    lube = switch(S, 'r_lp', 'lube', 'LUBE OIL PUMP', ('OFF', 'ON'))
-    cool = switch(S, 'r_wp', 'cool', 'CW PUMP', ('OFF', 'ON'))
-    hhp = switch(S, 'r_hp', 'hhp', 'HPU PUMP', ('OFF', 'AUTO'))
-    hac = switch(S, 'r_ac', 'hac', 'AIR COMP', ('OFF', 'AUTO'))
+    gt_trip, gt_rst = breaker_switch(M, 'r_gt', '86U LOCKOUT', ('RESET', 'TRIP'), grip='red')
+    plc_a, plc_mn = breaker_switch(F, 'r_plc', 'GOV MODE', ('MAN', 'AUTO'))
+    avr_a, avr_mn = breaker_switch(F, 'r_avr', 'AVR MODE', ('MAN', 'AUTO'))
+    lube = held(S, 'lube', *breaker_switch(S, 'r_lp', 'LUBE OIL PUMP', ('STOP', 'START')))
+    cool = held(S, 'cool', *breaker_switch(S, 'r_wp', 'CW PUMP', ('STOP', 'START')))
+    hhp = held(S, 'hhp', *breaker_switch(S, 'r_hp', 'HPU PUMP', ('OFF', 'AUTO')))
+    hac = held(S, 'hac', *breaker_switch(S, 'r_ac', 'AIR COMP', ('OFF', 'AUTO')))
+    hss = held(F, 'hss', ss_on, ss_off)
+    plc, avr = F.flag('plc'), F.flag('avr')         # GOV / AVR in AUTO (set below: a trip drops them to MAN)
+    for f_, nm in ((hss, 'r_ss'), (plc, 'r_plc'), (avr, 'r_avr'), (lube, 'r_lp'), (cool, 'r_wp'), (hhp, 'r_hp'), (hac, 'r_ac')):
+        target(f_, nm)
     hbr_m = switch(M, 'r_br', 'hbr', 'BRAKES', ('APPLY', 'RELEASE'), kind='sel')
     sman = switch(S, 'r_sp', 'sman', 'GATE MODE', ('AUTO', 'MAN'), kind='sel')
     kgl = dial(M, 'k_gl', 'kgl', 'LOWER')
@@ -176,8 +190,6 @@ def build():
     ksl = dial(S, 'k_sl', 'ksl', 'LOWER')
     ksr = dial(S, 'k_sr', 'ksr', 'RAISE')
     kfa_m = dial(M, 'k_fa', 'kfa', 'FIRING ANGLE', spring=False, start=KNOB0)
-    rst = M.var('rst', 0, 0, 1)                     # reset request: the trip handle turned back to RESET
-    m['r_gt'].out('OnOut', rst.ent, 'SetValue', 1)
 
     # ------------------------------------------------------------ state
     # fast
@@ -268,6 +280,9 @@ def build():
     # 100 %, shown at most a turn a second), while the field is on and the unit is within 5 % of
     # synchronous speed. Closed on line the two are the same bus, so the synchroscope reads 12 o'clock.
     V_f, EXC_f, TR_f = v_f.r, exc_f.r, tr_f.r
+    # GOV / AVR MODE: AUTO and MAN from the switches; a trip drops both to MAN and holds them there until reset
+    F.set(plc, OR(plc_a.r, plc.r * NOT(plc_mn.r)) * NOT(TR_f))
+    F.set(avr, OR(avr_a.r, avr.r * NOT(avr_mn.r)) * NOT(TR_f))
     phs = EXC_f * step(N, 95) * below(N, 105) * NOT(CB)
     th1 = th.r + clamp(216 * (N - 100), -360, 360) * phs * df
     F.set(th, th1 - 360 * step(th1, 360) + 360 * below(th1, -0.001))
@@ -383,14 +398,10 @@ def build():
     }
     other = OR(step(Gm, 0.5) * below(hp_m.r, 210),          # hydraulic oil gone with the gate open
                below(lv_m.r, 4.75) * step(Nm, 1, 0.5),      # the intake would draw air
-               hgt_m.r)                                     # the wicket gate trip handle
-    tr_new = OR(*causes.values(), other, TR * NOT(rst.r))
+               gt_trip.r)                                   # 86U turned to TRIP
+    tr_new = OR(*causes.values(), other, TR * NOT(gt_rst.r))      # latched until 86U is turned to RESET
     M.set(tr, tr_new)
-    M.add(rst, -rst.r)
-    tr.on_rise('r_plc', 'PressOut')
-    tr.on_rise('r_avr', 'PressOut').on_rise('r_gt', 'PressIn')
-    need_gt = M.flag('need_gt'); M.set(need_gt, tr_new * NOT(hgt_m.r))
-    need_gt.on_rise('r_gt', 'PressIn', delay=0.5)
+    target(tr, 'r_gt')                                       # 86U target: red while locked out
     M.set(grate, (d_man + d_plc_off + d_plc_on) * NOT(tr_new) - 160 * tr_new)
     # generator air brakes: applied by air (50 psi at least), only below 30 % speed; springs release them
     M.set(brake, NOT(hbr_m.r) * step(air_m.r, 50) * OR(BRK, below(Nm, 30)))
@@ -483,7 +494,7 @@ def build():
     ACK, RST, TEST = ack.r, arst.r, atest.r
     A.add(ack, -ACK); A.add(arst, -RST)
     am = lambda vv: A.mirror(vv, vv.name + '_a').r
-    keep = NOT(rst.r)
+    keep = NOT(gt_rst.r)
     trips = {}
     for key in ('ovsp', 'lock', 'gbkr', 'oop', 'rp', 'lof', 'ov', 'bthh'):
         t = M.flag(f't_{key}')

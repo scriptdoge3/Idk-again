@@ -24,12 +24,6 @@ MATERIALS = {
 GR = 4.0                   # dial radius the meter window shows
 
 
-def rot_y(deg):
-    """rotation about Y (the panel normal): +deg turns a part counter-clockwise as you face the panel"""
-    c, s = math.cos(math.radians(deg)), math.sin(math.radians(deg))
-    return np.array([[c, 0, -s], [0, 1, 0], [s, 0, c]])
-
-
 def meter():
     """Switchboard meter: square black flange 9.5 across with a round window, and a raised round bezel.
     Origin: dial centre on the door front (world y = -0.5). The dial face (a brush) shows through the window."""
@@ -74,27 +68,6 @@ def needle(length, tail=0.9, w=0.22, hub=0.45):
     mb.revolve('sc_m_dark', [(0.0, -0.1), (0.3, -0.1), (0.3, 0.1), (0.0, 0.1)], 16, center=(0, -tail))   # counterweight
     mb.revolve('sc_m_dark', [(0.0, -0.05), (hub, -0.05), (hub, 0.2), (hub * 0.7, 0.3), (0.0, 0.3)], 20)  # hub cap
     return mb
-
-
-def pistol(mat='sc_m_black'):
-    """Control-switch pistol grip, turned 45 degrees anticlockwise (its left position). Origin: the
-    switch's pivot (world y = -2.1); the grip runs from y = +0.8 (on the boss) to -0.8."""
-    mb = MeshBuilder()
-    # half width along the grip (pointing up): hub end at z = -1.7, tip at z = 3.3
-    prof = [(-1.7, 0.45), (-1.4, 0.75), (-1.0, 0.88), (-0.2, 0.96), (0.6, 0.92), (1.4, 0.78), (2.1, 0.56), (2.7, 0.36), (3.15, 0.16)]
-    secs = []
-    for z, hw in prof:
-        hd = 0.8 * (0.75 + 0.25 * hw / 0.96)        # a little thinner towards the tip
-        sec = []
-        for k in range(16):
-            a = 2 * math.pi * k / 16
-            cx, cy = math.cos(a), math.sin(a)
-            sx = math.copysign(abs(cx) ** 0.6, cx); sy = math.copysign(abs(cy) ** 0.6, cy)   # rounded box section
-            sec.append((hw * sx, (0.8 - hd) - hd * sy, z))            # back face on the boss at y = +0.8
-        secs.append(sec)
-    mb.loft(mat, secs)
-    mb.revolve(mat, [(0.0, -0.8), (1.0, -0.8), (1.05, -0.4), (1.05, 0.5), (0.0, 0.5)], 24)   # hub
-    return mb.transform(rot_y(45))
 
 
 def knob():
@@ -205,8 +178,8 @@ def rounded_square(h, r, n=6):
     return pts
 
 
-def sb_plate(face='sc_m_sb_face'):
-    """Breaker control switch escutcheon: a black plate with a bevelled edge, the engraved face (TRIP / CLOSE,
+def sb_plate(face):
+    """Control switch escutcheon: a black plate with a bevelled edge, the engraved face (the two positions,
     the target window, the ring round the shaft) as a texture, and four screws. Origin: the switch centre on
     the door front (world y = -0.5); the face is at y = -0.5."""
     mb = MeshBuilder()
@@ -227,9 +200,9 @@ def sb_plate(face='sc_m_sb_face'):
     return mb
 
 
-def sb_face_texture(words=('TRIP', 'CLOSE'), window=True):
-    """the engraved face of a control switch, 256 px across the plate: the two positions on an arc and, on
-    a breaker switch, the target window"""
+def sb_face_texture(words, window=True):
+    """the engraved face of a control switch, 256 px across the plate: the two positions on an arc and the
+    target window"""
     from PIL import Image, ImageDraw, ImageFont
     S = 256; ppu = S / (2 * SB_H); c = S / 2
     im = Image.new('RGB', (S, S), (20, 20, 21)); d = ImageDraw.Draw(im)
@@ -256,8 +229,8 @@ def sb_face_texture(words=('TRIP', 'CLOSE'), window=True):
 
 
 def sb_flag():
-    """Target flag seen through the escutcheon's window: red after a close (skin 0), green after a trip
-    (skin 1). Origin: as the plate's; it lies just on the plate face."""
+    """Target flag seen through the escutcheon's window: red (skin 0) with the breaker closed, the pump
+    running, AUTO selected or the lockout tripped; green (skin 1) otherwise. Origin: as the plate's; it lies just on the plate face."""
     mb = MeshBuilder()
     r0, r1, a, N = 1.08, 1.72, 18, 8
     pts = [(r1 * math.sin(math.radians(-a + 2 * a * k / N)), r1 * math.cos(math.radians(-a + 2 * a * k / N))) for k in range(N + 1)]
@@ -268,10 +241,10 @@ def sb_flag():
     return mb
 
 
-def sb_handle(turn=45):
-    """Breaker control switch handle: a round shaft out of the plate and a flat grip hanging from its end,
-    turned 45 degrees anticlockwise (the TRIP side). Origin: the switch's pivot (world y = -2.1); the plate
-    face is at y = +1.1, the shaft end at y = -2.18; the grip reaches 4.4 below the pivot."""
+def sb_handle(grip='sc_m_black'):
+    """Breaker control switch handle, hanging at normal: a round shaft out of the plate and a flat grip
+    hanging from its end. Origin: the switch's pivot (world y = -2.1); the plate face is at y = +1.1, the
+    shaft end at y = -2.18; the grip reaches 4.4 below the pivot."""
     mb = MeshBuilder()
     mb.revolve('sc_m_black', [(0.0, 0.0), (0.5, 0.0), (0.5, 3.1), (0.4, 3.28), (0.0, 3.28)], 22, y0=1.1)
     mb.revolve('sc_m_dark', [(0.0, 3.281), (0.17, 3.281), (0.0, 3.282)], 10, y0=1.1)       # the hole in the end
@@ -283,11 +256,14 @@ def sb_handle(turn=45):
             cx, cy = math.cos(ang), math.sin(ang)
             sec.append((hw * math.copysign(abs(cx) ** 0.55, cx), -1.62 - 0.48 * math.copysign(abs(cy) ** 0.55, cy), z))
         secs.append(sec)
-    mb.loft('sc_m_black', secs)
-    return mb.transform(rot_y(turn))
+    mb.loft(grip, secs)
+    return mb
 
 
-TEXTURES = {'sc_m_sb_face': sb_face_texture, 'sc_m_sb_face_sync': lambda: sb_face_texture(('OFF', 'ON'), window=False)}
+# the engraved legends (left, right) of the control switches; each gets its face texture and plate model
+SB_FACES = [('TRIP', 'CLOSE'), ('OFF', 'ON'), ('RESET', 'TRIP'), ('MAN', 'AUTO'), ('STOP', 'START'), ('OFF', 'AUTO')]
+sb_key = lambda words: '_'.join(words).lower()
+TEXTURES = {f'sc_m_sb_{sb_key(w)}': (lambda w=w: sb_face_texture(w)) for w in SB_FACES}
 MATERIALS.update({'sc_m_screw': ((150, 152, 155), False), 'sc_m_flag_red': ((205, 30, 24), False),
                   'sc_m_flag_green': ((24, 160, 60), False)})
 SKINS = {'sb_flag': [{'sc_m_flag_red': 'sc_m_flag_green'}]}
@@ -297,21 +273,17 @@ PARTS = {
     'meter': meter,
     'needle': lambda: needle(GR - 0.45),
     'needle_scope': lambda: needle(GR - 0.5, tail=1.3, w=0.3, hub=0.55),
-    'pistol': pistol,
-    'pistol_red': lambda: pistol('sc_m_red'),
     'knob': knob,
     'barknob': barknob,
     'button_amber': lambda: button('sc_m_amber'),
     'button_black': lambda: button('sc_m_black'),
     'lamp_bezel': lamp_bezel,
-    'boss': lambda: boss(1.35),
     'boss_l': lambda: boss(1.5),
     'pb_bezel': pb_bezel,
     'hinge': hinge,
     'latch': latch,
-    'sb_plate': sb_plate,
-    'sb_plate_sync': lambda: sb_plate('sc_m_sb_face_sync'),
     'sb_flag': sb_flag,
-    'sb_handle': sb_handle,                       # turned to the left position (the sync switch, maintained)
-    'sb_handle_n': lambda: sb_handle(0),          # hanging at normal (the breaker switches, spring return)
+    'sb_handle': sb_handle,
+    'sb_handle_red': lambda: sb_handle('sc_m_red'),   # 86U
 }
+PARTS.update({f'sb_plate_{sb_key(w)}': (lambda w=w: sb_plate(f'sc_m_sb_{sb_key(w)}')) for w in SB_FACES})

@@ -324,17 +324,14 @@ def build_panels(m, dev):
         doors[ci].plate(u, v, w, h, s, style=style, px=px)
         raised(ci, u, v, w, h, depth, 'sc_white' if style == 'wb' else 'sc_black')
 
-    ALU, ALU_EDGE, BLK = (198, 200, 196, 255), (112, 114, 110, 255), (22, 22, 22, 255)
-
-    def esc_plate(ci, u, v, half, fill=ALU):
-        """square escutcheon plate (brushed aluminium, or black), raised 0.5 off the door"""
+    def esc_plate(ci, u, v, half):
+        """square brushed-aluminium escutcheon plate, raised 0.5 off the door"""
         D = doors[ci]
         half = snap(half)
         x0, y0 = D.P(u - half, v - half); x1, y1 = D.P(u + half, v + half)
-        D.d.rectangle([x0, y0, x1, y1], fill=fill, outline=ALU_EDGE if fill == ALU else (70, 70, 70, 255), width=2)
-        if fill == ALU:
-            for k in range(int(y0) + 4, int(y1) - 3, 3):                 # brushed grain
-                D.d.line([(x0 + 3, k), (x1 - 3, k)], fill=(188, 190, 186, 255) if k % 2 else (206, 208, 204, 255))
+        D.d.rectangle([x0, y0, x1, y1], fill=(198, 200, 196, 255), outline=(112, 114, 110, 255), width=2)
+        for k in range(int(y0) + 4, int(y1) - 3, 3):                     # brushed grain
+            D.d.line([(x0 + 3, k), (x1 - 3, k)], fill=(188, 190, 186, 255) if k % 2 else (206, 208, 204, 255))
         raised(ci, u, v, 2 * half, 2 * half, 0.5, 'sc_metal')
 
     def title_plates(ci):
@@ -468,45 +465,24 @@ def build_panels(m, dev):
             prop(ci, 'barknob', (x, -1.1, z), r['ent'])
 
     def cs_switch(ci, u, v, name):
-        """control switch: pistol grip, left position = pos[0], right = pos[1], -45 -> +45 degrees"""
+        """breaker-type control switch, spring return: a black escutcheon engraved with its two positions
+        (left = pos[0], right = pos[1]), a target window (red with the breaker closed, the pump running, AUTO
+        selected or the lockout tripped; green otherwise, set by the logic) and an L handle hanging at normal.
+        Its two buttons take the two halves of the plate: E on the left half turns it left, on the right half
+        right; either way it springs back."""
         r = sw[name]
-        x, z = door_xy(ci, u, v); D = doors[ci]
-        if name == 'r_ss':
-            # synchronizing switch: the breaker control switch's escutcheon engraved OFF / ON (no target) and
-            # its L handle; maintained, turned 45 degrees each way
-            prop(ci, 'sb_plate_sync', (x, -0.5, z))
-            plate(ci, u, v + 5.7, min(11.5, 0.5 * len(r['label']) + 1.6), 1.4, r['label'], px=0.75)   # below the grip
-            place(r['ent'], [prism(gb.turned(gb.PISTOL, x, z, 45), -2.9, -1.3, 'y', 'sc_knob'),
-                             hit(ci, u, v, 4.2), Box(x - 0.5, -2.6, z - 0.5, x + 0.5, -1.6, z + 0.5, tex='ORIGIN')])
-            prop(ci, 'sb_handle', (x, -2.1, z), r['ent'])
-            return
-        if r.get('kind') == 'breaker':
-            # breaker control switch, spring return: black escutcheon engraved TRIP / CLOSE with a target window
-            # (red after a close, green after a trip, set by the logic) and an L handle hanging at normal. Its
-            # two buttons take the two halves of the plate: E on the TRIP side turns it left, on the CLOSE side
-            # right; either way it springs back.
-            tp, cl = r['ents']
-            prop(ci, 'sb_plate', (x, -0.5, z))
-            prop(ci, 'sb_flag', (x, -0.5, z), name=f'{name}_flag', skin=1)
-            plate(ci, u, v + 5.7, min(11.5, 0.5 * len(r['label']) + 1.6), 1.4, r['label'], px=0.75)   # below the grip
-            full = hit(ci, u, v, 4.2)                       # one clip hole for the whole plate
-            (x0, y0, z0), (x1, y1, z1) = full.lo, full.hi
-            org = lambda: Box(x - 0.5, -2.6, z - 0.5, x + 0.5, -1.6, z + 0.5, tex='ORIGIN')
-            place(tp, [Box(x0, y0, z0, x, y1, z1, tex='PCLIP'), Box(x - 2.7, -1.7, z - 0.5, x - 1.5, -0.7, z + 0.5, tex='sc_knob'), org()])
-            place(cl, [Box(x, y0, z0, x1, y1, z1, tex='PCLIP'), Box(x + 1.5, -1.7, z - 0.5, x + 2.7, -0.7, z + 0.5, tex='sc_knob'), org()])
-            cl.kv['rendermode'] = '10'
-            prop(ci, 'sb_handle_n', (x, -2.1, z), tp)
-            return
-        red = r['grip'] == 'red'                       # the lockout: black plate, so the red handle stands out
-        esc_plate(ci, u, v, 4.0, BLK if red else ALU)
-        cols = ((90, 220, 120, 255), (255, 96, 72, 255)) if red else ((16, 110, 50, 255), (170, 26, 18, 255))
-        for sgn, lab, col in ((-1, r['pos'][0], cols[0]), (1, r['pos'][1], cols[1])):
-            gb.text(D.d, D.img, ((u + sgn * 2.45) * gb.PPU, (v - 2.6) * gb.PPU), lab, 0.62 * gb.PPU, col)
-        plate(ci, u, v + 5.6, min(11.5, 0.5 * len(r['label']) + 1.6), 1.4, r['label'], px=0.75)
-        prop(ci, 'boss', (x, -1.0, z))
-        place(r['ent'], [prism(gb.turned(gb.PISTOL, x, z, 45), -2.9, -1.3, 'y', 'sc_red' if r['grip'] == 'red' else 'sc_knob'),
-                         hit(ci, u, v, 4.2), Box(x - 0.5, -2.6, z - 0.5, x + 0.5, -1.6, z + 0.5, tex='ORIGIN')])
-        prop(ci, 'pistol_red' if red else 'pistol', (x, -2.1, z), r['ent'])
+        x, z = door_xy(ci, u, v)
+        lt, rt = r['ents']
+        prop(ci, f"sb_plate_{srcparts.sb_key(r['pos'])}", (x, -0.5, z))
+        prop(ci, 'sb_flag', (x, -0.5, z), name=f'{name}_flag', skin=1)
+        plate(ci, u, v + 5.7, min(11.5, 0.5 * len(r['label']) + 1.6), 1.4, r['label'], px=0.75)   # below the grip
+        full = hit(ci, u, v, 4.2)                       # one clip hole for the whole plate
+        (x0, y0, z0), (x1, y1, z1) = full.lo, full.hi
+        org = lambda: Box(x - 0.5, -2.6, z - 0.5, x + 0.5, -1.6, z + 0.5, tex='ORIGIN')
+        place(lt, [Box(x0, y0, z0, x, y1, z1, tex='PCLIP'), Box(x - 2.7, -1.7, z - 0.5, x - 1.5, -0.7, z + 0.5, tex='sc_knob'), org()])
+        place(rt, [Box(x, y0, z0, x1, y1, z1, tex='PCLIP'), Box(x + 1.5, -1.7, z - 0.5, x + 2.7, -0.7, z + 0.5, tex='sc_knob'), org()])
+        rt.kv['rendermode'] = '10'
+        prop(ci, 'sb_handle_red' if r['grip'] == 'red' else 'sb_handle', (x, -2.1, z), lt)
 
     def synchroscope(ci, u, v):
         x, z = door_xy(ci, u, v)
