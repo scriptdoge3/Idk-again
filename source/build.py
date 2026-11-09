@@ -471,11 +471,15 @@ def build_panels(m, dev):
         """control switch: pistol grip, left position = pos[0], right = pos[1], -45 -> +45 degrees"""
         r = sw[name]
         x, z = door_xy(ci, u, v); D = doors[ci]
-        if name in ('r_52', 'r_exc'):
+        if name in ('r_52', 'r_exc', 'r_ss'):
             # breaker control switch: black escutcheon engraved TRIP / CLOSE with a target window (red after a
-            # close, green after a trip, set by the logic) and an L handle: a shaft and a grip hanging from it
-            prop(ci, 'sb_plate', (x, -0.5, z))
-            prop(ci, 'sb_flag', (x, -0.5, z), name=f'{name}_flag', skin=1)
+            # close, green after a trip, set by the logic) and an L handle: a shaft and a grip hanging from it.
+            # The synchronizing switch is the same switch engraved OFF / ON, without the target.
+            if name == 'r_ss':
+                prop(ci, 'sb_plate_sync', (x, -0.5, z))
+            else:
+                prop(ci, 'sb_plate', (x, -0.5, z))
+                prop(ci, 'sb_flag', (x, -0.5, z), name=f'{name}_flag', skin=1)
             plate(ci, u, v + 4.6, min(11.5, 0.5 * len(r['label']) + 1.6), 1.4, r['label'], px=0.75)
             place(r['ent'], [prism(gb.turned(gb.PISTOL, x, z, 45), -2.9, -1.3, 'y', 'sc_knob'),
                              hit(ci, u, v, 4.2), Box(x - 0.5, -2.6, z - 0.5, x + 0.5, -1.6, z + 0.5, tex='ORIGIN')])

@@ -205,7 +205,7 @@ def rounded_square(h, r, n=6):
     return pts
 
 
-def sb_plate():
+def sb_plate(face='sc_m_sb_face'):
     """Breaker control switch escutcheon: a black plate with a bevelled edge, the engraved face (TRIP / CLOSE,
     the target window, the ring round the shaft) as a texture, and four screws. Origin: the switch centre on
     the door front (world y = -0.5); the face is at y = -0.5."""
@@ -219,7 +219,7 @@ def sb_plate():
         nrm = mid / np.linalg.norm(mid) + np.array([0, -0.6, 0])
         mb.flat('sc_m_black', [(a0[0], 0, a0[1]), (a1[0], 0, a1[1]), (b1[0], -T, b1[1]), (b0[0], -T, b0[1])], normal=nrm)
     uv = [((x + SB_H) / (2 * SB_H), (SB_H - z) / (2 * SB_H)) for x, z in front]
-    mb.flat('sc_m_sb_face', [(x, -T, z) for x, z in front], uvs=uv, normal=(0, -1, 0))
+    mb.flat(face, [(x, -T, z) for x, z in front], uvs=uv, normal=(0, -1, 0))
     for sx in (-1, 1):
         for sz in (-1, 1):
             mb.revolve('sc_m_screw', [(0.3, 0.0), (0.3, 0.06), (0.22, 0.16), (0.0, 0.19)], 14,
@@ -227,18 +227,19 @@ def sb_plate():
     return mb
 
 
-def sb_face_texture():
-    """the engraved face of the breaker control switch, 256 px across the plate"""
+def sb_face_texture(words=('TRIP', 'CLOSE'), window=True):
+    """the engraved face of a control switch, 256 px across the plate: the two positions on an arc and, on
+    a breaker switch, the target window"""
     from PIL import Image, ImageDraw, ImageFont
     S = 256; ppu = S / (2 * SB_H); c = S / 2
     im = Image.new('RGB', (S, S), (20, 20, 21)); d = ImageDraw.Draw(im)
     inset = (0.42 - 0.1) * ppu
     d.rounded_rectangle([inset, inset, S - inset, S - inset], radius=int(0.3 * ppu), outline=(196, 198, 200), width=3)
-    # target window: a sector above the shaft, framed
-    r0, r1, a = 1.05 * ppu, 1.75 * ppu, 20
-    d.pieslice([c - r1 - 4, c - r1 - 4, c + r1 + 4, c + r1 + 4], -90 - a - 3, -90 + a + 3, fill=(196, 198, 200))
-    d.pieslice([c - r1, c - r1, c + r1, c + r1], -90 - a, -90 + a, fill=(8, 8, 8))
-    d.ellipse([c - r0 + 4, c - r0 + 4, c + r0 - 4, c + r0 - 4], fill=(20, 20, 21))
+    if window:                                          # target window: a sector above the shaft, framed
+        r0, r1, a = 1.05 * ppu, 1.75 * ppu, 20
+        d.pieslice([c - r1 - 4, c - r1 - 4, c + r1 + 4, c + r1 + 4], -90 - a - 3, -90 + a + 3, fill=(196, 198, 200))
+        d.pieslice([c - r1, c - r1, c + r1, c + r1], -90 - a, -90 + a, fill=(8, 8, 8))
+        d.ellipse([c - r0 + 4, c - r0 + 4, c + r0 - 4, c + r0 - 4], fill=(20, 20, 21))
     # ring round the shaft
     rr = 0.62 * ppu
     d.ellipse([c - rr, c - rr, c + rr, c + rr], outline=(226, 224, 216), width=4)
@@ -247,7 +248,7 @@ def sb_face_texture():
         font = ImageFont.truetype('DejaVuSans-Bold.ttf', 21)
     except OSError:
         font = ImageFont.load_default()
-    for word, ang, dx in (('TRIP', 30, -1.42), ('CLOSE', -30, 1.48)):
+    for word, ang, dx in ((words[0], 30, -1.42), (words[1], -30, 1.48)):
         t = Image.new('RGBA', (140, 44), (0, 0, 0, 0)); ImageDraw.Draw(t).text((70, 22), word, font=font, fill=(238, 236, 228), anchor='mm')
         t = t.rotate(ang, resample=Image.Resampling.BICUBIC, expand=True)
         im.paste(t, (int(c + dx * ppu - t.width / 2), int(c - 1.15 * ppu - t.height / 2)), t)
@@ -286,7 +287,7 @@ def sb_handle():
     return mb.transform(rot_y(45))
 
 
-TEXTURES = {'sc_m_sb_face': sb_face_texture}
+TEXTURES = {'sc_m_sb_face': sb_face_texture, 'sc_m_sb_face_sync': lambda: sb_face_texture(('OFF', 'ON'), window=False)}
 MATERIALS.update({'sc_m_screw': ((150, 152, 155), False), 'sc_m_flag_red': ((205, 30, 24), False),
                   'sc_m_flag_green': ((24, 160, 60), False)})
 SKINS = {'sb_flag': [{'sc_m_flag_red': 'sc_m_flag_green'}]}
@@ -309,6 +310,7 @@ PARTS = {
     'hinge': hinge,
     'latch': latch,
     'sb_plate': sb_plate,
+    'sb_plate_sync': lambda: sb_plate('sc_m_sb_face_sync'),
     'sb_flag': sb_flag,
     'sb_handle': sb_handle,
 }
