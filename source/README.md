@@ -125,14 +125,7 @@ flash, no horn). Alarms standing at map load start acknowledged.
 
 ## The room
 
-Round the panels, all as world brushes (they cost nothing while playing): an EXIT sign and an emergency
-light over the door, a fire alarm pull station, light switches and a thermostat, a NOTICE sign on the door;
-the start-up and synchronizing / shutdown procedures framed on the right wall, a first aid kit and a
-calendar; the shift log whiteboard, a WARNING sign and a filing cabinet on the back wall; conduit from a
-junction box up the wall and along the ceiling; on the desk an HMI screen with the plant's single-line
-and trend, a keyboard, the log book, a telephone and a mug; an anti-fatigue mat and a yellow-and-black
-keep-clear line in front of the panels; smoke detectors and return-air grilles in the ceiling; hinges on
-the cabinet doors and DANGER labels on the cabinet ends.
+The GoldSrc map's room: the three cabinets, the spillway panel, door, extinguisher, clock, desk and chair.
 
 ## How the logic works
 
