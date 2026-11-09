@@ -471,19 +471,31 @@ def build_panels(m, dev):
         """control switch: pistol grip, left position = pos[0], right = pos[1], -45 -> +45 degrees"""
         r = sw[name]
         x, z = door_xy(ci, u, v); D = doors[ci]
-        if name in ('r_52', 'r_exc', 'r_ss'):
-            # breaker control switch: black escutcheon engraved TRIP / CLOSE with a target window (red after a
-            # close, green after a trip, set by the logic) and an L handle: a shaft and a grip hanging from it.
-            # The synchronizing switch is the same switch engraved OFF / ON, without the target.
-            if name == 'r_ss':
-                prop(ci, 'sb_plate_sync', (x, -0.5, z))
-            else:
-                prop(ci, 'sb_plate', (x, -0.5, z))
-                prop(ci, 'sb_flag', (x, -0.5, z), name=f'{name}_flag', skin=1)
-            plate(ci, u, v + 4.6, min(11.5, 0.5 * len(r['label']) + 1.6), 1.4, r['label'], px=0.75)
+        if name == 'r_ss':
+            # synchronizing switch: the breaker control switch's escutcheon engraved OFF / ON (no target) and
+            # its L handle; maintained, turned 45 degrees each way
+            prop(ci, 'sb_plate_sync', (x, -0.5, z))
+            plate(ci, u, v + 5.7, min(11.5, 0.5 * len(r['label']) + 1.6), 1.4, r['label'], px=0.75)   # below the grip
             place(r['ent'], [prism(gb.turned(gb.PISTOL, x, z, 45), -2.9, -1.3, 'y', 'sc_knob'),
                              hit(ci, u, v, 4.2), Box(x - 0.5, -2.6, z - 0.5, x + 0.5, -1.6, z + 0.5, tex='ORIGIN')])
             prop(ci, 'sb_handle', (x, -2.1, z), r['ent'])
+            return
+        if r.get('kind') == 'breaker':
+            # breaker control switch, spring return: black escutcheon engraved TRIP / CLOSE with a target window
+            # (red after a close, green after a trip, set by the logic) and an L handle hanging at normal. Its
+            # two buttons take the two halves of the plate: E on the TRIP side turns it left, on the CLOSE side
+            # right; either way it springs back.
+            tp, cl = r['ents']
+            prop(ci, 'sb_plate', (x, -0.5, z))
+            prop(ci, 'sb_flag', (x, -0.5, z), name=f'{name}_flag', skin=1)
+            plate(ci, u, v + 5.7, min(11.5, 0.5 * len(r['label']) + 1.6), 1.4, r['label'], px=0.75)   # below the grip
+            full = hit(ci, u, v, 4.2)                       # one clip hole for the whole plate
+            (x0, y0, z0), (x1, y1, z1) = full.lo, full.hi
+            org = lambda: Box(x - 0.5, -2.6, z - 0.5, x + 0.5, -1.6, z + 0.5, tex='ORIGIN')
+            place(tp, [Box(x0, y0, z0, x, y1, z1, tex='PCLIP'), Box(x - 2.7, -1.7, z - 0.5, x - 1.5, -0.7, z + 0.5, tex='sc_knob'), org()])
+            place(cl, [Box(x, y0, z0, x1, y1, z1, tex='PCLIP'), Box(x + 1.5, -1.7, z - 0.5, x + 2.7, -0.7, z + 0.5, tex='sc_knob'), org()])
+            cl.kv['rendermode'] = '10'
+            prop(ci, 'sb_handle_n', (x, -2.1, z), tp)
             return
         red = r['grip'] == 'red'                       # the lockout: black plate, so the red handle stands out
         esc_plate(ci, u, v, 4.0, BLK if red else ALU)

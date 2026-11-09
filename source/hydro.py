@@ -96,6 +96,22 @@ def build():
         dev['switches'][name] = {'ent': e, 'label': label, 'pos': pos, 'grip': grip, 'kind': kind}
         return v
 
+    def breaker_switch(P, name, label):
+        """Breaker control switch, spring return: the handle hangs at normal; turned to CLOSE (right) or TRIP
+        (left) it sends a pulse and springs back. It is two buttons, one for each way, on the two halves of
+        the plate; the TRIP one is parented to the CLOSE one, so the one handle shows both. Returns the close
+        and trip pulses (one tick each)."""
+        cl = m.ent('func_rot_button', f'{name}_c', distance=45, speed=600, spawnflags=1024 + 128, sounds=0, wait=0.35)
+        tp = m.ent('func_rot_button', f'{name}_t', distance=45, speed=600, spawnflags=1024 + 128 + 2, sounds=0, wait=0.35,
+                   parentname=f'{name}_c')
+        vc, vt = P.var(f'{name}_cc', 0, 0, 1), P.var(f'{name}_tc', 0, 0, 1)
+        cl.out('OnIn', vc.ent, 'SetValue', 1); tp.out('OnIn', vt.ent, 'SetValue', 1)
+        for e in (cl, tp):
+            e.out('OnPressed', 's_click', 'PlaySound')
+        P.add(vc, -vc.r); P.add(vt, -vt.r)
+        dev['switches'][name] = {'ents': (tp, cl), 'label': label, 'pos': ('TRIP', 'CLOSE'), 'grip': 'black', 'kind': 'breaker'}
+        return vc, vt
+
     def dial(P, name, var, label, spring=True, start=0.0):
         """momentary_rot_button: its position (0..1) is the variable. Spring-return dials turn to their stop
         while held and spring back when let go."""
@@ -144,8 +160,8 @@ def build():
 
     # ------------------------------------------------------------ controls
     hss = switch(F, 'r_ss', 'hss', '25 SYNC', ('OFF', 'ON'))
-    h52 = switch(F, 'r_52', 'h52', '52G GEN BKR', ('TRIP', 'CLOSE'), speed=900)
-    hexc_m = switch(M, 'r_exc', 'hexc', '41 FIELD BKR', ('TRIP', 'CLOSE'))
+    c52, t52 = breaker_switch(F, 'r_52', '52G GEN BKR')
+    c41, t41 = breaker_switch(M, 'r_exc', '41 FIELD BKR')
     hgt_m = switch(M, 'r_gt', 'hgt', '86U LOCKOUT', ('RESET', 'TRIP'), grip='red')
     plc = switch(F, 'r_plc', 'plc', 'GOV MODE', ('MAN', 'AUTO'))
     avr = switch(F, 'r_avr', 'avr', 'AVR MODE', ('MAN', 'AUTO'))
@@ -267,17 +283,16 @@ def build():
     F.sink('SYNCLAMPS', 'Alpha', hss.r * phs * (1020 * tu * (1 - tu)))
     # 52G: closes in phase (switch on or off). Out of phase the sync check (switch on) refuses it and the
     # handle springs back; with the switch off nothing stops it: closed out of phase, the unit trips.
-    closing = h52.r * NOT(CB) * NOT(TR_f)
+    closing = c52.r * NOT(CB) * NOT(TR_f)
     close = closing * pok
-    F.set(c_oop, closing * NOT(pok) * NOT(hss.r))
-    cb_new = CB * h52.r * NOT(TR_f) + close
+    # held until the trip it causes: the close is a one-tick pulse, shorter than the medium loop's tick
+    F.set(c_oop, OR(closing * NOT(pok) * NOT(hss.r), c_oop.r * NOT(TR_f)))
+    cb_new = CB * NOT(t52.r) * NOT(TR_f) + close
     F.set(cb, cb_new)
     # the load angle starts at the phase the breaker closed on, then swings with the rotor
     dl1 = dl.r + 216 * df * (n_new - 100)
     dl1 = dl1 - 360 * step(dl1, 180) + 360 * below(dl1, -180)
     F.set(dl, CB * dl1 + close * (th.r - 360 * step(th.r, 180)))
-    back52 = F.flag('back52'); F.set(back52, h52.r * NOT(cb_new))
-    back52.on_rise('r_52', 'PressOut', delay=0.3)
 
     # ------------------------------------------------------------ fast meters and lamps
     needle(F, 'p_kw', Pe * PBASE / 320)                     # 0-320 kW
@@ -329,7 +344,7 @@ def build():
 
     # ------------------------------------------------------------ excitation
     # 41 closes from 90 % speed and stays closed; it opens on a trip or by hand
-    exc_new = hexc_m.r * NOT(TR) * OR(EXC, step(Nm, 90, 0.05))
+    exc_new = NOT(TR) * NOT(t41.r) * OR(EXC, c41.r * step(Nm, 90, 0.05))
     M.set(exc, exc_new)
     # Static exciter fed from the generator's own terminals: its ceiling is 1.4 x the volts, so with no volts
     # it can't build the field; while the volts are under 40 % the station battery flashes the field (30 %).
@@ -354,8 +369,6 @@ def build():
     # when 41 opens the manual field setting goes back to the no-load value (the knob turns there), so the
     # next field application in MAN gives 480 V
     exc.on_fall('k_fa', 'SetPosition', round(KNOB0, 4), delay=1.0)
-    back41 = M.flag('back41'); M.set(back41, hexc_m.r * NOT(exc_new))
-    back41.on_rise('r_exc', 'PressOut', delay=0.3)
 
     # ------------------------------------------------------------ protection
     rev = CBm * below(Pm, -0.02)                    # motoring: the grid drives the unit
@@ -374,7 +387,7 @@ def build():
     tr_new = OR(*causes.values(), other, TR * NOT(rst.r))
     M.set(tr, tr_new)
     M.add(rst, -rst.r)
-    tr.on_rise('r_52', 'PressOut').on_rise('r_exc', 'PressOut').on_rise('r_plc', 'PressOut')
+    tr.on_rise('r_plc', 'PressOut')
     tr.on_rise('r_avr', 'PressOut').on_rise('r_gt', 'PressIn')
     need_gt = M.flag('need_gt'); M.set(need_gt, tr_new * NOT(hgt_m.r))
     need_gt.on_rise('r_gt', 'PressIn', delay=0.5)

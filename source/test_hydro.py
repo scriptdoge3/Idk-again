@@ -103,7 +103,7 @@ def scenario_manual_start():
     t80 = to_speed_no_load(s)
     check(abs(V(s, 'n') - 100) < 3, f"speed-no-load by hand: n={V(s, 'n'):.2f} g={V(s, 'g'):.2f} (80 % after {t80:.1f} s)")
     flip(s, 'r_avr')                   # AVR AUTO
-    flip(s, 'r_exc')                   # 41 close
+    flip(s, 'r_exc_c')                 # 41 close
     check(V(s, 'exc') == 1, '41 closes above 90 % speed')
     peak = 0
     for _ in range(int(12 / 0.06)):
@@ -117,7 +117,7 @@ def scenario_manual_start():
     # wait for the window and close
     t = wait_for(s, lambda: V(s, 'perm') == 1, 120)
     check(V(s, 'perm') == 1, f'SYNC CHECK lamp lit after {t:.1f} s')
-    flip(s, 'r_52', 0.3)
+    flip(s, 'r_52_c', 0.3)
     check(V(s, 'cb') == 1, f"52G closes in phase (at {V(s, 'dl'):.1f} deg)")
     check(s['LP_cb_1'].on and not s['LP_cb_0'].on, 'CLOSED lamp lit')
     # the rotor swings into step: the power rocks and settles
@@ -148,7 +148,7 @@ def scenario_plc_start():
     flip(s, 'r_plc'); flip(s, 'r_avr')
     t = wait_for(s, lambda: V(s, 'n') > 90, 60)
     check(15 < t < 40, f'PLC brings the unit to 90 % in {t:.1f} s')
-    flip(s, 'r_exc')
+    flip(s, 'r_exc_c')
     s.run(30)
     n = V(s, 'n')
     check(100.0 < n < 100.2, f'PLC holds a hair fast: {n:.3f} %')
@@ -157,7 +157,7 @@ def scenario_plc_start():
     turn = ((b - a) % 360) / 5.0
     check(10 < turn < 25, f'pointer creeps clockwise, {turn:.1f} deg/s (a turn in {360 / turn:.0f} s)')
     t = wait_for(s, lambda: V(s, 'perm') == 1, 60)
-    flip(s, 'r_52', 0.4)
+    flip(s, 'r_52_c', 0.4)
     check(V(s, 'cb') == 1, f'52G closed {t:.1f} s after the switch went on')
     s.run(120)
     check(V(s, 'g') > 50, f"PLC on line passes the river: gate {V(s, 'g'):.1f} %, river {V(s, 'q'):.1f} %, depth {V(s, 'l'):.2f} m, {kw(s):.0f} kW")
@@ -177,7 +177,7 @@ def scenario_plc_start():
 
 def scenario_load_rejection(s):
     print('52G opened at load with the PLC on: load rejection')
-    flip(s, 'r_52', 0.1)
+    flip(s, 'r_52_t', 0.1)
     peak = 0
     for _ in range(int(40 / 0.06)):
         s.run(0.06); peak = max(peak, V(s, 'n'))
@@ -193,8 +193,8 @@ def scenario_trip(s):
     check(V(s, 'tr') == 1 and V(s, 'cb') == 0 and V(s, 'exc') == 0, 'tripped: 52G and 41 open')
     check(V(s, 'g') < 1, f"gate shut at once ({V(s, 'g'):.1f} %)")
     s.run(1.0)
-    check(V(s, 'plc') == 0 and V(s, 'avr') == 0 and V(s, 'h52') == 0 and V(s, 'hexc') == 0,
-          'governor, voltage regulator, 52G and 41 handles turned to MAN / MAN / TRIP')
+    check(V(s, 'plc') == 0 and V(s, 'avr') == 0 and s['r_52_c'].ang == 0 and s['r_52_t'].ang == 0,
+          'governor and voltage regulator turned to MAN; the 52G handle stays at normal (spring return)')
     check(V(s, 'ua_lock') == 1 and V(s, 'ua_gbkr') == 1, '86 LOCKOUT and 52G GEN BKR TRIPPED flash')
     flashes = set()
     for _ in range(12):
@@ -222,7 +222,7 @@ def scenario_trip(s):
     # field again after the trip, AVR in MAN: the knob tracked the AVR, so the field comes back
     flip(s, 'r_plc')
     wait_for(s, lambda: V(s, 'n') > 92, 60)
-    flip(s, 'r_exc')
+    flip(s, 'r_exc_c')
     s.run(8)
     check(V(s, 'exc') == 1 and 95 < V(s, 'v') < 106, f"41 closes after the trip, volts {V(s, 'v') * 4.8:.0f} V in MAN")
 
@@ -233,27 +233,27 @@ def scenario_blind_close():
     start_aux(s)
     flip(s, 'r_plc'); flip(s, 'r_avr')
     wait_for(s, lambda: V(s, 'n') > 92, 60)
-    flip(s, 'r_exc'); s.run(10)
+    flip(s, 'r_exc_c'); s.run(10)
     wait_for(s, lambda: 90 < V(s, 'th') < 270, 60)
-    flip(s, 'r_52', 0.3)
+    flip(s, 'r_52_c', 0.6)
     check(V(s, 'tr') == 1 and V(s, 'cb') == 0 and V(s, 'ua_oop') == 1, '52G CLOSED OUT OF PHASE trip')
     print('52G refused by the sync check')
     s.run(1.0)
     flip(s, 'r_gt', 0.8)
     flip(s, 'r_plc'); flip(s, 'r_avr')
     wait_for(s, lambda: V(s, 'n') > 92, 60)
-    flip(s, 'r_exc'); s.run(10)
+    flip(s, 'r_exc_c'); s.run(10)
     flip(s, 'r_ss')
     wait_for(s, lambda: 90 < V(s, 'th') < 270, 60)
-    flip(s, 'r_52', 0.2)
+    flip(s, 'r_52_c', 0.2)
     check(V(s, 'cb') == 0 and V(s, 'tr') == 0, 'refused, no trip')
     s.run(1.0)
-    check(V(s, 'h52') == 0, 'the handle springs back to TRIP')
+    check(s['r_52_c'].ang == 0, 'the handle springs back to normal')
 
 
 def scenario_overspeed(s):
     print('52G opened by hand at load, PLC off: overspeed')
-    flip(s, 'r_52', 0.2)
+    flip(s, 'r_52_t', 0.2)
     peak = 0
     for _ in range(300):
         s.run(0.06); peak = max(peak, V(s, 'n'))

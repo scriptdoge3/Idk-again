@@ -79,7 +79,8 @@ The cabinets and the spillway panel are laid out as in the GoldSrc map. These th
 |---|---|
 | Meters | 250-degree switchboard meters: square flange, round bezel, pointer with a counterweight; needle speed matched to its loop's update rate. |
 | CP-1 meters | TURBINE RPM, GEN VOLTS, GEN AMPS, KW; EXC FIRING ANGLE, POWER FACTOR, GRID VOLTS, SYNCHROSCOPE (sync lamps and 25 PERM beside it). GRID VOLTS is the 480 V bus the utility feeds; the grid is stiff, so it reads 480 V. GEN AMPS is apparent power over volts, \|S\| by alpha-max-plus-beta-min (within 4 %). |
-| 52G, 41, 25 SYNC | Breaker control switches: black escutcheon engraved TRIP / CLOSE with a target window (red after a close, green after a trip, a model skin the logic sets) and an L handle, a shaft with a grip hanging from it. 25 SYNC is the same switch engraved OFF / ON, without the target. |
+| 52G, 41 | Breaker control switches, spring return: the L handle hangs at normal; E on the TRIP side of the plate turns it to TRIP, on the CLOSE side to CLOSE, and it springs back. The breaker latches; the target window shows red after a close and green after a trip (a model skin the logic sets), including a protective trip, which leaves the handle where it is. A close is refused without the sync check (52G) or below 90 % speed (41). |
+| 25 SYNC | The same escutcheon engraved OFF / ON (no target) and the same handle; maintained. |
 | CP-2 meters | GATE POS by GOV MODE, GEN FREQ, BUS FREQ, FIELD AMPS by AVR MODE. |
 | ACK / RESET / TEST | Pushbuttons under GOV MODE and AVR MODE. |
 | WICKET GATE LOWER / RAISE | Spring-return. Held: 0.25 %/s for 1 s, 2.5 %/s for 2 s, then 10 %/s. |

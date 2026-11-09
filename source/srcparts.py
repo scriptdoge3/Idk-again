@@ -268,7 +268,7 @@ def sb_flag():
     return mb
 
 
-def sb_handle():
+def sb_handle(turn=45):
     """Breaker control switch handle: a round shaft out of the plate and a flat grip hanging from its end,
     turned 45 degrees anticlockwise (the TRIP side). Origin: the switch's pivot (world y = -2.1); the plate
     face is at y = +1.1, the shaft end at y = -2.18; the grip reaches 4.4 below the pivot."""
@@ -284,7 +284,7 @@ def sb_handle():
             sec.append((hw * math.copysign(abs(cx) ** 0.55, cx), -1.62 - 0.48 * math.copysign(abs(cy) ** 0.55, cy), z))
         secs.append(sec)
     mb.loft('sc_m_black', secs)
-    return mb.transform(rot_y(45))
+    return mb.transform(rot_y(turn))
 
 
 TEXTURES = {'sc_m_sb_face': sb_face_texture, 'sc_m_sb_face_sync': lambda: sb_face_texture(('OFF', 'ON'), window=False)}
@@ -312,5 +312,6 @@ PARTS = {
     'sb_plate': sb_plate,
     'sb_plate_sync': lambda: sb_plate('sc_m_sb_face_sync'),
     'sb_flag': sb_flag,
-    'sb_handle': sb_handle,
+    'sb_handle': sb_handle,                       # turned to the left position (the sync switch, maintained)
+    'sb_handle_n': lambda: sb_handle(0),          # hanging at normal (the breaker switches, spring return)
 }
