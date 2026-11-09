@@ -11,7 +11,6 @@ MATERIALS = {
     'sc_m_ext': ((184, 22, 18), False),         # extinguisher red
     'sc_m_desk': ((122, 128, 122), False),      # desk steel, grey-green enamel
     'sc_m_vinyl': ((38, 40, 46), False),        # chair upholstery
-    'sc_m_steel': ((158, 162, 160), False),     # brushed steel
 }
 
 UP = np.array([[1, 0, 0], [0, 0, 1], [0, -1, 0]])       # stands a part made about the panel normal upright

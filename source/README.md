@@ -11,8 +11,8 @@ the console. The textures and sounds are packed inside the BSP, and no launch op
 
 ## Entities and speed
 
-The map has 1,666 entities, and only 150 of them use network slots: the needles, switches, dials,
-pushbuttons, lamps, annunciator windows and sounds (95), and the 55 models that move with them. The 62 fixed
+The map has 1,671 entities, and only 150 of them use network slots: the needles, switches, dials,
+pushbuttons, lamps, annunciator windows and sounds (95), and the 55 models that move with them. The 67 fixed
 models are static props, which cost nothing. The plant logic (1,449 entities: `math_counter`,
 `math_remap`, `logic_relay`, `logic_timer`, `logic_auto`) is server-only and uses none. Half-Life 2 allows
 2048 of each kind. The room's detail is world geometry (`func_detail`), which costs nothing while playing.
@@ -194,13 +194,14 @@ boxes round them. Floor, walls and ceiling have their own surface properties (fo
 
 The cabinets are built, not painted: a frame flush with each door and a 0.3 gap round it with a dark
 gasket, black joints between sections, two barrel hinges and a latch per door, stamped vents with real
-slats, a top cap and a plinth. Control switches have black engraved escutcheons, their nameplates above them; dials
-sit on raised brushed-aluminium ones; the annunciator has a raised frame and a grid between its
+slats, a top cap and a plinth. Control switches have black engraved escutcheons, their nameplates above them; the
+dials have black plates too, engraved with a rest mark, stop and arrow (LOWER / RAISE) or the 90-0 deg
+scale (FIRING ANGLE); the annunciator has a raised frame and a grid between its
 windows; nameplates are raised laminate plates. Door art is 16 texels per unit.
 
 The panel hardware is studio models (`srcparts.py`): meter cases, pointers, breaker control switches
-(escutcheon, target flag, L handle), knurled
-knobs, pushbutton caps and bezels, lamp bezels, hinges and
+(escutcheon, target flag, L handle), instrument knobs (aluminium skirt and cap, fluted black body) and
+their engraved plates, pushbutton caps and bezels, lamp bezels, hinges and
 latches. Fixed parts are `prop_static`. A moving part is a `prop_dynamic` parented to the brush entity
 that moves; that entity is still there for the player to use, but it isn't drawn (`rendermode 10`). On
 the spillway panel, which faces into the room from the wall, each model's angles are its parent's turned
@@ -250,6 +251,9 @@ Brush rules for Source compilers, learned the hard way:
   then comes out as its bounding box, so round knobs and lenses are 12-gons with no axial side, one brush
   each (the knob's pointer is texture art). They run deep into the cabinet, where they're hidden, and the
   hit areas are squares.
+- A world brush with slanted sides must not touch a door's face: it cuts the face into pieces along its
+  sides, and a hairline piece next to a nameplate's edge gets dropped, leaving a crack. The lamps' dark
+  lenses therefore stand 0.1 off the door, inside their bezels.
 
 After compiling, `build.py` replaces gbsp's per-face triangle lists ("primitives"). The game reserves
 (corners - 2) x 3 indices for each face, and gbsp leaves zero-area triangles out of a face with a repeated

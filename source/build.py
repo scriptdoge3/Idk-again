@@ -353,16 +353,6 @@ def build_panels(m, dev):
         doors[ci].plate(u, v, w, h, s, style=style, px=px)
         raised(ci, u, v, w, h, depth, 'sc_white' if style == 'wb' else 'sc_black')
 
-    def esc_plate(ci, u, v, half):
-        """square brushed-aluminium escutcheon plate, raised 0.5 off the door"""
-        D = doors[ci]
-        half = snap(half)
-        x0, y0 = D.P(u - half, v - half); x1, y1 = D.P(u + half, v + half)
-        D.d.rectangle([x0, y0, x1, y1], fill=(198, 200, 196, 255), outline=(112, 114, 110, 255), width=2)
-        for k in range(int(y0) + 4, int(y1) - 3, 3):                     # brushed grain
-            D.d.line([(x0 + 3, k), (x1 - 3, k)], fill=(188, 190, 186, 255) if k % 2 else (206, 208, 204, 255))
-        raised(ci, u, v, 2 * half, 2 * half, 0.5, 'sc_metal')
-
     def title_plates(ci):
         w = doors[ci].w
         raised(ci, w / 2, 2.6, w - 16, 3.2, 0.5, 'sc_white')               # title plate (painted by Door)
@@ -459,7 +449,9 @@ def build_panels(m, dev):
         for uu in us:
             x, z = door_xy(ci, uu, v)
             prop(ci, 'lamp_bezel', (x, -0.5, z))
-            world.append(prism(ngon(x, z, 0.85, 12), -1.45, -0.5, 'y', lens(cols[us.index(uu)], False)))
+            # the dark lens stands 0.1 off the door: touching it, its twelve sides cut the door's face into
+            # pieces, and a hairline one between a lens corner and a nameplate's edge was dropped (a crack)
+            world.append(prism(ngon(x, z, 0.85, 12), -1.45, -0.6, 'y', lens(cols[us.index(uu)], False)))
         # one lit lens per entity: two brushes in one entity would cut each other into pieces the compiler drops
         lensp = lambda uu, col, on: prism(ngon(*door_xy(ci, uu, v), 0.9, 12, phase=0), -1.6, 28, 'y', lens(col, on))
         ents = lm['ents']
@@ -500,29 +492,22 @@ def build_panels(m, dev):
 
     def knob_panel(ci, u, v, name, label):
         """FIRING ANGLE: a knob whose position is the manual firing angle (90 deg at the left stop, no field;
-        0 deg at the right stop, full field), 300 degrees of travel."""
-        x, z = door_xy(ci, u, v); D = doors[ci]
-        esc_plate(ci, u, v, 4.2)
+        0 deg at the right stop, full field), 300 degrees of travel, on a black plate engraved with the scale"""
+        x, z = door_xy(ci, u, v)
+        prop(ci, 'kp_fa', (x, -0.5, z))
         deep = DEEP.get(ci, 8.0)
         body = round_knob(x, z, 1.9, -2.4, deep)
         start = -150 + 300 * hydro.KNOB0
         place(dl[name]['ent'], [body, hit(ci, u, v, 2.8, deep), Box(x - 0.5, -2.0, z - 0.5, x + 0.5, -1.0, z + 0.5, tex='ORIGIN')],
               angles=f'{start:.2f} 0 0')
-        prop(ci, 'knob', (x, -1.5, z), dl[name]['ent'])
+        prop(ci, 'knob_l', (x, -1.5, z), dl[name]['ent'])
         plate(ci, u, v - 5.6, 9.5, 1.4, label, px=0.8)
-        # scale: 90 degrees at the left stop, 0 at the right
-        for k in range(11):
-            a = math.radians(-150 + 30 * k)
-            p0 = ((u + 3.0 * math.sin(a)) * gb.PPU, (v - 3.0 * math.cos(a)) * gb.PPU)
-            p1 = ((u + (3.6 if k % 5 == 0 else 3.3) * math.sin(a)) * gb.PPU, (v - (3.6 if k % 5 == 0 else 3.3) * math.cos(a)) * gb.PPU)
-            D.d.line([p0, p1], fill=(24, 24, 24, 255), width=2)
-        gb.text(D.d, D.img, ((u - 3.2) * gb.PPU, (v + 3.3) * gb.PPU), '90', 0.55 * gb.PPU, (24, 24, 24, 255))
-        gb.text(D.d, D.img, ((u + 3.2) * gb.PPU, (v + 3.3) * gb.PPU), '0', 0.55 * gb.PPU, (24, 24, 24, 255))
 
     def spring_dial(ci, u, v, name):
-        """spring-return dial: held, it turns 60 degrees clockwise to its stop; let go, it springs back"""
-        x, z = door_xy(ci, u, v); D = doors[ci]
-        esc_plate(ci, u, v, 2.8)
+        """spring-return dial: held, it turns 60 degrees clockwise to its stop; let go, it springs back. Its
+        black plate is engraved with the rest mark, the stop and an arrow."""
+        x, z = door_xy(ci, u, v)
+        prop(ci, 'kp_spring', (x, -0.5, z))
         deep = DEEP.get(ci, 8.0)
         body = round_knob(x, z, 1.9, -2.8, deep)
         place(dl[name]['ent'], [body, hit(ci, u, v, 3.0, deep), Box(x - 0.5, -2.0, z - 0.5, x + 0.5, -1.0, z + 0.5, tex='ORIGIN')])

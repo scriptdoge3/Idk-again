@@ -19,6 +19,7 @@ MATERIALS = {
     'sc_m_red': ((178, 26, 22), False),
     'sc_m_amber': ((238, 122, 24), False),
     'sc_m_needle': ((255, 104, 44), True),
+    'sc_m_steel': ((158, 162, 160), False),     # brushed steel / spun aluminium
 }
 
 GR = 4.0                   # dial radius the meter window shows
@@ -70,24 +71,30 @@ def needle(length, tail=0.9, w=0.22, hub=0.45):
     return mb
 
 
-def knob():
-    """Round knurled knob with a white pointer line at 12 o'clock. Origin: the knob's pivot (world
-    y = -1.5); it sits on its escutcheon at y = +0.5 and stands 2 out to y = -1.5."""
+def knob(k=1.0):
+    """Instrument knob: a spun-aluminium skirt with a white index line, a fluted black body and an aluminium
+    cap with a black pointer; 12 o'clock is up. k scales its radius. Origin: the knob's pivot (world y = -1.5);
+    it sits on its plate at y = +0.5 and stands 2 out."""
     mb = MeshBuilder()
     y0 = 0.5
-    N = 40
-    # skirt, then a fluted body (alternate radii give the knurl), then a chamfered top
-    mb.revolve('sc_m_black', [(0.0, 0.0), (1.95, 0.0), (1.95, 0.35), (1.7, 0.55)], N, y0=y0)
-    ring = []
-    for k in range(N):
-        a = 2 * math.pi * k / N
-        r = 1.55 if k % 2 == 0 else 1.47
-        ring.append((r * math.cos(a), r * math.sin(a)))
-    bot = [(x, y0 - 0.55, z) for x, z in ring]; topr = [(x * 0.95, y0 - 1.75, z * 0.95) for x, z in ring]
-    mb.loft('sc_m_black', [bot, topr])
-    mb.revolve('sc_m_black', [(1.47, 1.75), (1.3, 1.95), (0.0, 1.95)], N, y0=y0)
-    mb.box('sc_m_white', (-0.11, y0 - 2.0, 0.25), (0.11, y0 - 1.93, 1.28))               # pointer line on the face
-    mb.box('sc_m_white', (-0.11, y0 - 1.95, 1.28), (0.11, y0 - 0.6, 1.45))               # and down the side
+    S, K = 'sc_m_steel', 'sc_m_black'
+    rs, rb = 2.0 * k, 1.5 * k                            # skirt and body radii
+    mb.revolve(S, [(0.0, 0.0), (rs, 0.0), (rs, 0.12), (rb + 0.2, 0.5), (rb - 0.05, 0.5)], 36, y0=y0)
+    N, L = 72, 12                                        # twelve flutes
+    def ring(scale, h):
+        out = []
+        for j in range(N):
+            a = 2 * math.pi * j / N
+            r = scale * (rb - 0.13 * k * (0.5 - 0.5 * math.cos(L * a)) ** 1.5)
+            out.append((r * math.cos(a), y0 - h, r * math.sin(a)))
+        return out
+    mb.loft(K, [ring(1.0, 0.5), ring(1.0, 0.7), ring(0.97, 1.8), ring(0.9, 1.97)])
+    rc = 0.6 * rb
+    mb.revolve(S, [(rc, 1.97), (rc, 2.03), (0.0, 2.03)], 28, y0=y0)                      # cap
+    mb.box(K, (-0.09 * k, y0 - 2.05, 0.15 * rc), (0.09 * k, y0 - 2.03, 0.96 * rc))        # pointer on the cap
+    n = np.array([0.0, -0.59, 0.81]) * 0.012                                              # index line on the skirt
+    q = [(-0.1 * k, y0 - 0.13, rs), (0.1 * k, y0 - 0.13, rs), (0.1 * k, y0 - 0.5, rb + 0.2), (-0.1 * k, y0 - 0.5, rb + 0.2)]
+    mb.flat('sc_m_white', [tuple(np.array(p) + n) for p in q], normal=(0, -0.59, 0.81))
     return mb
 
 
@@ -158,26 +165,66 @@ def rounded_square(h, r, n=6):
     return pts
 
 
-def sb_plate(face):
-    """Control switch escutcheon: a black plate with a bevelled edge, the engraved face (the two positions,
-    the target window, the ring round the shaft) as a texture, and four screws. Origin: the switch centre on
-    the door front (world y = -0.5); the face is at y = -0.5."""
+def sb_plate(face, H=SB_H):
+    """Control escutcheon: a black plate (half size H) with a bevelled edge, its engraved face as a texture, and
+    four screws. Origin: the centre on the door front (world y = -0.5); the face is at y = -0.5."""
     mb = MeshBuilder()
     T, B = 0.5, 0.1
-    back = rounded_square(SB_H, 0.45); front = rounded_square(SB_H - B, 0.45 - B)
+    back = rounded_square(H, 0.45); front = rounded_square(H - B, 0.45 - B)
     n = len(back)
     for k in range(n):
         a0, a1 = back[k], back[(k + 1) % n]; b0, b1 = front[k], front[(k + 1) % n]
         mid = np.array([(a0[0] + a1[0]) / 2, 0, (a0[1] + a1[1]) / 2])
         nrm = mid / np.linalg.norm(mid) + np.array([0, -0.6, 0])
         mb.flat('sc_m_black', [(a0[0], 0, a0[1]), (a1[0], 0, a1[1]), (b1[0], -T, b1[1]), (b0[0], -T, b0[1])], normal=nrm)
-    uv = [((x + SB_H) / (2 * SB_H), (SB_H - z) / (2 * SB_H)) for x, z in front]
+    uv = [((x + H) / (2 * H), (H - z) / (2 * H)) for x, z in front]
     mb.flat(face, [(x, -T, z) for x, z in front], uvs=uv, normal=(0, -1, 0))
     for sx in (-1, 1):
         for sz in (-1, 1):
             mb.revolve('sc_m_screw', [(0.3, 0.0), (0.3, 0.06), (0.22, 0.16), (0.0, 0.19)], 14,
-                       center=(sx * (SB_H - 0.55), sz * (SB_H - 0.55)), y0=-T)
+                       center=(sx * (H - 0.55), sz * (H - 0.55)), y0=-T)
     return mb
+
+
+KP_FA = 4.2                # the firing-angle knob's plate, half size
+
+
+def knob_face_texture(kind):
+    """the engraved face of a knob's plate, white on black. 'spring': a spring-return dial, with its rest mark
+    at 12 o'clock, its stop 60 degrees clockwise and an arrow between them. 'fa': the firing-angle scale, 90
+    degrees at the left stop to 0 at the right, 300 degrees of travel."""
+    from PIL import Image, ImageDraw, ImageFont
+    H = SB_H if kind == 'spring' else KP_FA
+    S = 256 if kind == 'spring' else 512
+    ppu = S / (2 * H); c = S / 2
+    W = (238, 236, 228)
+    im = Image.new('RGB', (S, S), (20, 20, 21)); d = ImageDraw.Draw(im)
+    inset = 0.32 * ppu
+    d.rounded_rectangle([inset, inset, S - inset, S - inset], radius=int(0.3 * ppu), outline=(196, 198, 200), width=max(2, S // 86))
+    pt = lambda r, a: (c + r * ppu * math.sin(math.radians(a)), c - r * ppu * math.cos(math.radians(a)))   # a clockwise from 12
+    if kind == 'spring':
+        for a in (0, 60):
+            d.line([pt(2.12, a), pt(2.62, a)], fill=W, width=4)
+        r = 2.37 * ppu
+        d.arc([c - r, c - r, c + r, c + r], -90 + 7, -90 + 46, fill=W, width=3)
+        tip, b0, b1 = pt(2.37, 54), pt(2.2, 44), pt(2.54, 44)
+        d.polygon([tip, b0, b1], fill=W)
+    else:
+        try:
+            font = ImageFont.truetype('DejaVuSans-Bold.ttf', 30)
+            small = ImageFont.truetype('DejaVuSans-Bold.ttf', 20)
+        except OSError:
+            font = small = ImageFont.load_default()
+        for k in range(10):                             # every 10 degrees of firing angle, 90 down to 0
+            a = -150 + 300 * k / 9
+            major = k % 3 == 0
+            d.line([pt(2.62, a), pt(3.22 if major else 2.98, a)], fill=W, width=7 if major else 4)
+            if major:
+                d.text(pt(3.66, a), str(90 - 10 * k), font=font, fill=W, anchor='mm')
+        r = 2.62 * ppu
+        d.arc([c - r, c - r, c + r, c + r], -90 - 150, -90 + 150, fill=W, width=4)
+        d.text(pt(3.45, 180), 'DEG', font=small, fill=W, anchor='mm')
+    return im
 
 
 def sb_face_texture(words, window=True):
@@ -247,6 +294,7 @@ SB_FACES = [('TRIP', 'CLOSE'), ('OFF', 'ON'), ('RESET', 'TRIP'), ('MAN', 'AUTO')
             ('RELEASE', 'APPLY')]
 sb_key = lambda words: '_'.join(words).lower()
 TEXTURES = {f'sc_m_sb_{sb_key(w)}': (lambda w=w: sb_face_texture(w)) for w in SB_FACES}
+TEXTURES.update({'sc_m_kp_spring': lambda: knob_face_texture('spring'), 'sc_m_kp_fa': lambda: knob_face_texture('fa')})
 MATERIALS.update({'sc_m_screw': ((150, 152, 155), False), 'sc_m_flag_red': ((205, 30, 24), False),
                   'sc_m_flag_green': ((24, 160, 60), False)})
 SKINS = {'sb_flag': [{'sc_m_flag_red': 'sc_m_flag_green'}]}
@@ -257,6 +305,9 @@ PARTS = {
     'needle': lambda: needle(GR - 0.45),
     'needle_scope': lambda: needle(GR - 0.5, tail=1.3, w=0.3, hub=0.55),
     'knob': knob,
+    'knob_l': lambda: knob(1.2),                  # the firing-angle knob
+    'kp_spring': lambda: sb_plate('sc_m_kp_spring'),
+    'kp_fa': lambda: sb_plate('sc_m_kp_fa', KP_FA),
     'button_amber': lambda: button('sc_m_amber'),
     'button_black': lambda: button('sc_m_black'),
     'lamp_bezel': lamp_bezel,
