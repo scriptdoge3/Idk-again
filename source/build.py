@@ -537,23 +537,24 @@ def build_panels(m, dev):
     # ------------------------------------------- left: unit control
     D = doors[0]
     frame(D, 1.5, 5.5, 53, 32.5)
-    # the generator board: turbine speed, volts, amps and kilowatts on top; firing angle, power factor and the
-    # synchroscope (with its lamps and the sync-check lamp) below
+    # the generator board: turbine speed, volts, amps and kilowatts on top; firing angle, power factor, grid
+    # volts and the synchroscope (with its lamps and the sync-check lamp) below
     gauge(0, 7, ROW1, 'TURBINE RPM', [(0, 150, 25, 25, 5, None)], 'RPM', 'p_speed', red=(140, 150))
     gauge(0, 17, ROW1, 'GEN VOLTS', [(0, 600, 100, 100, 20, None)], 'AC VOLTS', 'p_volts')
     gauge(0, 27, ROW1, 'GEN AMPS', [(0, 500, 100, 50, 10, None)], 'AC AMPS', 'p_amps', red=(450, 500))
     gauge(0, 37, ROW1, 'KW', [(0, 320, 80, 40, 10, None)], 'KW', 'p_kw')
     gauge(0, 7, ROW2, 'EXC FIRING ANGLE', [(0, 90, 15, 15, 5, None)], 'DEG', 'p_fa')
     gauge(0, 17, ROW2, 'POWER FACTOR', None, None, 'p_pf', tex=pf_texture('scg_pf'))
-    synchroscope(0, 32, ROW2)
-    world.append(gb.front_box(0, 45, ROW2 - 1, 5, 2, -1.0, -0.5, lens_texture('sc_slmp0', ('white', 'white'), (False, False))))
+    gauge(0, 27, ROW2, 'GRID VOLTS', [(0, 600, 100, 100, 20, None)], 'AC VOLTS', 'p_gridv')   # beside the scope
+    synchroscope(0, 37, ROW2)
+    world.append(gb.front_box(0, 49.5, ROW2 - 1, 5, 2, -1.0, -0.5, lens_texture('sc_slmp0', ('white', 'white'), (False, False))))
     sl = Image.new('RGB', (160, 64), (0, 0, 0)); d = ImageDraw.Draw(sl)
     for x0 in (0, 96):
         d.ellipse([x0 + 6, 6, x0 + 57, 57], fill=(255, 236, 190))
     TEX['sc_slmp1'] = sl; UNLIT.add('sc_slmp1'); ADDITIVE.add('sc_slmp1')
     E.append(('func_brush', {'targetname': 'SYNCLAMPS', 'rendermode': '5', 'renderamt': '0', 'Solidity': '1'}, [],
-              [gb.front_box(0, 45, ROW2 - 1, 5, 2, -1.3, -1.0, 'sc_slmp1')]))
-    lampw(0, 45, ROW2 + 5, 'L_perm', ('25 PERM',))
+              [gb.front_box(0, 49.5, ROW2 - 1, 5, 2, -1.3, -1.0, 'sc_slmp1')]))
+    lampw(0, 49.5, ROW2 + 5, 'L_perm', ('25 PERM',))
     frame(D, 1.5, 40, 53, 44)
     cs_switch(0, 8, CTL, 'r_ss')
     cs_switch(0, 21, CTL, 'r_52'); lampw(0, 21, CTL + 9, 'LP_cb', ('CLOSED', 'OPEN'))

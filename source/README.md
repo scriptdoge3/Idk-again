@@ -78,7 +78,7 @@ The cabinets and the spillway panel are laid out as in the GoldSrc map. These th
 | Control | Now |
 |---|---|
 | Meters | 250-degree switchboard meters: square flange, round bezel, pointer with a counterweight; needle speed matched to its loop's update rate. |
-| CP-1 meters | TURBINE RPM, GEN VOLTS, GEN AMPS, KW; EXC FIRING ANGLE, POWER FACTOR, SYNCHROSCOPE (sync lamps and 25 PERM beside it). GEN AMPS is apparent power over volts, \|S\| by alpha-max-plus-beta-min (within 4 %). |
+| CP-1 meters | TURBINE RPM, GEN VOLTS, GEN AMPS, KW; EXC FIRING ANGLE, POWER FACTOR, GRID VOLTS, SYNCHROSCOPE (sync lamps and 25 PERM beside it). GRID VOLTS is the 480 V bus the utility feeds; the grid is stiff, so it reads 480 V. GEN AMPS is apparent power over volts, \|S\| by alpha-max-plus-beta-min (within 4 %). |
 | CP-2 meters | GATE POS by GOV MODE, GEN FREQ, BUS FREQ, FIELD AMPS by AVR MODE. |
 | ACK / RESET / TEST | Pushbuttons under GOV MODE and AVR MODE. |
 | WICKET GATE LOWER / RAISE | Spring-return. Held: 0.25 %/s for 1 s, 2.5 %/s for 2 s, then 10 %/s. |

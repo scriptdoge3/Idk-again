@@ -170,6 +170,8 @@ def scenario_plc_start():
     amps_true = 409 * math.hypot(p_, q_) * 100 / V(s, 'v')
     amps = s['p_amps'].pos() * 500
     check(abs(amps - amps_true) < 0.05 * amps_true + 5, f'GEN AMPS reads {amps:.0f} A (|S|/V gives {amps_true:.0f} A at {kw(s):.0f} kW)')
+    gridv = s['p_gridv'].pos() * 600
+    check(abs(gridv - 480) < 1, f'GRID VOLTS reads {gridv:.0f} V')
     return s
 
 

@@ -436,6 +436,9 @@ def build():
     S.set(c_bt, step(bt.r, 90))
 
     # ------------------------------------------------------------ slow meters
+    # grid volts: the 480 V bus the utility feeds through the step-up transformer. The grid is stiff (the sync
+    # check compares the generator against 100 %), so it reads 480 V whether 52G is open or closed.
+    needle(S, 'p_gridv', 100 / 125)                          # 0-600 V
     needle(S, 'p_lube', lp.r / 60)
     needle(S, 'p_cw', cw.r / 100)
     needle(S, 'p_bt', (bt.r - 20) / 80)
