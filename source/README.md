@@ -11,8 +11,9 @@ the console. The textures and sounds are packed inside the BSP, and no launch op
 
 ## Entities and speed
 
-The map has 1,263 entities, and only 76 of them use network slots: the needles, switches, dials,
-pushbuttons, lamps, annunciator windows and sounds. The plant logic (1,182 entities: `math_counter`,
+The map has 1,385 entities, and only 118 of them use network slots: the needles, switches, dials,
+pushbuttons, lamps, annunciator windows and sounds (77), and the 41 models that move with them. The 52 fixed
+models are static props, which cost nothing. The plant logic (1,210 entities: `math_counter`,
 `math_remap`, `logic_relay`, `logic_timer`, `logic_auto`) is server-only and uses none. Half-Life 2 allows
 2048 of each kind. The room's detail is world geometry (`func_detail`), which costs nothing while playing.
 
@@ -76,7 +77,9 @@ The cabinets and the spillway panel are laid out as in the GoldSrc map. These th
 
 | Control | Now |
 |---|---|
-| Meters | 250-degree switchboard meters; needle speed matched to its loop's update rate. |
+| Meters | 250-degree switchboard meters: square flange, round bezel, pointer with a counterweight; needle speed matched to its loop's update rate. |
+| CP-1 meters | TURBINE RPM, GEN VOLTS, GEN AMPS, KW; EXC FIRING ANGLE, POWER FACTOR, SYNCHROSCOPE (sync lamps and 25 PERM beside it). GEN AMPS is apparent power over volts, \|S\| by alpha-max-plus-beta-min (within 4 %). |
+| CP-2 meters | GATE POS by GOV MODE, GEN FREQ, BUS FREQ, FIELD AMPS by AVR MODE. |
 | ACK / RESET / TEST | Pushbuttons under GOV MODE and AVR MODE. |
 | WICKET GATE LOWER / RAISE | Spring-return. Held: 0.25 %/s for 1 s, 2.5 %/s for 2 s, then 10 %/s. |
 | FIRING ANGLE knob | Position = firing angle, 90 deg (left stop) to 0 deg (right stop, 140 % field). Each new grab reverses direction (Source wheel). Tracks the AVR in AUTO for a bumpless transfer. |
@@ -129,10 +132,16 @@ The GoldSrc map's room: the three cabinets, the spillway panel, door, extinguish
 
 The cabinets are built, not painted: a frame flush with each door and a 0.3 gap round it with a dark
 gasket, black joints between sections, two barrel hinges and a latch per door, stamped vents with real
-slats, a top cap and a plinth. Each meter sits in its own square black bezel; switches and dials sit on
-raised brushed-aluminium escutcheons (the 86U lockout's is black, under a red handle); lamps are round
-lenses in black bezels; the annunciator has a raised frame and a grid between its windows; nameplates
-are raised laminate plates. Door art is 16 texels per unit.
+slats, a top cap and a plinth. Switches and dials sit on raised brushed-aluminium escutcheons (the 86U
+lockout's is black, under a red handle); the annunciator has a raised frame and a grid between its
+windows; nameplates are raised laminate plates. Door art is 16 texels per unit.
+
+The panel hardware is studio models (`srcparts.py`): meter cases, pointers, pistol-grip handles, knurled
+knobs, the selector bar handle, pushbutton caps and bezels, lamp bezels, switch bosses, hinges and
+latches. Fixed parts are `prop_static`. A moving part is a `prop_dynamic` parented to the brush entity
+that moves; that entity is still there for the player to use, but it isn't drawn (`rendermode 10`). On
+the spillway panel, which faces into the room from the wall, each model's angles are its parent's turned
+90 degrees.
 
 ## How the logic works
 
@@ -158,8 +167,14 @@ its values in order on every tick.
 
 `python3 build.py` writes `out/sablecreek.vmf`. With `GBSP` set to a folder holding gbsp, gvis and grad
 (github.com/drwxor/gbsp, an open-source Source compiler: `cargo build -r`), it also compiles the map and
-packs the materials and sounds into `out/sablecreek.bsp`. The room, cabinets and panel art come from
-`../goldsrc/build.py`.
+packs the materials, models and sounds into `out/sablecreek.bsp`. The room, cabinets and panel art come
+from `../goldsrc/build.py`.
+
+There is no model compiler here, so `srcmdl.py` writes the model files itself: `.mdl` (version 48),
+`.vvd` and `.dx90/.dx80/.sw.vtx`. They are rigid props, laid out the way studiomdl lays out a
+`$staticprop`: one bone, a hitbox set, a one-frame idle sequence, one body part, one mesh per material,
+triangle lists wound clockwise. `read_model()` walks them back the way the engine does; srctools and
+gbsp's own reader load them too.
 
 Brush rules for Source compilers, learned the hard way:
 
@@ -178,3 +193,8 @@ After compiling, `build.py` replaces gbsp's per-face triangle lists ("primitives
 corner. One short list shifts every index after it, and the whole map then draws with the wrong
 triangles and textures. Convex faces get no list (the game draws a fan); the few non-convex faces gbsp
 merges get an ear-clipped list of exactly corners - 2 triangles.
+
+Before that, it fixes T-junctions as vbsp does. Where a corner of one world face lies part way along an
+edge of a neighbour on the same plane, the corner is added to the neighbour's outline; otherwise the two
+triangle edges don't meet exactly and the game shows a hairline crack of sparkles. Faces get new edges
+and a rebuilt surfedge list, and the per-corner normal indices are rebuilt to match.

@@ -21,8 +21,10 @@ gb = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(gb)
 from hlfiles import Box, Poly, prism, ngon, face_map, face_map_up, write_wav       # noqa: E402
 import hlfiles as hlf                                                                # noqa: E402
-from srcfiles import Content, VmfWriter, pack_bsp, pow2, fix_face_triangles                              # noqa: E402
+from srcfiles import Content, VmfWriter, pack_bsp, pow2, fix_face_triangles, fix_tjunctions                              # noqa: E402
 import hydro                                                                         # noqa: E402
+import srcparts                                                                      # noqa: E402
+from srcmdl import write_model                                                       # noqa: E402
 
 OUT = os.path.join(HERE, 'out')
 NAME = 'sablecreek'
@@ -219,6 +221,57 @@ def knob_cap_texture():
     TEX['sc_knobcap'] = im
 
 
+# =================================================================== models
+PROPS = []                    # (door index, model, position before the wall turn, parent brush entity or None)
+
+
+def prop(ci, model, pos, parent=None):
+    """A studio model on a panel. Fixed parts are prop_static; a moving part is a prop_dynamic parented to
+    the brush entity that moves, which is then not drawn (the player still uses the brush)."""
+    PROPS.append((ci, model, tuple(pos), parent))
+    if parent is not None:
+        parent.kv['rendermode'] = '10'
+
+
+def angle_matrix(p, y, r):
+    """Source AngleMatrix: pitch about Y, yaw about Z, roll about X (degrees)"""
+    sp, cp = math.sin(math.radians(p)), math.cos(math.radians(p))
+    sy, cy = math.sin(math.radians(y)), math.cos(math.radians(y))
+    sr, cr = math.sin(math.radians(r)), math.cos(math.radians(r))
+    return np.array([[cp * cy, sr * sp * cy - cr * sy, cr * sp * cy + sr * sy],
+                     [cp * sy, sr * sp * sy + cr * cy, cr * sp * sy - sr * cy],
+                     [-sp, sr * cp, cr * cp]])
+
+
+def matrix_angles(M):
+    """Source MatrixAngles"""
+    fwd, left, up = M[:, 0], M[:, 1], M[:, 2]
+    xy = math.hypot(fwd[0], fwd[1])
+    if xy > 1e-3:
+        return (math.degrees(math.atan2(-fwd[2], xy)), math.degrees(math.atan2(fwd[1], fwd[0])),
+                math.degrees(math.atan2(left[2], up[2])))
+    return (math.degrees(math.atan2(-fwd[2], xy)), math.degrees(math.atan2(-left[0], left[1])), 0.0)
+
+
+def prop_entities():
+    """the props as point entities, after the wall panel's parts have been turned onto the wall"""
+    out = []
+    for ci, model, pos, parent in PROPS:
+        base = angle_matrix(0, 90, 0) if ci == gb.SP else np.eye(3)       # the wall panel faces +X
+        if ci == gb.SP:
+            pos = gb.wall_pt(pos)
+        R = base if parent is None else angle_matrix(*map(float, parent.kv.get('angles', '0 0 0').split())) @ base
+        ang = ' '.join(f'{a:.3f}' for a in matrix_angles(R))
+        kv = {'model': f'models/sablecreek/{model}.mdl', 'origin': ' '.join(f'{c:.3f}' for c in pos), 'angles': ang,
+              'solid': '0', 'disableshadows': '1'}
+        if parent is None:
+            out.append(('prop_static', kv, [], []))
+        else:
+            kv.update({'parentname': parent.name, 'DisableShadows': '1', 'targetname': f'{parent.name}_mdl'})
+            out.append(('prop_dynamic', kv, [], []))
+    return out
+
+
 def place(ent, brushes, **kv):
     """attach geometry to an entity the plant made"""
     ent.brushes = brushes
@@ -337,29 +390,26 @@ def build_panels(m, dev):
 
     BZ = 4.75                                          # meter bezel half size (on the 0.25 grid)
 
-    def meter_case(x, z, Y0, tex, xl=None, xr=None):
+    def meter_case(x, z, Y0, tex, xl=None, xr=None, ci=0):
         """Switchboard meter: the dial behind a square black bezel 1.9 deep. (A round cut-out would put planes
         through the dial, and the compilers drop the thin wedges that leaves.)"""
         o = GR + 0.3
         W(x - o, Y0 - 0.6, z - o, x + o, Y0, z + o, tex='sc_black',
           faces={FRONT: (tex, face_map(x - GR - 0.3, z + o, DIAL / (2 * o)))})
-        yf = Y0 - 1.9
-        W(x - BZ, yf, z + o, x + BZ, Y0, z + BZ, tex='sc_bezel')
-        W(x - BZ, yf, z - BZ, x + BZ, Y0, z - o, tex='sc_bezel')
-        W(x - BZ, yf, z - o, x - o, Y0, z + o, tex='sc_bezel')
-        W(x + o, yf, z - o, x + BZ, Y0, z + o, tex='sc_bezel')
+        prop(ci, 'meter', (x, Y0, z))                 # square flange, round window, raised bezel
 
-    def gauge_at(x, z, Y0, tex, ptr, xl=None, xr=None):
+    def gauge_at(x, z, Y0, tex, ptr, xl=None, xr=None, ci=0):
         """Round meter facing -Y on a surface at y = Y0, and its needle (a momentary_rot_button the logic
         sets), 1 unit deep so the compilers keep it (they drop brush pieces under 1 cubic unit)."""
-        meter_case(x, z, Y0, tex, xl or GX + 0.6, xr or GX + 0.6)
+        meter_case(x, z, Y0, tex, ci=ci)
         place(m[ptr], needle_brushes(x, z, Y0 - 1.6, Y0 - 0.6, GR - 0.45), angles=f'{-SWEEP} 0 0', distance=2 * SWEEP)
+        prop(ci, 'needle', (x, Y0 - 1.1, z), m[ptr])
 
     def gauge(ci, u, v, label, scales, unit, ptr, red=None, xl=None, xr=None, tex=None):
         x, z = door_xy(ci, u, v)
         if tex is None:
             tex = dial_texture(f'scg{nd[0]}', scales, unit, red); nd[0] += 1
-        gauge_at(x, z, -0.5, tex, ptr, xl, xr)
+        gauge_at(x, z, -0.5, tex, ptr, xl, xr, ci)
         plate(ci, u, v + BZ + 1.15, min(9.4, 0.55 * len(label) + 1.6), 1.4, label, px=0.8)
 
     def lens(col, on):
@@ -378,8 +428,8 @@ def build_panels(m, dev):
         us = (u - 1.5, u + 1.5) if pair else (u,)
         for uu in us:
             x, z = door_xy(ci, uu, v)
-            world.append(prism(ngon(x, z, 1.25, 12), -0.9, -0.5, 'y', 'sc_black'))
-            world.append(prism(ngon(x, z, 0.85, 12), -1.45, -0.9, 'y', lens(cols[us.index(uu)], False)))
+            prop(ci, 'lamp_bezel', (x, -0.5, z))
+            world.append(prism(ngon(x, z, 0.85, 12), -1.45, -0.5, 'y', lens(cols[us.index(uu)], False)))
         # one lit lens per entity: two brushes in one entity would cut each other into pieces the compiler drops
         lensp = lambda uu, col, on: prism(ngon(*door_xy(ci, uu, v), 0.9, 12, phase=0), -1.6, 28, 'y', lens(col, on))
         ents = lm['ents']
@@ -403,13 +453,15 @@ def build_panels(m, dev):
         gb.text(D.d, D.img, ((u + half + 0.3) * gb.PPU, v * gb.PPU), r['pos'][1], 0.85 * gb.PPU, (20, 20, 20, 255), anchor='lm')
         plate(ci, u, v - half - 2.4, 7.6, 1.4, r['label'], px=0.8)
         if dial:
-            world.append(prism(ngon(x, z, 1.5), -1.5, -1.0, 'y', 'sc_metal'))
+            prop(ci, 'boss_l', (x, -1.0, z))
             pl = lambda poly: [(x + px * k, z + pz * k) for px, pz in poly]
             brushes = [prism(pl(gb.BAR), -2.6, -1.4, 'y', 'sc_knob'), prism(pl(gb.BAR_TIP), -2.6, -1.4, 'y', 'sc_white')]
         else:
             brushes = [Box(x - 0.45, -1.6, z - 1.7, x + 0.45, -0.6, z + 1.7, tex='sc_knob')]
         brushes.append(hit(ci, u, v, 2.6 * k + 0.2))
         place(r['ent'], brushes + [Box(x - 0.5, -1.6, z - 0.5, x + 0.5, -0.6, z + 0.5, tex='ORIGIN')])
+        if dial:
+            prop(ci, 'barknob', (x, -1.1, z), r['ent'])
 
     def cs_switch(ci, u, v, name):
         """control switch: pistol grip, left position = pos[0], right = pos[1], -45 -> +45 degrees"""
@@ -421,14 +473,16 @@ def build_panels(m, dev):
         for sgn, lab, col in ((-1, r['pos'][0], cols[0]), (1, r['pos'][1], cols[1])):
             gb.text(D.d, D.img, ((u + sgn * 2.45) * gb.PPU, (v - 2.6) * gb.PPU), lab, 0.62 * gb.PPU, col)
         plate(ci, u, v + 5.6, min(11.5, 0.5 * len(r['label']) + 1.6), 1.4, r['label'], px=0.75)
-        world.append(prism(ngon(x, z, 1.35), -1.5, -1.0, 'y', 'sc_metal'))
+        prop(ci, 'boss', (x, -1.0, z))
         place(r['ent'], [prism(gb.turned(gb.PISTOL, x, z, 45), -2.9, -1.3, 'y', 'sc_red' if r['grip'] == 'red' else 'sc_knob'),
                          hit(ci, u, v, 4.2), Box(x - 0.5, -2.6, z - 0.5, x + 0.5, -1.6, z + 0.5, tex='ORIGIN')])
+        prop(ci, 'pistol_red' if red else 'pistol', (x, -2.1, z), r['ent'])
 
     def synchroscope(ci, u, v):
         x, z = door_xy(ci, u, v)
-        meter_case(x, z, -0.5, 'sc_sync')
+        meter_case(x, z, -0.5, 'sc_sync', ci=ci)
         place(m[dev['scope']], needle_brushes(x, z, -2.1, -1.1, GR - 0.5, tail=1.3, w=0.3), distance=360, angles='0 0 0')
+        prop(ci, 'needle_scope', (x, -1.6, z), m[dev['scope']])
         plate(ci, u, v + BZ + 1.15, 9, 1.4, 'SYNCHROSCOPE', px=0.8)
 
     def knob_panel(ci, u, v, name, label):
@@ -441,6 +495,7 @@ def build_panels(m, dev):
         start = -150 + 300 * hydro.KNOB0
         place(dl[name]['ent'], [body, hit(ci, u, v, 2.8, deep), Box(x - 0.5, -2.0, z - 0.5, x + 0.5, -1.0, z + 0.5, tex='ORIGIN')],
               angles=f'{start:.2f} 0 0')
+        prop(ci, 'knob', (x, -1.5, z), dl[name]['ent'])
         plate(ci, u, v - 5.6, 9.5, 1.4, label, px=0.8)
         # scale: 90 degrees at the left stop, 0 at the right
         for k in range(11):
@@ -455,19 +510,20 @@ def build_panels(m, dev):
         """spring-return dial: held, it turns 60 degrees clockwise to its stop; let go, it springs back"""
         x, z = door_xy(ci, u, v); D = doors[ci]
         esc_plate(ci, u, v, 2.8)
-        world.append(prism(ngon(x, z, 1.5), -1.4, -1.0, 'y', 'sc_metal'))
         deep = DEEP.get(ci, 8.0)
         body = round_knob(x, z, 1.9, -2.8, deep)
         place(dl[name]['ent'], [body, hit(ci, u, v, 3.0, deep), Box(x - 0.5, -2.0, z - 0.5, x + 0.5, -1.0, z + 0.5, tex='ORIGIN')])
+        prop(ci, 'knob', (x, -1.5, z), dl[name]['ent'])
         plate(ci, u, v + 4.4, 5.6, 1.4, dl[name]['label'], px=0.8)
 
     def pushbutton(ci, u, v, name, tex):
         """illuminated-style pushbutton: a round cap in a chrome bezel; the func_button is 4 units deep (most
         of it inside the cabinet) so it has room to travel 1.2 units in when pressed"""
         x, z = door_xy(ci, u, v); D = doors[ci]
-        world.append(prism(ngon(x, z, 1.9), -1.1, -0.5, 'y', 'sc_metal'))
+        prop(ci, 'pb_bezel', (x, -0.5, z))
         b = dev['buttons'][name]
         place(b['ent'], [prism(ngon(x, z, 1.35, 12, phase=0), -2.6, 20, 'y', tex), hit(ci, u, v, 2.4, 20)], lip=f'{(20 - HIT_FRONT) - 2 - 1.2:.2f}')
+        prop(ci, 'button_amber' if tex == 'sc_btn_a' else 'button_black', (x, -2.6, z), b['ent'])
         plate(ci, u, v + 3.2, 9.5, 1.4, b['label'], px=0.8)
 
     def frame(D, u0, v0, w, h):
@@ -481,22 +537,23 @@ def build_panels(m, dev):
     # ------------------------------------------- left: unit control
     D = doors[0]
     frame(D, 1.5, 5.5, 53, 32.5)
-    gauge(0, 7, ROW1, 'GEN VOLTS', [(0, 600, 100, 100, 20, None)], 'AC VOLTS', 'p_volts', xr=5)
-    gauge(0, 17, ROW1, 'GEN KW', [(0, 320, 80, 40, 10, None)], 'KW', 'p_kw', xl=5, xr=5)
-    gauge(0, 27, ROW1, 'GEN PF', None, None, 'p_pf', xl=5, xr=7.3, tex=pf_texture('scg_pf'))
-    synchroscope(0, 41, ROW1)
-    world.append(gb.front_box(0, 51.5, ROW1 - 1, 5, 2, -1.0, -0.5, lens_texture('sc_slmp0', ('white', 'white'), (False, False))))
+    # the generator board: turbine speed, volts, amps and kilowatts on top; firing angle, power factor and the
+    # synchroscope (with its lamps and the sync-check lamp) below
+    gauge(0, 7, ROW1, 'TURBINE RPM', [(0, 150, 25, 25, 5, None)], 'RPM', 'p_speed', red=(140, 150))
+    gauge(0, 17, ROW1, 'GEN VOLTS', [(0, 600, 100, 100, 20, None)], 'AC VOLTS', 'p_volts')
+    gauge(0, 27, ROW1, 'GEN AMPS', [(0, 500, 100, 50, 10, None)], 'AC AMPS', 'p_amps', red=(450, 500))
+    gauge(0, 37, ROW1, 'KW', [(0, 320, 80, 40, 10, None)], 'KW', 'p_kw')
+    gauge(0, 7, ROW2, 'EXC FIRING ANGLE', [(0, 90, 15, 15, 5, None)], 'DEG', 'p_fa')
+    gauge(0, 17, ROW2, 'POWER FACTOR', None, None, 'p_pf', tex=pf_texture('scg_pf'))
+    synchroscope(0, 32, ROW2)
+    world.append(gb.front_box(0, 45, ROW2 - 1, 5, 2, -1.0, -0.5, lens_texture('sc_slmp0', ('white', 'white'), (False, False))))
     sl = Image.new('RGB', (160, 64), (0, 0, 0)); d = ImageDraw.Draw(sl)
     for x0 in (0, 96):
         d.ellipse([x0 + 6, 6, x0 + 57, 57], fill=(255, 236, 190))
     TEX['sc_slmp1'] = sl; UNLIT.add('sc_slmp1'); ADDITIVE.add('sc_slmp1')
     E.append(('func_brush', {'targetname': 'SYNCLAMPS', 'rendermode': '5', 'renderamt': '0', 'Solidity': '1'}, [],
-              [gb.front_box(0, 51.5, ROW1 - 1, 5, 2, -1.3, -1.0, 'sc_slmp1')]))
-    lampw(0, 51.5, ROW1 + 5, 'L_perm', ('25 PERM',))
-    gauge(0, 7, ROW2, 'SPEED', [(0, 150, 25, 25, 5, None)], 'RPM', 'p_speed', red=(140, 150), xr=5)
-    gauge(0, 17, ROW2, 'GATE POS', [(0, 100, 20, 10, 2, None)], 'PERCENT', 'p_gate', xl=5, xr=5)
-    gauge(0, 27, ROW2, 'FIELD AMPS', [(0, 60, 10, 10, 2, None)], 'DC AMPS', 'p_exc', xl=5, xr=5)
-    gauge(0, 37, ROW2, 'FIRING ANGLE', [(0, 90, 15, 15, 5, None)], 'DEG', 'p_fa', xl=5)
+              [gb.front_box(0, 45, ROW2 - 1, 5, 2, -1.3, -1.0, 'sc_slmp1')]))
+    lampw(0, 45, ROW2 + 5, 'L_perm', ('25 PERM',))
     frame(D, 1.5, 40, 53, 44)
     cs_switch(0, 8, CTL, 'r_ss')
     cs_switch(0, 21, CTL, 'r_52'); lampw(0, 21, CTL + 9, 'LP_cb', ('CLOSED', 'OPEN'))
@@ -526,8 +583,10 @@ def build_panels(m, dev):
         ann(1.4, vc - 0.2, 54.6, vc + 0.2, -1.9)
     ann(0.5, 4.5, 55.5, 5.1, -2.2); ann(0.5, 29.5, 55.5, 30.5, -2.2)            # outer frame
     ann(0.5, 5.1, 1.4, 29.5, -2.2); ann(54.6, 5.1, 55.5, 29.5, -2.2)
-    gauge(1, 22, 37, 'GEN FREQ', [(54, 66, 2, 1, 0.2, None)], 'Hz', 'p_hz', xr=6)
-    gauge(1, 34, 37, 'BUS FREQ', [(54, 66, 2, 1, 0.2, None)], 'Hz', 'p_sfreq', xl=6)
+    gauge(1, 10, 37, 'GATE POS', [(0, 100, 20, 10, 2, None)], 'PERCENT', 'p_gate')          # by GOV MODE
+    gauge(1, 22, 37, 'GEN FREQ', [(54, 66, 2, 1, 0.2, None)], 'Hz', 'p_hz')
+    gauge(1, 34, 37, 'BUS FREQ', [(54, 66, 2, 1, 0.2, None)], 'Hz', 'p_sfreq')
+    gauge(1, 46, 37, 'FIELD AMPS', [(0, 60, 10, 10, 2, None)], 'DC AMPS', 'p_exc')          # by AVR MODE
     cs_switch(1, 17, CTL, 'r_plc')
     cs_switch(1, 39, CTL, 'r_avr')
     # annunciator pushbuttons: ACKNOWLEDGE (amber), RESET and TEST (black)
@@ -629,10 +688,8 @@ def cabinet_body(ci, D):
     if ci > 0:
         W(x0 - 0.15, -0.5, 6, x0 + 0.15, 0, 108, tex='sc_black')            # joint with the cabinet to the left
     for z in (18, 90):                                                       # hinges on the left edge
-        world.append(prism(ngon(xd0 - 0.15, -0.75, 0.45, 8), z, z + 6, 'z', 'sc_metal'))
-    hx = xd1 - 3.0                                                           # latch: escutcheon and lever
-    W(hx - 1.0, -0.9, 49, hx + 1.0, -0.5, 61, tex='sc_metal')
-    W(hx - 0.5, -2.0, 51.5, hx + 0.5, -0.9, 58.5, tex='sc_knob')
+        prop(ci, 'hinge', (xd0 - 0.15, -0.75, z + 3))
+    prop(ci, 'latch', (xd1 - 3.0, -0.5, 55))                                 # latch: escutcheon and swing handle
     for u0 in (6, 34):                                                       # vents: dark opening, six slats
         x_a, x_b = xd0 + u0, xd0 + u0 + 16
         for k in range(6):
@@ -768,9 +825,19 @@ def main():
     for f in sorted(os.listdir(snd)):
         C.files[f'sound/sablecreek/{f}'] = open(os.path.join(snd, f), 'rb').read()
 
+    # studio models: their materials (solid colours) and files, then the props
+    for name, (rgb, unlit) in srcparts.MATERIALS.items():
+        im = Image.new('RGB', (16, 16), rgb)
+        C.material(f'models/sablecreek/{name}', im, 'UnlitGeneric' if unlit else 'VertexLitGeneric', {'$model': 1} if unlit else {})
+    for model in sorted({p_[1] for p_ in PROPS}):
+        for rel, data in write_model(f'models/sablecreek/{model}.mdl', srcparts.PARTS[model]()).items():
+            C.add(rel, data)
     ents = list(E)
     for e in m.ents:
         ents.append((e.cls, {k: str(v) for k, v in e.kv.items()}, e.outputs, e.brushes))
+    props = prop_entities()
+    ents += props
+    print(f'{sum(1 for p_ in props if p_[0] == "prop_static")} prop_static, {sum(1 for p_ in props if p_[0] == "prop_dynamic")} prop_dynamic')
     # only the room's shell and the cabinet bodies are structural; the rest is func_detail, which the
     # visibility pass ignores (otherwise every small brush multiplies the portals it has to trace)
     def structural(b):
@@ -804,8 +871,9 @@ def main():
     run(os.path.join(gbsp, 'grad'), NAME)
     bsp = os.path.join(OUT, f'{NAME}.bsp')
     shutil.copy(os.path.join(maps, f'{NAME}.bsp'), bsp)
+    print(f'T-junctions: {fix_tjunctions(bsp)} corners added to faces')
     bad, nonconvex = fix_face_triangles(bsp)
-    print(f'face triangles: {bad} of the compiler\'s lists were short; {nonconvex} non-convex faces ear-clipped, the rest fans')
+    print(f'face triangles: compiler lists replaced ({bad} were short); {nonconvex} non-convex faces ear-clipped, the rest fans')
     n = pack_bsp(bsp, C.files)
     print(f'packed {len(C.files)} files ({n / 1e6:.1f} MB); {bsp}: {os.path.getsize(bsp) / 1e6:.1f} MB')
 

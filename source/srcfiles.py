@@ -255,6 +255,94 @@ def _ear_clip(P, n):
     return tris
 
 
+LUMP_VERTNORMALINDICES = 31
+
+
+def fix_tjunctions(path):
+    """Add to each world face the corners of its neighbours that lie part way along its edges (T-junctions),
+    as vbsp does. Otherwise the two triangle edges there don't meet exactly and the game shows a hairline
+    crack of sparkles. The corners already exist; faces get new edges and a rebuilt surfedge list, and the
+    per-corner normal indices are rebuilt to match. Returns the number of corners added."""
+    d = bytearray(open(path, 'rb').read())
+    lump = lambda i: struct.unpack_from('<ii', d, 8 + 16 * i)
+    vo, vl = lump(LUMP_VERTEXES); eo, el = lump(LUMP_EDGES); so, sl = lump(LUMP_SURFEDGES)
+    fo, fl = lump(LUMP_FACES); no_, nl = lump(LUMP_VERTNORMALINDICES); plo = lump(LUMP_PLANES)[0]
+    V = np.array(struct.unpack_from(f'<{vl // 4}f', d, vo), float).reshape(-1, 3)
+    E = [tuple(struct.unpack_from('<HH', d, eo + 4 * i)) for i in range(el // 4)]
+    SE = list(struct.unpack_from(f'<{sl // 4}i', d, so))
+    VN = list(struct.unpack_from(f'<{nl // 2}H', d, no_))
+    m0_first, m0_num = struct.unpack_from('<ii', d, lump(14)[0] + 40)
+    nf = fl // 56
+    faces = []
+    for i in range(nf):
+        o = fo + 56 * i
+        pn = struct.unpack_from('<H', d, o)[0]; fe, ne = struct.unpack_from('<ih', d, o + 4)
+        vs = [E[abs(se)][1 if se < 0 else 0] for se in SE[fe:fe + ne]]
+        faces.append((pn, vs))
+    # corners by plane: a T-junction only matters between faces on the same plane
+    plane_key = lambda pn: tuple(np.round(struct.unpack_from('<4f', d, plo + 20 * pn), 3))
+    by_plane = {}
+    for i, (pn, vs) in enumerate(faces):
+        if m0_first <= i < m0_first + m0_num:
+            by_plane.setdefault(plane_key(pn), set()).update(vs)
+    edge_ix = {}
+    for k, (a, b) in enumerate(E):
+        edge_ix.setdefault((a, b), k)
+    added, new_se, new_vn, firsts, vn_pos = 0, [], [], [], 0
+    for i, (pn, vs) in enumerate(faces):
+        ne0 = len(vs)
+        out = vs
+        if m0_first <= i < m0_first + m0_num:
+            cand = [c for c in by_plane.get(plane_key(pn), ()) if c not in vs]
+            out = []
+            for k in range(ne0):
+                a, b = vs[k], vs[(k + 1) % ne0]
+                out.append(a)
+                pa, ab = V[a], V[b] - V[a]
+                L2 = ab @ ab
+                if L2 < 1e-8:
+                    continue
+                ins = []
+                for c in cand:
+                    t = (V[c] - pa) @ ab / L2
+                    if 1e-3 < t < 1 - 1e-3 and np.linalg.norm(pa + t * ab - V[c]) < 2e-3:
+                        ins.append((t, c))
+                out += [c for _, c in sorted(ins)]
+            if len(out) > 64:                            # keep within what the engine takes per face
+                out = vs
+        added += len(out) - ne0
+        firsts.append(len(new_se))
+        for k in range(len(out)):
+            a, b = out[k], out[(k + 1) % len(out)]
+            if (a, b) in edge_ix:
+                new_se.append(edge_ix[(a, b)])
+            elif (b, a) in edge_ix:
+                new_se.append(-edge_ix[(b, a)])
+            else:
+                edge_ix[(a, b)] = len(E); E.append((a, b)); new_se.append(edge_ix[(a, b)])
+        # normal index per corner: the face's own corners keep theirs; an added corner takes the one before it
+        own = dict(zip(vs, VN[vn_pos:vn_pos + ne0])) if vn_pos + ne0 <= len(VN) else {}
+        last = VN[vn_pos] if vn_pos < len(VN) else 0
+        for c in out:
+            last = own.get(c, last); new_vn.append(last)
+        vn_pos += ne0
+        faces[i] = (pn, out)
+    for i, (pn, out) in enumerate(faces):
+        for li in (LUMP_FACES, LUMP_FACES_HDR):
+            lo_, ll = lump(li)
+            if ll == fl:
+                struct.pack_into('<ih', d, lo_ + 56 * i + 4, firsts[i], len(out))
+    for li, blob in ((LUMP_EDGES, struct.pack(f'<{2 * len(E)}H', *[x for e in E for x in e])),
+                     (LUMP_SURFEDGES, struct.pack(f'<{len(new_se)}i', *new_se)),
+                     (LUMP_VERTNORMALINDICES, struct.pack(f'<{len(new_vn)}H', *new_vn))):
+        while len(d) % 4:
+            d.append(0)
+        struct.pack_into('<ii', d, 8 + 16 * li, len(d), len(blob))
+        d += blob
+    open(path, 'wb').write(d)
+    return added
+
+
 def fix_face_triangles(path):
     """Replace the compiler's per-face triangle lists ("primitives"). The engine reserves (corners - 2) * 3
     indices for every face; gbsp leaves zero-area triangles out where a face repeats a corner, and one short

@@ -164,6 +164,12 @@ def scenario_plc_start():
     check(abs(V(s, 'l') - 7.0) < 0.3, 'depth held near 7.0 m')
     pfa = __import__('math').degrees(__import__('math').atan2(0.02 * V(s, 'x') * __import__('math').cos(__import__('math').radians(V(s, 'dl'))) - 2, kw(s) / hydro.PBASE))
     check(15 < pfa < 22, f"AVR holds 0.95 power factor lagging ({__import__('math').cos(__import__('math').radians(pfa)):.3f}, field {V(s, 'x'):.0f} %)")
+    import math
+    s.run(1.0)
+    p_, q_ = V(s, 'pe'), V(s, 'qe')
+    amps_true = 409 * math.hypot(p_, q_) * 100 / V(s, 'v')
+    amps = s['p_amps'].pos() * 500
+    check(abs(amps - amps_true) < 0.05 * amps_true + 5, f'GEN AMPS reads {amps:.0f} A (|S|/V gives {amps_true:.0f} A at {kw(s):.0f} kW)')
     return s
 
 

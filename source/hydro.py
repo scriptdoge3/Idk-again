@@ -14,7 +14,7 @@ and brake air in psi; bearing temperature bt in deg C; river depth l in m at the
 of full-gate discharge (90 cfs); spill gate opening sg in m; phase th in degrees.
 """
 import math
-from srclogic import (Map, Program, C, aff, clamp, relu, step, below, OR, NOT, sel, pwl, gate, sq, sin_deg, cos_deg, reset)
+from srclogic import (Map, Program, C, aff, clamp, relu, step, below, OR, NOT, sel, pwl, gate, sq, sin_deg, cos_deg, reset, absx)
 
 # --------------------------------------------------------------- the machine
 # Per-unit model (1 pu speed = 100 rpm, 1 pu power = PBASE kW, torque in pu of rated torque).
@@ -383,6 +383,12 @@ def build():
 
     # ------------------------------------------------------------ medium meters and lamps
     needle(M, 'p_volts', V / 125)                           # 0-600 V
+    # stator current: apparent power over volts. |S| by alpha-max-plus-beta-min (within 4 %; the logic has no
+    # square root); 409 A per pu of S at 480 V (1 pu = PBASE kW), 0-500 A
+    aP, aQ = absx(Pm), absx(Qm)
+    smax = aQ + relu(aP - aQ)
+    s_app = 0.96 * smax + 0.398 * (aP + aQ - smax)
+    needle(M, 'p_amps', 409 * s_app * 100 / clamp(V, 50, None) / 500)
     needle(M, 'p_exc', X / 120)                             # 0-60 A
     needle(M, 'p_fa', 1 - EXC * k_cmd)                      # firing angle 0-90 deg
     lamp('LP_exc', exc, ('red', 'green'))
