@@ -127,6 +127,13 @@ flash, no horn). Alarms standing at map load start acknowledged.
 
 The GoldSrc map's room: the three cabinets, the spillway panel, door, extinguisher, clock, desk and chair.
 
+The cabinets are built, not painted: a frame flush with each door and a 0.3 gap round it with a dark
+gasket, black joints between sections, two barrel hinges and a latch per door, stamped vents with real
+slats, a top cap and a plinth. Each meter sits in its own square black bezel; switches and dials sit on
+raised brushed-aluminium escutcheons (the 86U lockout's is black, under a red handle); lamps are round
+lenses in black bezels; the annunciator has a raised frame and a grid between its windows; nameplates
+are raised laminate plates. Door art is 16 texels per unit.
+
 ## How the logic works
 
 `hydro.py` writes the plant as equations; `srclogic.py` compiles them into logic entities. Every state
@@ -154,12 +161,20 @@ its values in order on every tick.
 packs the materials and sounds into `out/sablecreek.bsp`. The room, cabinets and panel art come from
 `../goldsrc/build.py`.
 
-Brush rules for Source compilers, learned the hard way: every brush must be at least 1 cubic unit (the
-BSP drops smaller pieces), no edge may be 0.2 units or shorter (the face is dropped), and thin slabs
-must not be crossed by other brushes' planes. That's why the meters sit in rectangular cases and the
-needles are 1 unit deep.
+Brush rules for Source compilers, learned the hard way:
 
-After compiling, `build.py` drops gbsp's per-face triangle lists ("primitives"), so the game draws every
-face as a fan of its own outline. The game reserves (corners - 2) x 3 indices for each face, and gbsp
-leaves zero-area triangles out of a face with a repeated corner. One short list shifts every index after
-it, and the whole map then draws with the wrong triangles and textures.
+- Every brush piece must be at least 1 cubic unit; the BSP drops smaller pieces.
+- No edge may be 0.2 units or shorter; the face is dropped. So no two parallel edges on a door may be
+  closer than that. Raised plates snap to a 0.25 grid.
+- Thin slabs must not be crossed by other brushes' planes. That's why the meters sit in rectangular cases
+  and the needles are 1 unit deep.
+- In a brush entity, the compiler fills empty cells under 1 cubic unit. A small polygon with axial sides
+  then comes out as its bounding box, so round knobs and lenses are 12-gons with no axial side, one brush
+  each (the knob's pointer is texture art). They run deep into the cabinet, where they're hidden, and the
+  hit areas are squares.
+
+After compiling, `build.py` replaces gbsp's per-face triangle lists ("primitives"). The game reserves
+(corners - 2) x 3 indices for each face, and gbsp leaves zero-area triangles out of a face with a repeated
+corner. One short list shifts every index after it, and the whole map then draws with the wrong
+triangles and textures. Convex faces get no list (the game draws a fan); the few non-convex faces gbsp
+merges get an ear-clipped list of exactly corners - 2 triangles.

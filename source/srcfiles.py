@@ -221,32 +221,88 @@ def pack_bsp(path, files):
     return len(pak)
 
 
-# ------------------------------------------------------------------ BSP face fix-up
+# ------------------------------------------------------------------ BSP face triangles
+LUMP_PLANES, LUMP_VERTEXES, LUMP_EDGES, LUMP_SURFEDGES = 1, 3, 12, 13
 LUMP_FACES, LUMP_PRIMITIVES, LUMP_PRIMVERTS, LUMP_PRIMINDICES, LUMP_FACES_HDR = 7, 37, 38, 39, 58
 
 
-def strip_prims(path):
-    """Drop the compiler's per-face triangle lists ("primitives") so the engine draws every face as a fan
-    of its own polygon. The engine sizes its index buffers as (vertices - 2) * 3 per face; gbsp leaves out
-    zero-area triangles where a face has a repeated vertex, so a single short list shifts every index after
-    it, and the world draws with the wrong triangles and textures. Returns how many lists didn't match."""
+def _ear_clip(P, n):
+    """Triangulate a simple polygon (3-D points P, normal n) into exactly len(P) - 2 triangles, allowing
+    zero-area ones where corners are collinear or repeated. Returns index triples."""
+    ax = int(np.argmax(np.abs(n)))
+    u, v = [i for i in range(3) if i != ax]
+    Q = np.array([(p[u], p[v]) for p in P], float)
+    if np.sum(Q[:, 0] * np.roll(Q[:, 1], -1) - np.roll(Q[:, 0], -1) * Q[:, 1]) < 0:
+        sign = -1.0                                     # walk the polygon anticlockwise in (u, v)
+    else:
+        sign = 1.0
+    cross = lambda a, b, c: sign * ((Q[b, 0] - Q[a, 0]) * (Q[c, 1] - Q[a, 1]) - (Q[b, 1] - Q[a, 1]) * (Q[c, 0] - Q[a, 0]))
+    def inside(p, a, b, c):
+        if any(np.allclose(Q[p], Q[k], atol=1e-4) for k in (a, b, c)):
+            return False
+        return cross(a, b, p) > 1e-6 and cross(b, c, p) > 1e-6 and cross(c, a, p) > 1e-6
+    idx, tris = list(range(len(P))), []
+    while len(idx) > 3:
+        for k in range(len(idx)):
+            a, b, c = idx[k - 1], idx[k], idx[(k + 1) % len(idx)]
+            if cross(a, b, c) >= -1e-6 and not any(inside(p, a, b, c) for p in idx if p not in (a, b, c)):
+                tris.append((a, b, c)); idx.pop(k); break
+        else:                                           # numerically stuck: fan the rest
+            tris += [(idx[0], idx[j], idx[j + 1]) for j in range(1, len(idx) - 1)]
+            idx = idx[:3]; tris.pop()
+    tris.append(tuple(idx))
+    assert len(tris) == len(P) - 2
+    return tris
+
+
+def fix_face_triangles(path):
+    """Replace the compiler's per-face triangle lists ("primitives"). The engine reserves (corners - 2) * 3
+    indices for every face; gbsp leaves zero-area triangles out where a face repeats a corner, and one short
+    list shifts every index after it, so the whole map draws with wrong triangles and textures. Convex faces
+    get no list (the engine draws a fan); a non-convex face (gbsp merges some) gets an ear-clipped list of
+    exactly corners - 2 triangles, since a fan of it would fold over. Returns (lists that were wrong,
+    non-convex faces)."""
     d = bytearray(open(path, 'rb').read())
     assert d[:4] == b'VBSP'
     lump = lambda i: struct.unpack_from('<ii', d, 8 + 16 * i)
     po, pl = lump(LUMP_PRIMITIVES)
-    prims = [struct.unpack_from('<BxHHHH', d, po + 10 * i) for i in range(pl // 10)]
-    bad = 0
+    old = [struct.unpack_from('<BxHHHH', d, po + 10 * i) for i in range(pl // 10)]
+    fo, fl = lump(LUMP_FACES)
+    vo = lump(LUMP_VERTEXES)[0]; eo = lump(LUMP_EDGES)[0]; so = lump(LUMP_SURFEDGES)[0]; plo = lump(LUMP_PLANES)[0]
+    prims, indices, bad, nonconvex, rows = b'', [], 0, 0, []
+    for i in range(fl // 56):
+        o = fo + 56 * i
+        pn = struct.unpack_from('<H', d, o)[0]
+        fe, ne = struct.unpack_from('<ih', d, o + 4)
+        nprim, first = struct.unpack_from('<HH', d, o + 48)
+        if nprim & 0x7FFF and sum(old[first + k][2] for k in range(nprim & 0x7FFF)) != (ne - 2) * 3:
+            bad += 1
+        P = []
+        for k in range(ne):
+            se = struct.unpack_from('<i', d, so + 4 * (fe + k))[0]
+            e = struct.unpack_from('<HH', d, eo + 4 * abs(se))
+            P.append(np.array(struct.unpack_from('<3f', d, vo + 12 * e[1 if se < 0 else 0])))
+        n = np.array(struct.unpack_from('<3f', d, plo + 20 * pn))
+        turn = [np.dot(np.cross(P[k] - P[k - 1], P[(k + 1) % ne] - P[k]), n) for k in range(ne)]
+        if min(turn) >= -1e-3 or max(turn) <= 1e-3:
+            rows.append((i, nprim & 0x8000, 0))         # convex: a fan
+            continue
+        nonconvex += 1
+        tris = _ear_clip(P, n)
+        rows.append((i, (nprim & 0x8000) | 1, len(prims) // 10))
+        prims += struct.pack('<BxHHHH', 0, len(indices), 3 * len(tris), 0, 0)
+        indices += [k for t in tris for k in t]
     for li in (LUMP_FACES, LUMP_FACES_HDR):
-        fo, fl = lump(li)
-        for i in range(fl // 56):
-            o = fo + 56 * i
-            ne = struct.unpack_from('<h', d, o + 8)[0]
-            nprim, first = struct.unpack_from('<HH', d, o + 48)
-            n = nprim & 0x7FFF                      # the top bit is the no-shadows flag: keep it
-            if n and li == LUMP_FACES and sum(prims[first + k][2] for k in range(n)) != (ne - 2) * 3:
-                bad += 1
-            struct.pack_into('<HH', d, o + 48, nprim & 0x8000, 0)
-    for li in (LUMP_PRIMITIVES, LUMP_PRIMVERTS, LUMP_PRIMINDICES):
-        struct.pack_into('<ii', d, 8 + 16 * li, 0, 0)
+        lo_, ll = lump(li)
+        if ll != fl:
+            continue
+        for i, np_, first in rows:
+            struct.pack_into('<HH', d, lo_ + 56 * i + 48, np_, first)
+    for li, blob in ((LUMP_PRIMITIVES, prims), (LUMP_PRIMINDICES, struct.pack(f'<{len(indices)}H', *indices))):
+        while len(d) % 4:
+            d.append(0)
+        struct.pack_into('<ii', d, 8 + 16 * li, len(d) if blob else 0, len(blob))
+        d += blob
+    struct.pack_into('<ii', d, 8 + 16 * LUMP_PRIMVERTS, 0, 0)
     open(path, 'wb').write(d)
-    return bad
+    return bad, nonconvex
