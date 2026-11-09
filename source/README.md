@@ -1,7 +1,7 @@
 # Sable Creek Hydro for Half-Life 2
 
 The GoldSrc control room (see `../goldsrc`), rebuilt for Half-Life 2 with the same unit (250 kW Francis
-turbine, 72-pole alternator, 480 V, 60 Hz, on a run-of-river intake), the same panels, controls and
+turbine in an open flume, 72-pole alternator, 480 V, 60 Hz, run-of-river), the same panels, controls and
 names, and real numbers instead of counters.
 
 ## Playing it
@@ -24,7 +24,7 @@ times entities. The plant therefore runs as four loops, started on different ser
 | Loop | Every | Runs |
 |---|---|---|
 | fast | 0.03 s | gate travel, runner and water column, rotor speed and swing, phase, 52G closing, the speed, gate, kW, power factor, net head, frequency and synchroscope needles |
-| medium | 0.12 s | gate commands (dials, governor, headwater control), excitation and voltage regulator, protection and trips, brakes, the volts, field and firing-angle needles, sound pitch and loudness |
+| medium | 0.12 s | gate commands (dials, governor, forebay level control), excitation and voltage regulator, protection and trips, brakes, the volts, field and firing-angle needles, sound pitch and loudness |
 | slow | 0.24 s | river and spillway, pumps and compressor, bearings, their meters |
 | annunciator | 0.24 s (half a period after slow) | the 20 windows' alarm sequence, horn, ACK / RESET / TEST |
 
@@ -38,7 +38,11 @@ The plant is a per-unit machine model, the kind used in hydro studies:
 
 - **Runner:** a vertical Francis runner in an open flume, 40 ft (12.2 m) of head. Its torque falls with
   speed (stall torque 1.8 pu at full gate, runaway 160 %). The head is the river's: 40 ft at the normal
-  7.0 m depth, rising and falling with it, and the power goes with it.
+  forebay level (23.0 ft), rising and falling with it, and the power goes with it.
+- **Run-of-river:** no storage. The forebay is the river behind the diversion weir; its flow wanders between
+  65 and 85 % of the unit's full-gate discharge (90 cfs). What the unit doesn't take goes through the
+  spillway gate. On line in AUTO the governor is in forebay level control: it opens the wicket gates as the
+  level rises, so the unit passes the river's flow.
 - **Open flume:** the runner sits in an open concrete flume off the headrace, with no penstock and no
   scroll case. The water in the flume and draft tube still has a little momentum (a nonlinear inelastic
   water column as in the IEEE hydro turbine models, starting time 0.4 s; the turbine passes
@@ -87,18 +91,39 @@ The cabinets and the spillway panel are laid out as in the GoldSrc map. These th
 | LUBE OIL PUMP, CW PUMP | STOP / START. |
 | HPU PUMP, AIR COMP | OFF / AUTO (they run on their pressure switches). |
 | CP-2 meters | GATE POS by GOV MODE, GEN FREQ, BUS FREQ, FIELD AMPS by AVR MODE. |
+| SP-1 meters | FOREBAY LEVEL 0-35 ft (23.0 normal, alarms at 24.6 HI and 20.5 LO, bank full 29.5), INFLOW in cfs, spill GATE POS 0-4 ft. In AUTO the spill gate opens above 24.6 ft and closes below 23.8 ft. |
 | ACK / RESET / TEST | Pushbuttons under GOV MODE and AVR MODE. |
 | WICKET GATE LOWER / RAISE | Spring-return. Held: 0.25 %/s for 1 s, 2.5 %/s for 2 s, then 10 %/s. |
 | FIRING ANGLE knob | Position = firing angle, 90 deg (left stop) to 0 deg (right stop, 140 % field). Each new grab reverses direction (Source wheel). Tracks the AVR in AUTO for a bumpless transfer. |
 | SYNCHROSCOPE | Real phase angle; 216 deg/s per 1 % slip, max 1 rev/s. Sync lamps dark at 12 o'clock. |
 | Hit areas | Each control has an invisible player-clip box over its plate, and a clip layer in front of each panel has a hole over each control. E takes the control under the crosshair; between controls it does nothing. |
 
-## Nameplates
+## Nameplates and terms
 
 IEEE C37.2 device numbers for relays and breakers (12, 25, 32, 38, 39, 40, 41, 52G, 59, 86U). Cabinets
 CP-1 (generator control), CP-2 (annunciator), CP-3 (auxiliaries), SP-1 (spillway gate). HPU = governor
-hydraulic power unit, CW = cooling water, HW = headwater, SNL = speed-no-load, OOP = out of phase,
-LOF = loss of field, OV = overvoltage. Field current reads 0-60 A (50 A at rated no-load field).
+hydraulic power unit, CW = cooling water, SNL = speed-no-load, OOP = out of phase, LOF = loss of field,
+OV = overvoltage. Field current reads 0-60 A (50 A at rated no-load field). Units are US practice: ft, cfs,
+psi, mils peak to peak; bearing temperatures in deg C.
+
+The wording follows the Bureau of Reclamation's FIST manuals (2-3 governors, 3-14 excitation, 4-7
+commissioning) and the ESHA small hydro guide:
+
+| Term | Meaning |
+|---|---|
+| Run-of-river | No storage: the unit generates as the river provides and stops below its minimum flow. |
+| Open flume | The runner sits in an open flume instead of a penstock and scroll case; a low-head setting. |
+| Forebay, tailwater | The water levels above and below the unit; net head is their difference less the losses. |
+| Trashracks, headgate, draft tube, tailrace | The water passage, intake to river. |
+| Wicket gates | The adjustable gates round the runner (guide vanes in European texts), moved by servomotors through the shift ring; shear pins protect the linkage. |
+| Speed-no-load (SNL) | The gate opening that holds rated speed off line (15 % here). |
+| Speed adjustment, gate limit, speed droop | A governor's operator settings: the speed (or load) setpoint, the stop on gate travel, and the speed change per gate travel. |
+| Forebay level control | Governor mode that sets the gate to hold the forebay level (GOV MODE AUTO on line). |
+| HPU | Governor hydraulic power unit: sump, pumps and accumulator. |
+| AVR, manual | Voltage regulator modes: automatic (terminal volts) and manual (here an open-loop firing angle). |
+| Field flashing | Building the field from the station battery until a bus-fed static exciter can supply itself. |
+| Lockout (86) | The relay a trip operates; hand reset. |
+| Rough zone | The part-gate range where the draft tube vortex shakes a Francis unit (25-50 % gate here). |
 
 ## Starting the unit
 
@@ -110,7 +135,8 @@ LOF = loss of field, OV = overvoltage. Field current reads 0-60 A (50 A at rated
 4. AVR MODE AUTO, 41 CLOSE (permissive at 90 % speed). Field flashes, 480 V in a few seconds.
 5. 25 SYNC ON. 52G CLOSE with 25 PERM lit: within 10 deg, 0.33 % slip (0.2 Hz), 5 % volts. In MAN, trim
    with short taps; each tap takes 15-20 s to show in the speed.
-6. Load: GOV AUTO opens the gate to pass the river and holds HW at 7.0 m (17 % gate minimum). In MAN,
+6. Load: GOV AUTO (forebay level control) opens the gate to pass the river and holds FOREBAY LEVEL at
+   23.0 ft (17 % gate minimum). In MAN,
    hold RAISE; the kW dips as the gate starts moving fast.
 
 ## Protection
@@ -126,7 +152,7 @@ trips the unit; RESET resets it, and it trips again if the cause remains.
 | 40 LOF | on line, field under 60 %, or pole slip |
 | 59 OV | off line, 115 % volts |
 | 38 BRG TEMP HH | 90 C (no lube oil: seconds; no CW: about a minute) |
-| (86U only) | HPU under 210 psi with the gate open; HW under 4.75 m with the unit turning |
+| (86U only) | HPU under 210 psi with the gate open; forebay under 15.6 ft with the unit turning |
 
 Annunciator: 20 windows, ISA-18.1 manual reset. New alarm: window flashes, horn, relay click. ACK: steady,
 horn off. RESET: clears windows whose condition has cleared (trip targets stay until 86U is reset).

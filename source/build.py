@@ -625,9 +625,9 @@ def build_panels(m, dev):
     title_plates(gb.SP)
     for nm in ('p_hw', 'p_rq', 'p_spill', 'r_sp', 'k_sl', 'k_sr'):
         wall_ents.append(m[nm])
-    gauge(gb.SP, 7, 12, 'HW LEVEL', [(0, 10, 1, 1, 0.25, None)], 'M', 'p_hw', red=(9, 10), xl=5.5, xr=6.5)
+    gauge(gb.SP, 7, 12, 'FOREBAY LEVEL', [(0, 35, 5, 5, 1, None)], 'FT', 'p_hw', red=(29.5, 35), xl=5.5, xr=6.5)
     gauge(gb.SP, 20, 12, 'INFLOW', [(0, 120, 20, 20, 5, None)], 'CFS', 'p_rq', xl=6.5, xr=6.5)
-    gauge(gb.SP, 33, 12, 'GATE POS', [(0, 1.2, 0.2, 0.2, 0.05, lambda v: f'{v:.1f}')], 'M', 'p_spill', xl=6.5, xr=5.5)
+    gauge(gb.SP, 33, 12, 'GATE POS', [(0, 4, 1, 1, 0.25, None)], 'FT', 'p_spill', xl=6.5, xr=5.5)
     rot(gb.SP, 8, 32, 'r_sp', dial=True)
     plate(gb.SP, 27.5, 26.6, 13, 1.4, 'GATE', px=0.8)
     spring_dial(gb.SP, 22, 32, 'k_sl'); spring_dial(gb.SP, 33, 32, 'k_sr')

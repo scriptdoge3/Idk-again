@@ -6,12 +6,16 @@ The controls (nameplates as engraved; the variable names inside are the GoldSrc 
   CP-1  25 SYNC, 52G GEN BKR, 41 FIELD BKR, 86U LOCKOUT switches; WICKET GATE LOWER / RAISE dials
         (spring-return), BRAKES dial, FIRING ANGLE knob
   CP-2  GOV MODE and AVR MODE switches (MAN / AUTO; plc, avr inside); ACK, RESET, TEST
-  CP-3  LUBE OIL PUMP, CW PUMP (OFF / ON), HPU PUMP, AIR COMP (OFF / AUTO)
+  CP-3  LUBE OIL PUMP, CW PUMP (STOP / START), HPU PUMP, AIR COMP (OFF / AUTO)
   SP-1  GATE MODE dial (AUTO / MAN), spill GATE LOWER / RAISE dials
 
+The plant is run-of-river: no storage, the forebay is the river behind the diversion weir, and what the
+unit doesn't take goes over the spillway. The runner sits in an open flume (no penstock, no scroll case).
+
 Units: speed n, gate g, volts v and field x in % (100 % = 100 rpm, 480 V, rated field); hydraulic oil hp
-and brake air in psi; bearing temperature bt in deg C; river depth l in m at the intake; river flow q in %
-of full-gate discharge (90 cfs); spill gate opening sg in m; phase th in degrees.
+and brake air in psi; bearing temperature bt in deg C; forebay level l in m at the intake (shown in ft);
+river flow q in % of full-gate discharge (90 cfs); spill gate opening sg in m (shown in ft); phase th in
+degrees.
 """
 import math
 from srclogic import (Map, Program, C, aff, clamp, relu, step, below, OR, NOT, sel, pwl, gate, sq, sin_deg, cos_deg, reset, absx)
@@ -26,7 +30,8 @@ XT = 0.06              # step-up transformer reactance: the terminal volts rise 
 DSW = 0.27             # damper winding damping on line, pu torque per % slip
 GOV_KP, GOV_KI, GOV_KD = 1.5, 0.3, 1.0   # PLC governor PID: % gate per % speed error, per % s, per %/s
 FL = 0.02              # trash rack, flume and draft tube head loss at full flow, pu
-HEAD0 = 12.19          # rated head, 40 ft (12.19 m) at 7.0 m river depth; the tailwater is 5.19 m below the intake bed
+HEAD0 = 12.19          # rated head, 40 ft (12.19 m) at 7.0 m forebay level; the tailwater is 5.19 m below the flume floor
+FT = 3.2808            # ft per m: the model works in m, the level and gate meters read ft
 
 # Francis runner: torque = A(g) h - B(g) sqrt(h) w (falls linearly with speed), friction and windage
 # Tf = 0.005 + 0.08 w^2. A is the stall torque (1.8 pu at full gate); B is set so that off line, with no
@@ -54,7 +59,7 @@ ANN_WINDOWS = [
     ('bth', '38 BRG TEMP|HI', 'alarm'), ('vib', '39 VIB|HI', 'alarm'),
     ('hyd', 'HPU PRESS|LO', 'alarm'), ('oilp', 'LUBE OIL|PRESS LO', 'alarm'), ('watp', 'CW FLOW|LO', 'alarm'),
     ('air', 'BRAKE AIR|PRESS LO', 'alarm'), ('brk', 'BRAKES|APPLIED', 'status'),
-    ('rhi', 'HW LEVEL|HI', 'alarm'), ('rlo', 'HW LEVEL|LO', 'alarm'), ('spill', 'SPILL GATE|OPEN', 'status'),
+    ('rhi', 'FOREBAY|LEVEL HI', 'alarm'), ('rlo', 'FOREBAY|LEVEL LO', 'alarm'), ('spill', 'SPILL GATE|OPEN', 'status'),
     ('plc', 'GOV|IN MAN', 'status'), ('avr', 'AVR|IN MAN', 'status')]
 
 INIT = dict(n=0, g=0, v=0, x=0, hp=0, air=0, bt=24, l=7, q=75, sg=0.75)
@@ -350,7 +355,8 @@ def build():
     M.set(gi, sel(plc_off, gi_up - relu(gi_up - glim), Gm))       # follows the gate when not governing
     M.set(n_prev, Nm)
     d_plc_off = plc_off * sel(BRK, -10, clamp((g_cmd - Gm) * 4, -10, 10))
-    # PLC on line: holds the river at 7.0 m (opens the gate as the river rises), never below 17 % gate
+    # PLC on line: forebay level control. It holds the forebay at 7.0 m (23.0 ft), opening the gate as the
+    # level rises (so the unit passes the river's flow), never below 17 % gate
     el_m = q_m.r - Gm * shead(lv_m.r) - 100 * sg_m.r
     d_on = clamp(0.5 * el_m + 5 * (lv_m.r - 7.0), -2, 2)
     d_on = d_on + relu(-d_on) * below(Gm, 17, 0.5)
@@ -425,7 +431,8 @@ def build():
     ws = Ns / 100
     spin_s = step(Ns, 1, 0.5)
     # ------------------------------------------------------------ river
-    # no pond: the intake takes its water straight out of the river (7.0 m normal, 9.0 m bank full), and the
+    # run-of-river, no pond: the flume takes its water straight out of the river behind the weir (forebay
+    # 7.0 m normal, 9.0 m bank full), and the
     # head on the runner rises and falls with it (12.2 m at 7.0 m)
     qt = 100 * qf_s.r                               # turbine flow, % of full-gate flow at rated head
     el = q.r - qt - 100 * sg.r                      # river balance, % of full-gate discharge
@@ -471,9 +478,9 @@ def build():
     needle(S, 'p_vib', sel(cb_s.r, pwl(Gs, VIB_PTS), 3) / 20)
     needle(S, 'p_opu', hp.r / 400)
     needle(S, 'p_air', air.r / 150)
-    needle(S, 'p_hw', lv.r / 10)
+    needle(S, 'p_hw', lv.r * FT / 35)                        # forebay level, 0-35 ft
     needle(S, 'p_rq', 0.9 * q.r / 120)
-    needle(S, 'p_spill', sg.r / 1.2)
+    needle(S, 'p_spill', sg.r * FT / 4)                      # spill gate opening, 0-4 ft
 
     # ------------------------------------------------------------ annunciator
     # ISA manual-reset sequence (ISA-18.1 "M"): a new alarm flashes its window and sounds the horn;

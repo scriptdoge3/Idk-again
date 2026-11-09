@@ -86,7 +86,9 @@ def scenario_idle():
     s = new_sim()
     s.run(10)
     check(not s.errors, f'two-input nodes always got their first value first ({len(s.errors)} errors)')
-    check(abs(V(s, 'l') - 7.0) < 0.1, f"river depth holds at 7.0 m ({V(s, 'l'):.2f})")
+    check(abs(V(s, 'l') - 7.0) < 0.1, f"forebay holds at 7.0 m ({V(s, 'l'):.2f})")
+    fb, sp = s['p_hw'].pos() * 35, s['p_spill'].pos() * 4
+    check(abs(fb - 23.0) < 0.4 and abs(sp - V(s, 'sg') * 3.2808) < 0.1, f'FOREBAY LEVEL reads {fb:.1f} ft, spill GATE POS {sp:.2f} ft')
     lit = [w['legend'] for w in dev['windows'] if s[w['ent'].name].on]
     check(set(lit) == {'HPU PRESS|LO', 'LUBE OIL|PRESS LO', 'CW FLOW|LO', 'BRAKE AIR|PRESS LO',
                        'SPILL GATE|OPEN', 'GOV|IN MAN', 'AVR|IN MAN'}, f'windows lit at rest: {lit}')
@@ -163,8 +165,8 @@ def scenario_plc_start():
     flip(s, 'r_52_r', 0.4)
     check(V(s, 'cb') == 1, f'52G closed {t:.1f} s after the switch went on')
     s.run(120)
-    check(V(s, 'g') > 50, f"PLC on line passes the river: gate {V(s, 'g'):.1f} %, river {V(s, 'q'):.1f} %, depth {V(s, 'l'):.2f} m, {kw(s):.0f} kW")
-    check(abs(V(s, 'l') - 7.0) < 0.3, 'depth held near 7.0 m')
+    check(V(s, 'g') > 50, f"forebay level control passes the river: gate {V(s, 'g'):.1f} %, river {V(s, 'q'):.1f} %, forebay {V(s, 'l'):.2f} m, {kw(s):.0f} kW")
+    check(abs(V(s, 'l') - 7.0) < 0.3, 'forebay held near 7.0 m (23 ft)')
     pfa = __import__('math').degrees(__import__('math').atan2(0.02 * V(s, 'x') * __import__('math').cos(__import__('math').radians(V(s, 'dl'))) - 2, kw(s) / hydro.PBASE))
     check(15 < pfa < 22, f"AVR holds 0.95 power factor lagging ({__import__('math').cos(__import__('math').radians(pfa)):.3f}, field {V(s, 'x'):.0f} %)")
     import math
