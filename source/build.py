@@ -225,10 +225,11 @@ def knob_cap_texture():
 PROPS = []                    # (door index, model, position before the wall turn, parent brush entity or None)
 
 
-def prop(ci, model, pos, parent=None):
+def prop(ci, model, pos, parent=None, name=None, skin=None):
     """A studio model on a panel. Fixed parts are prop_static; a moving part is a prop_dynamic parented to
-    the brush entity that moves, which is then not drawn (the player still uses the brush)."""
-    PROPS.append((ci, model, tuple(pos), parent))
+    the brush entity that moves, which is then not drawn (the player still uses the brush). A part the
+    logic changes (a target flag's skin) is a named prop_dynamic."""
+    PROPS.append((ci, model, tuple(pos), parent, name, skin))
     if parent is not None:
         parent.kv['rendermode'] = '10'
 
@@ -256,7 +257,7 @@ def matrix_angles(M):
 def prop_entities():
     """the props as point entities, after the wall panel's parts have been turned onto the wall"""
     out = []
-    for ci, model, pos, parent in PROPS:
+    for ci, model, pos, parent, name, skin in PROPS:
         base = angle_matrix(0, 90, 0) if ci == gb.SP else np.eye(3)       # the wall panel faces +X
         if ci == gb.SP:
             pos = gb.wall_pt(pos)
@@ -264,8 +265,11 @@ def prop_entities():
         ang = ' '.join(f'{a:.3f}' for a in matrix_angles(R))
         kv = {'model': f'models/sablecreek/{model}.mdl', 'origin': ' '.join(f'{c:.3f}' for c in pos), 'angles': ang,
               'solid': '0', 'disableshadows': '1'}
-        if parent is None:
+        if parent is None and name is None:
             out.append(('prop_static', kv, [], []))
+        elif parent is None:
+            kv.update({'targetname': name, 'skin': str(skin or 0), 'DisableShadows': '1'})
+            out.append(('prop_dynamic', kv, [], []))
         else:
             kv.update({'parentname': parent.name, 'DisableShadows': '1', 'targetname': f'{parent.name}_mdl'})
             out.append(('prop_dynamic', kv, [], []))
@@ -467,6 +471,16 @@ def build_panels(m, dev):
         """control switch: pistol grip, left position = pos[0], right = pos[1], -45 -> +45 degrees"""
         r = sw[name]
         x, z = door_xy(ci, u, v); D = doors[ci]
+        if name in ('r_52', 'r_exc'):
+            # breaker control switch: black escutcheon engraved TRIP / CLOSE with a target window (red after a
+            # close, green after a trip, set by the logic) and an L handle: a shaft and a grip hanging from it
+            prop(ci, 'sb_plate', (x, -0.5, z))
+            prop(ci, 'sb_flag', (x, -0.5, z), name=f'{name}_flag', skin=1)
+            plate(ci, u, v + 4.6, min(11.5, 0.5 * len(r['label']) + 1.6), 1.4, r['label'], px=0.75)
+            place(r['ent'], [prism(gb.turned(gb.PISTOL, x, z, 45), -2.9, -1.3, 'y', 'sc_knob'),
+                             hit(ci, u, v, 4.2), Box(x - 0.5, -2.6, z - 0.5, x + 0.5, -1.6, z + 0.5, tex='ORIGIN')])
+            prop(ci, 'sb_handle', (x, -2.1, z), r['ent'])
+            return
         red = r['grip'] == 'red'                       # the lockout: black plate, so the red handle stands out
         esc_plate(ci, u, v, 4.0, BLK if red else ALU)
         cols = ((90, 220, 120, 255), (255, 96, 72, 255)) if red else ((16, 110, 50, 255), (170, 26, 18, 255))
@@ -830,8 +844,11 @@ def main():
     for name, (rgb, unlit) in srcparts.MATERIALS.items():
         im = Image.new('RGB', (16, 16), rgb)
         C.material(f'models/sablecreek/{name}', im, 'UnlitGeneric' if unlit else 'VertexLitGeneric', {'$model': 1} if unlit else {})
+    for name, make in srcparts.TEXTURES.items():
+        C.material(f'models/sablecreek/{name}', make(), 'VertexLitGeneric', compress=True)
     for model in sorted({p_[1] for p_ in PROPS}):
-        for rel, data in write_model(f'models/sablecreek/{model}.mdl', srcparts.PARTS[model]()).items():
+        files = write_model(f'models/sablecreek/{model}.mdl', srcparts.PARTS[model](), skins=srcparts.SKINS.get(model, ()))
+        for rel, data in files.items():
             C.add(rel, data)
     ents = list(E)
     for e in m.ents:

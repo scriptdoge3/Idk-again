@@ -192,6 +192,106 @@ def latch():
     return mb
 
 
+# ------------------------------------------------------------------ breaker control switch (SB style)
+SB_H = 2.9                 # escutcheon half size: a 4.4 in square plate
+
+
+def rounded_square(h, r, n=6):
+    pts = []
+    for cx, cz, a0 in ((h - r, h - r, 0), (-(h - r), h - r, 90), (-(h - r), -(h - r), 180), (h - r, -(h - r), 270)):
+        for k in range(n + 1):
+            a = math.radians(a0 + 90 * k / n)
+            pts.append((cx + r * math.cos(a), cz + r * math.sin(a)))
+    return pts
+
+
+def sb_plate():
+    """Breaker control switch escutcheon: a black plate with a bevelled edge, the engraved face (TRIP / CLOSE,
+    the target window, the ring round the shaft) as a texture, and four screws. Origin: the switch centre on
+    the door front (world y = -0.5); the face is at y = -0.5."""
+    mb = MeshBuilder()
+    T, B = 0.5, 0.1
+    back = rounded_square(SB_H, 0.45); front = rounded_square(SB_H - B, 0.45 - B)
+    n = len(back)
+    for k in range(n):
+        a0, a1 = back[k], back[(k + 1) % n]; b0, b1 = front[k], front[(k + 1) % n]
+        mid = np.array([(a0[0] + a1[0]) / 2, 0, (a0[1] + a1[1]) / 2])
+        nrm = mid / np.linalg.norm(mid) + np.array([0, -0.6, 0])
+        mb.flat('sc_m_black', [(a0[0], 0, a0[1]), (a1[0], 0, a1[1]), (b1[0], -T, b1[1]), (b0[0], -T, b0[1])], normal=nrm)
+    uv = [((x + SB_H) / (2 * SB_H), (SB_H - z) / (2 * SB_H)) for x, z in front]
+    mb.flat('sc_m_sb_face', [(x, -T, z) for x, z in front], uvs=uv, normal=(0, -1, 0))
+    for sx in (-1, 1):
+        for sz in (-1, 1):
+            mb.revolve('sc_m_screw', [(0.3, 0.0), (0.3, 0.06), (0.22, 0.16), (0.0, 0.19)], 14,
+                       center=(sx * (SB_H - 0.55), sz * (SB_H - 0.55)), y0=-T)
+    return mb
+
+
+def sb_face_texture():
+    """the engraved face of the breaker control switch, 256 px across the plate"""
+    from PIL import Image, ImageDraw, ImageFont
+    S = 256; ppu = S / (2 * SB_H); c = S / 2
+    im = Image.new('RGB', (S, S), (20, 20, 21)); d = ImageDraw.Draw(im)
+    inset = (0.42 - 0.1) * ppu
+    d.rounded_rectangle([inset, inset, S - inset, S - inset], radius=int(0.3 * ppu), outline=(196, 198, 200), width=3)
+    # target window: a sector above the shaft, framed
+    r0, r1, a = 1.05 * ppu, 1.75 * ppu, 20
+    d.pieslice([c - r1 - 4, c - r1 - 4, c + r1 + 4, c + r1 + 4], -90 - a - 3, -90 + a + 3, fill=(196, 198, 200))
+    d.pieslice([c - r1, c - r1, c + r1, c + r1], -90 - a, -90 + a, fill=(8, 8, 8))
+    d.ellipse([c - r0 + 4, c - r0 + 4, c + r0 - 4, c + r0 - 4], fill=(20, 20, 21))
+    # ring round the shaft
+    rr = 0.62 * ppu
+    d.ellipse([c - rr, c - rr, c + rr, c + rr], outline=(226, 224, 216), width=4)
+    d.ellipse([c - rr + 5, c - rr + 5, c + rr - 5, c + rr - 5], fill=(36, 36, 38))
+    try:
+        font = ImageFont.truetype('DejaVuSans-Bold.ttf', 21)
+    except OSError:
+        font = ImageFont.load_default()
+    for word, ang, dx in (('TRIP', 30, -1.42), ('CLOSE', -30, 1.48)):
+        t = Image.new('RGBA', (140, 44), (0, 0, 0, 0)); ImageDraw.Draw(t).text((70, 22), word, font=font, fill=(238, 236, 228), anchor='mm')
+        t = t.rotate(ang, resample=Image.Resampling.BICUBIC, expand=True)
+        im.paste(t, (int(c + dx * ppu - t.width / 2), int(c - 1.15 * ppu - t.height / 2)), t)
+    return im
+
+
+def sb_flag():
+    """Target flag seen through the escutcheon's window: red after a close (skin 0), green after a trip
+    (skin 1). Origin: as the plate's; it lies just on the plate face."""
+    mb = MeshBuilder()
+    r0, r1, a, N = 1.08, 1.72, 18, 8
+    pts = [(r1 * math.sin(math.radians(-a + 2 * a * k / N)), r1 * math.cos(math.radians(-a + 2 * a * k / N))) for k in range(N + 1)]
+    pts += [(r0 * math.sin(math.radians(a - 2 * a * k / N)), r0 * math.cos(math.radians(a - 2 * a * k / N))) for k in range(N + 1)]
+    for k in range(N):                                  # the sector as quads (it isn't convex as one polygon)
+        q = [pts[k], pts[k + 1], pts[2 * N + 1 - (k + 1)], pts[2 * N + 1 - k]]
+        mb.flat('sc_m_flag_red', [(x, -0.53, z) for x, z in q], normal=(0, -1, 0))
+    return mb
+
+
+def sb_handle():
+    """Breaker control switch handle: a round shaft out of the plate and a flat grip hanging from its end,
+    turned 45 degrees anticlockwise (the TRIP side). Origin: the switch's pivot (world y = -2.1); the plate
+    face is at y = +1.1, the shaft end at y = -2.18; the grip reaches 4.4 below the pivot."""
+    mb = MeshBuilder()
+    mb.revolve('sc_m_black', [(0.0, 0.0), (0.5, 0.0), (0.5, 3.1), (0.4, 3.28), (0.0, 3.28)], 22, y0=1.1)
+    mb.revolve('sc_m_dark', [(0.0, 3.281), (0.17, 3.281), (0.0, 3.282)], 10, y0=1.1)       # the hole in the end
+    secs = []
+    for z, hw in ((0.32, 0.6), (0.0, 0.66), (-1.6, 0.66), (-3.5, 0.6), (-4.1, 0.5), (-4.4, 0.28)):
+        sec = []
+        for k in range(14):
+            ang = 2 * math.pi * k / 14
+            cx, cy = math.cos(ang), math.sin(ang)
+            sec.append((hw * math.copysign(abs(cx) ** 0.55, cx), -1.62 - 0.48 * math.copysign(abs(cy) ** 0.55, cy), z))
+        secs.append(sec)
+    mb.loft('sc_m_black', secs)
+    return mb.transform(rot_y(45))
+
+
+TEXTURES = {'sc_m_sb_face': sb_face_texture}
+MATERIALS.update({'sc_m_screw': ((150, 152, 155), False), 'sc_m_flag_red': ((205, 30, 24), False),
+                  'sc_m_flag_green': ((24, 160, 60), False)})
+SKINS = {'sb_flag': [{'sc_m_flag_red': 'sc_m_flag_green'}]}
+
+
 PARTS = {
     'meter': meter,
     'needle': lambda: needle(GR - 0.45),
@@ -208,4 +308,7 @@ PARTS = {
     'pb_bezel': pb_bezel,
     'hinge': hinge,
     'latch': latch,
+    'sb_plate': sb_plate,
+    'sb_flag': sb_flag,
+    'sb_handle': sb_handle,
 }

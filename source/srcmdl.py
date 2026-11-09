@@ -161,9 +161,17 @@ def _strings(buf, refs):
         struct.pack_into('<i', buf, field, pos[text] - owner)
 
 
-def write_model(path, mb, surfaceprop='metal', cd='models\\sablecreek\\'):
-    """-> {relative path: bytes} for the .mdl, .vvd and the .vtx files"""
+def write_model(path, mb, surfaceprop='metal', cd='models\\sablecreek\\', skins=()):
+    """-> {relative path: bytes} for the .mdl, .vvd and the .vtx files. skins: extra skin families, each a
+    {material: replacement} dict (skin 0 is the materials as built)."""
     mats = sorted(mb.parts)
+    textures = list(mats)
+    for fam in skins:
+        for v in fam.values():
+            if v not in textures:
+                textures.append(v)
+    families = [list(range(len(mats)))] + [[textures.index(fam.get(m_, m_)) for m_ in mats] for fam in skins]
+    nt, nfam = len(textures), len(families)
     allv, meshes = [], []
     for mi, m in enumerate(mats):
         verts, _, idx = mb.parts[m]
@@ -189,13 +197,13 @@ def write_model(path, mb, surfaceprop='metal', cd='models\\sablecreek\\'):
     anim = block(100); animdata = block(20)
     seq = block(212); seq_blend = block(4); seq_weight = block(4)
     bodypart = block(16); model = block(148); mesh0 = block(116 * nm)
-    tex0 = block(64 * nm); cdt = block(4); skin = block(2 * nm + (2 if nm % 2 else 0))
+    tex0 = block(64 * nt); cdt = block(4); skin = block(2 * nm * nfam + 2)
 
     # header
     struct.pack_into('<4sii64si', buf, 0, b'IDST', 48, checksum, name.encode()[:63], 0)
     struct.pack_into('<18f', buf, 80, 0, 0, 0, *center, *lo, *hi, *lo, *hi)
     struct.pack_into('<11i', buf, 152, STATIC_PROP, 1, bone, 0, 0, 1, hbset, 1, anim, 1, seq)
-    struct.pack_into('<13i', buf, 196, 0, 0, nm, tex0, 1, cdt, nm, 1, skin, 1, bodypart, 0, 0)
+    struct.pack_into('<13i', buf, 196, 0, 0, nt, tex0, 1, cdt, nm, nfam, skin, 1, bodypart, 0, 0)
     struct.pack_into('<15i', buf, 248, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
     refs.append((308, 0, surfaceprop))
     struct.pack_into('<iiiifi', buf, 312, 0, 0, 0, 0, 1.0, 1)              # keyvalues, ik locks, mass, contents
@@ -244,11 +252,12 @@ def write_model(path, mb, surfaceprop='metal', cd='models\\sablecreek\\'):
         o = mesh0 + 116 * k
         P = np.array([v[0] for v in allv[start:start + count]])
         struct.pack_into('<9i3fi8i', buf, o, mi, model - o, count, start, 0, 0, 0, 0, k, *P.mean(0), 0, *([count] * 8))
+    for k, t in enumerate(textures):
         to = tex0 + 64 * k
         struct.pack_into('<6i', buf, to, 0, 0, 0, 0, 0, 0)
-        refs.append((to, to, mats[mi]))
+        refs.append((to, to, t))
     refs.append((cdt, 0, cd))
-    struct.pack_into(f'<{nm}h', buf, skin, *range(nm))
+    struct.pack_into(f'<{nm * nfam}h', buf, skin, *[i for fam in families for i in fam])
     _strings(buf, refs)
     while len(buf) % 4:
         buf.append(0)
@@ -324,7 +333,8 @@ def read_model(files, path):
         for me in range(nmesh):
             mo = mesh_ofs + 116 * me
             assert mo + i32(mdl, mo + 4) == mm
-            mat = cd.replace('\\', '/') + texnames[i32(mdl, mo)]
+            ref = i32(mdl, mo)
+            mat = cd.replace('\\', '/') + texnames[struct.unpack_from('<h', mdl, i32(mdl, 228) + 2 * ref)[0]]
             mvs = i32(mdl, mo + 12)
             vme = vme0 + 9 * me
             sg = vme + i32(vtx, vme + 4)

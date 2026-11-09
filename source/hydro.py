@@ -290,6 +290,7 @@ def build():
     needle(F, 'p_hz', hz)
     needle(F, 'p_sfreq', sel(CB, 0.5, hz))                  # the station bus: the grid's on line, the unit's off
     lamp('LP_cb', cb, ('red', 'green'))
+    cb.on_rise('r_52_flag', 'Skin', 0).on_fall('r_52_flag', 'Skin', 1)      # 52G switch target: red closed, green tripped
     lamp('L_perm', perm, ('green', None))
 
     # ================================================================ MEDIUM (0.12 s)
@@ -392,6 +393,7 @@ def build():
     needle(M, 'p_exc', X / 120)                             # 0-60 A
     needle(M, 'p_fa', 1 - EXC * k_cmd)                      # firing angle 0-90 deg
     lamp('LP_exc', exc, ('red', 'green'))
+    exc.on_rise('r_exc_flag', 'Skin', 0).on_fall('r_exc_flag', 'Skin', 1)   # 41 switch target
     lamp('LP_brake', brake, ('red', 'green'))
 
     # ================================================================ SLOW

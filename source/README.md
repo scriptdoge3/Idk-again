@@ -79,6 +79,7 @@ The cabinets and the spillway panel are laid out as in the GoldSrc map. These th
 |---|---|
 | Meters | 250-degree switchboard meters: square flange, round bezel, pointer with a counterweight; needle speed matched to its loop's update rate. |
 | CP-1 meters | TURBINE RPM, GEN VOLTS, GEN AMPS, KW; EXC FIRING ANGLE, POWER FACTOR, GRID VOLTS, SYNCHROSCOPE (sync lamps and 25 PERM beside it). GRID VOLTS is the 480 V bus the utility feeds; the grid is stiff, so it reads 480 V. GEN AMPS is apparent power over volts, \|S\| by alpha-max-plus-beta-min (within 4 %). |
+| 52G, 41 | Breaker control switches: black escutcheon engraved TRIP / CLOSE with a target window (red after a close, green after a trip, a model skin the logic sets) and an L handle, a shaft with a grip hanging from it. |
 | CP-2 meters | GATE POS by GOV MODE, GEN FREQ, BUS FREQ, FIELD AMPS by AVR MODE. |
 | ACK / RESET / TEST | Pushbuttons under GOV MODE and AVR MODE. |
 | WICKET GATE LOWER / RAISE | Spring-return. Held: 0.25 %/s for 1 s, 2.5 %/s for 2 s, then 10 %/s. |
@@ -136,7 +137,8 @@ slats, a top cap and a plinth. Switches and dials sit on raised brushed-aluminiu
 lockout's is black, under a red handle); the annunciator has a raised frame and a grid between its
 windows; nameplates are raised laminate plates. Door art is 16 texels per unit.
 
-The panel hardware is studio models (`srcparts.py`): meter cases, pointers, pistol-grip handles, knurled
+The panel hardware is studio models (`srcparts.py`): meter cases, pointers, breaker control switches
+(escutcheon, target flag, L handle), pistol-grip handles, knurled
 knobs, the selector bar handle, pushbutton caps and bezels, lamp bezels, switch bosses, hinges and
 latches. Fixed parts are `prop_static`. A moving part is a `prop_dynamic` parented to the brush entity
 that moves; that entity is still there for the player to use, but it isn't drawn (`rendermode 10`). On
