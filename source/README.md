@@ -11,24 +11,24 @@ the console. The textures and sounds are packed inside the BSP, and no launch op
 
 ## Entities and speed
 
-The map has 1,462 entities, and only 140 of them use network slots: the needles, switches, dials,
-pushbuttons, lamps, annunciator windows and sounds (88), and the 52 models that move with them. The 53 fixed
-models are static props, which cost nothing. The plant logic (1,264 entities: `math_counter`,
+The map has 1,651 entities, and only 146 of them use network slots: the needles, switches, dials,
+pushbuttons, lamps, annunciator windows and sounds (93), and the 53 models that move with them. The 62 fixed
+models are static props, which cost nothing. The plant logic (1,438 entities: `math_counter`,
 `math_remap`, `logic_relay`, `logic_timer`, `logic_auto`) is server-only and uses none. Half-Life 2 allows
 2048 of each kind. The room's detail is world geometry (`func_detail`), which costs nothing while playing.
 
 What limits the logic is speed, not entity count. Each output the engine fires finds its target by
 name, and that lookup compares the name against every named entity in the map. So the cost is events
-times entities. The plant therefore runs as four loops, started on different server ticks so no two land on the same one:
+times entities. The plant therefore runs as five loops, started on different server ticks so no two land on the same one:
 
 | Loop | Every | Runs |
 |---|---|---|
 | fast | 0.03 s | gate travel, runner and water column, rotor speed and swing, phase, 52G closing, the speed, gate, kW, power factor, net head, frequency and synchroscope needles |
 | medium | 0.12 s | gate commands (dials, governor, forebay level control), excitation and voltage regulator, protection and trips, brakes, the volts, field and firing-angle needles, sound pitch and loudness |
-| slow | 0.24 s | river and spillway, pumps and compressor, bearings, their meters |
-| annunciator | 0.24 s (half a period after slow) | the 20 windows' alarm sequence, horn, ACK / RESET / TEST |
+| slow | 0.24 s | river and spillway, pumps and compressor, bearings, stator winding, grid volts, their meters |
+| annunciator, two halves | 0.24 s each (half a period after slow, two ticks apart) | twelve windows each: the alarm sequence, horn, ACK / RESET / TEST |
 
-In all they handle about 18,000 events a second, at most about 640 in one server tick. Sine and cosine are short formulas instead of tables, sibling `math_remap`s
+In all they handle about 22,000 events a second, at most about 540 in one server tick. Sine and cosine are short formulas instead of tables, sibling `math_remap`s
 fed by the same value share one name (one event reaches them all), and node names are one to three
 characters that usually differ in the first, which keeps each name comparison as short as possible.
 
@@ -71,6 +71,19 @@ The plant is a per-unit machine model, the kind used in hydro studies:
   and the air compressor on its own (100 / 125 psi); you hear them start and stop. Bearings warm with speed and
   load over about a minute (52-60 C with cooling water); without it they head for 120 C, and without lube
   oil they wipe in seconds.
+- **Wicket gate timing:** the servomotors stroke the gates fully in 10 s opening and 5 s closing. A trip
+  closes them at that rate (the shutdown solenoid), not instantly, so a trip at load lets the unit overspeed
+  to about 111 % before the water is off.
+- **Shutdowns:** an electrical trip (or the 86U handle) is an immediate shutdown: 52G and 41 open at once.
+  A mechanical trip is a quick shutdown: 52G stays closed while the gates close, so the grid holds the
+  speed, and 52G and 41 open as the gate passes speed-no-load; no overspeed.
+- **Closing 52G unsupervised:** with 25 SYNC off nothing checks the close. Within 45 deg the breaker holds
+  and the rotor is wrenched into step (the kW swings by hundreds); further out, or with no field, the
+  inrush trips 50.
+- **Grid:** stiff at 60 Hz, but its volts wander between 476 and 486 V. Off line the AVR matches them for
+  synchronizing; on line in MAN the vars and power factor drift as they move.
+- **Stator winding:** heats with the square of the current (60 C rise at rated 316 A, four minutes' time
+  constant): 93 C at rated load, alarm at 105 C, trip at 120 C.
 - **Sound:** the turbine's pitch follows its speed and its loudness the water through it; the water noise
   follows the flow; the generator hums louder with volts and load. They update 8 times a second.
 - **Light:** the ceiling troffers light the room (texture lights), with finer lightmaps on the panels.
@@ -82,7 +95,7 @@ The cabinets and the spillway panel are laid out as in the GoldSrc map. These th
 | Control | Now |
 |---|---|
 | Meters | 250-degree switchboard meters: square flange, round bezel, pointer with a counterweight; needle speed matched to its loop's update rate. |
-| CP-1 meters | TURBINE RPM, GEN VOLTS, GEN AMPS, KW; EXC FIRING ANGLE, POWER FACTOR, GRID VOLTS, SYNCHROSCOPE (sync lamps and 25 PERM beside it). GRID VOLTS is the 480 V bus the utility feeds; the grid is stiff, so it reads 480 V. GEN AMPS is apparent power over volts, \|S\| by alpha-max-plus-beta-min (within 4 %). |
+| CP-1 meters | TURBINE RPM, GEN VOLTS, GEN AMPS, KW; EXC FIRING ANGLE, POWER FACTOR, GRID VOLTS, SYNCHROSCOPE (sync lamps and 25 PERM beside it). GRID VOLTS is the 480 V bus the utility feeds; it wanders between 476 and 486 V. BUS FREQ is the grid's 60 Hz. GEN AMPS is apparent power over volts, \|S\| by alpha-max-plus-beta-min (within 4 %). |
 | Control switches | All breaker-type (SB style), spring return: the L handle hangs at normal; E on the left half of the plate turns it left, on the right half right, and it springs back. The state latches in the logic and shows in the target window (a model skin the logic sets): red closed / running / ON / AUTO / locked out, green otherwise. A protective trip changes the targets, not the handles. |
 | 52G, 41 | TRIP / CLOSE. A close is refused without the sync check (52G) or below 90 % speed (41). |
 | 25 SYNC | OFF / ON. |
@@ -91,6 +104,7 @@ The cabinets and the spillway panel are laid out as in the GoldSrc map. These th
 | LUBE OIL PUMP, CW PUMP | STOP / START. |
 | HPU PUMP, AIR COMP | OFF / AUTO (they run on their pressure switches). |
 | CP-2 meters | GATE POS by GOV MODE, GEN FREQ, BUS FREQ, FIELD AMPS by AVR MODE. |
+| CP-3 meters | LUBE OIL PRESS, CW FLOW, THRUST BRG TEMP, SHAFT VIB; HPU PRESS, BRAKE AIR PRESS, NET HEAD, STATOR TEMP. |
 | SP-1 meters | FOREBAY LEVEL 0-35 ft (23.0 normal, alarms at 24.6 HI and 20.5 LO, bank full 29.5), INFLOW in cfs, spill GATE POS 0-4 ft. In AUTO the spill gate opens above 24.6 ft and closes below 23.8 ft. |
 | ACK / RESET / TEST | Pushbuttons under GOV MODE and AVR MODE. |
 | WICKET GATE LOWER / RAISE | Spring-return. Held: 0.25 %/s for 1 s, 2.5 %/s for 2 s, then 10 %/s. |
@@ -141,27 +155,40 @@ commissioning) and the ESHA small hydro guide:
 
 ## Protection
 
-A trip operates 86U: wicket gate shut, 52G and 41 open, GOV and AVR to MAN, 86U target red. 86U to TRIP
-trips the unit; RESET resets it, and it trips again if the cause remains.
+Every trip operates the 86U lockout (target red), closes the wicket gates at the servomotor rate and drops
+GOV and AVR to MAN. RESET on 86U resets it; it trips again if the cause remains.
 
-| Trip | Cause |
-|---|---|
-| 12 OVERSPEED | 140 % speed |
-| 52G OOP CLOSE | 52G closed with 25 SYNC off and out of phase (with 25 on, the close is refused) |
-| 32 REV PWR | on line, gate under SNL for 8 s |
-| 40 LOF | on line, field under 60 %, or pole slip |
-| 59 OV | off line, 115 % volts |
-| 38 BRG TEMP HH | 90 C (no lube oil: seconds; no CW: about a minute) |
-| (86U only) | HPU under 210 psi with the gate open; forebay under 15.6 ft with the unit turning |
+| Trip | Cause | Shutdown |
+|---|---|---|
+| 86U handle to TRIP | by hand | immediate |
+| 50 GEN INST OVERCURRENT | 52G closed with 25 SYNC off, more than 45 deg out or with no field | immediate |
+| 40 LOSS OF FIELD | on line, field under 60 %, or pole slip | immediate |
+| 32 REVERSE POWER | on line, gate under SNL for 8 s | immediate |
+| 59 GEN OVERVOLTAGE | off line, 115 % volts | immediate |
+| 12 OVERSPEED | 140 % speed | immediate |
+| 38 THR BRG TEMP HI-HI | 90 C (no lube oil: seconds; no CW: about a minute) | quick |
+| 49 STATOR TEMP HI-HI | 120 C | quick |
+| 63Q HPU PRESS LO-LO | under 210 psi with the gate open | quick |
+| 71 FOREBAY LEVEL LO-LO | under 15.6 ft with the unit turning | quick |
 
-Annunciator: 20 windows, ISA-18.1 manual reset. New alarm: window flashes, horn, relay click. ACK: steady,
-horn off. RESET: clears windows whose condition has cleared (trip targets stay until 86U is reset).
-TEST: all windows on. BRAKES APPLIED, SPILL GATE OPEN, GOV IN MAN and AVR IN MAN are status windows (no
-flash, no horn). Alarms standing at map load start acknowledged.
+Immediate: 52G and 41 open at once. Quick: they open as the gate passes speed-no-load.
+
+Annunciator: 24 backlit windows in four rows of six (electrical trips, mechanical trips, alarms, levels and
+status), red for trips, amber for alarms, white for status, legends with their IEEE C37.2 device numbers
+(63Q oil pressure, 63A air pressure, 71 level, 80 flow). ISA-18.1 manual reset: a new alarm flashes its
+window and sounds the horn; ACK makes it steady and silences the horn; RESET clears windows whose condition
+has cleared (trip targets stay until 86U is reset); TEST lights every window. SPILL GATE OPEN, BRAKES
+APPLIED, GOV IN MANUAL and AVR IN MANUAL are status windows (no flash, no horn). Alarms standing at map load
+start acknowledged.
 
 ## The room
 
 The GoldSrc map's room: the three cabinets, the spillway panel, door, extinguisher, clock, desk and chair.
+Its surfaces are drawn at 24-32 texels a unit: painted concrete block in running bond with tooled joints, a
+darker dado five courses high under a stripe, 12 in vinyl tile, and 2 x 4 ft acoustic tile in a white grid.
+The door is a 36 x 84 in hollow metal door with a wire-glass lite and a kick plate in a steel frame. The
+extinguisher, clock, desk, chair, door lever and hinges are studio models (`srcroom.py`), with player-clip
+boxes round them. Floor, walls and ceiling have their own surface properties (footsteps).
 
 The cabinets are built, not painted: a frame flush with each door and a 0.3 gap round it with a dark
 gasket, black joints between sections, two barrel hinges and a latch per door, stamped vents with real

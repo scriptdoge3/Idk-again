@@ -24,6 +24,7 @@ import hlfiles as hlf                                                           
 from srcfiles import Content, VmfWriter, pack_bsp, pow2, fix_face_triangles, fix_tjunctions                              # noqa: E402
 import hydro                                                                         # noqa: E402
 import srcparts                                                                      # noqa: E402
+import srcroom                                                                       # noqa: E402
 from srcmdl import write_model                                                       # noqa: E402
 
 OUT = os.path.join(HERE, 'out')
@@ -39,6 +40,11 @@ CREAM, BLUE = (236, 230, 210, 255), (150, 205, 225, 255)
 LIGHT_TEX = os.environ.get('SC_TEXLIGHT', '400')     # troffer brightness (texture light)
 LIGHT_FILL = os.environ.get('SC_FILL', '12')
 UNLIT = set()                 # textures drawn full bright (lit lenses, windows, needles, troffers)
+HIRES = {}                    # texture -> the image its material is made from, finer than its mapping size
+SURF = {'sc_floor': 'tile', 'sc_wall': 'concrete', 'sc_walld': 'concrete', 'sc_stripe': 'concrete',
+        'sc_ceil': 'ceiling_tile', 'sc_rubber': 'rubber'}       # surface properties (footsteps); the rest are metal
+ROOM_PROPS = []               # (model, world position, yaw): the room's furniture, prop_static
+srcparts.PARTS.update(srcroom.PARTS); srcparts.MATERIALS.update(srcroom.MATERIALS); srcparts.TEXTURES.update(srcroom.TEXTURES)
 ADDITIVE = set()
 
 
@@ -143,15 +149,35 @@ def lens_texture(name, colors, lit):
     return name
 
 
+# annunciator window lenses, kind: (lit, unlit). Backlit acrylic: the engraved legend is black either way.
+ANN_LENS = {'trip': ((255, 70, 48), (176, 112, 104)), 'alarm': ((255, 180, 44), (186, 164, 112)),
+            'status': ((255, 250, 232), (182, 184, 176))}
+ANN_W, ANN_H = 8.4, 5.8       # window size, units
+
+
 def window_texture(name, legend, kind, lit):
-    on_c, off_c, off_fg = gb.ANN_COLOURS[kind]
-    im = Image.new('RGBA', (256, 128), (0, 0, 0, 255)); d = ImageDraw.Draw(im)
-    d.rectangle([6, 6, 249, 121], fill=(on_c if lit else off_c) + (255,))
-    fg = (24, 14, 10, 255) if lit else off_fg + (255,)
-    a, b = legend.split('|')
-    sq = lambda ln: min(0.86, 0.86 * 12 / len(ln))       # 13-letter lines a little narrower, clear of the frame
-    gb.text(d, im, (128, 42), a, 32, fg, squeeze=sq(a)); gb.text(d, im, (128, 86), b, 32, fg, squeeze=sq(b))
-    TEX[name] = im.convert('RGB')
+    """one annunciator window: a tinted acrylic lens with its legend engraved and filled black (up to three
+    lines), shaded darker towards the edges of its cell; lit, the lamps behind it make a brighter middle"""
+    lit_c, off_c = ANN_LENS[kind]
+    w, h = 290, 200                                     # drawn at the window's shape, stored square
+    base = np.array(lit_c if lit else off_c, float)
+    yy, xx = np.mgrid[0:h, 0:w]
+    ex = np.minimum(xx, w - 1 - xx) / 26.0; ey = np.minimum(yy, h - 1 - yy) / 26.0
+    edge = np.clip(np.minimum(ex, ey), 0, 1)            # 0 at the bezel, 1 inside
+    if lit:
+        hot = np.exp(-(((xx - w / 2) / (0.42 * w)) ** 2 + ((yy - h / 2) / (0.42 * h)) ** 2))
+        shade = 0.80 + 0.10 * edge + 0.16 * hot
+        img = base[None, None, :] * shade[..., None] + 26 * hot[..., None]
+    else:
+        shade = 0.62 + 0.38 * edge - 0.10 * (yy / h)   # the room's light falls off down the lens
+        img = base[None, None, :] * shade[..., None]
+    im = Image.fromarray(np.clip(img, 0, 255).astype(np.uint8), 'RGB').convert('RGBA'); d = ImageDraw.Draw(im)
+    lines = legend.split('|')
+    px, pitch = 38, 47
+    y0 = h / 2 - pitch * (len(lines) - 1) / 2
+    for k, ln in enumerate(lines):
+        gb.text(d, im, (w / 2, y0 + k * pitch), ln, px, (16, 14, 12, 255), squeeze=min(0.86, 262 / (0.64 * px * len(ln))))
+    TEX[name] = im.convert('RGB').resize((256, 256), Image.LANCZOS)
     if lit:
         UNLIT.add(name)
     return name
@@ -257,6 +283,9 @@ def matrix_angles(M):
 def prop_entities():
     """the props as point entities, after the wall panel's parts have been turned onto the wall"""
     out = []
+    for model, pos, yaw in ROOM_PROPS:
+        out.append(('prop_static', {'model': f'models/sablecreek/{model}.mdl', 'origin': ' '.join(f'{c:.3f}' for c in pos),
+                                    'angles': f'0 {yaw} 0', 'solid': '0', 'disableshadows': '1'}, [], []))
     for ci, model, pos, parent, name, skin in PROPS:
         base = angle_matrix(0, 90, 0) if ci == gb.SP else np.eye(3)       # the wall panel faces +X
         if ci == gb.SP:
@@ -574,22 +603,24 @@ def build_panels(m, dev):
 
     # ------------------------------------------- middle: the annunciator, the governor and the voltage regulator
     D = doors[1]
-    W(door_xy(1, 0.5, 0)[0], -0.9, gb.DOOR_TOP - 30.5, door_xy(1, 55.5, 0)[0], -0.5, gb.DOOR_TOP - 4.5, tex='sc_black')
+    # The annunciator: a lightbox of 24 windows, 4 rows of 6, behind a black bezel grid in a raised frame.
+    # Each window is a dark lens in the world and a lit one (a func_brush the logic shows) just in front.
+    AU, AV, PU, PV = 6.0, 8.3, 8.8, 6.2                # first window's centre and the pitch
+    W(door_xy(1, 1.0, 0)[0], -0.9, gb.DOOR_TOP - 30.6, door_xy(1, 55.0, 0)[0], -0.5, gb.DOOR_TOP - 4.6, tex='sc_black')
     for i, w in enumerate(dev['windows']):
-        c, r = i % 5, i // 5
-        u, v = 6.55 + c * 10.725, 8 + r * 6.2
-        world.append(gb.front_box(1, u, v, 10.3, 5.8, -1.4, -0.9, window_texture(f'scw{i:02d}d', w['legend'], w['kind'], False)))
-        place(w['ent'], [gb.front_box(1, u, v, 10.3, 5.8, -1.7, -1.4, window_texture(f'scw{i:02d}l', w['legend'], w['kind'], True))])
-    ann = lambda u0, v0, u1, v1, y0: world.append(Box(door_xy(1, u0, 0)[0], y0, door_xy(1, 0, v1)[1], door_xy(1, u1, 0)[0], -0.9,
-                                                      door_xy(1, 0, v0)[1], tex='sc_bezel'))
-    for c in range(4):                                 # cell dividers
-        uc = 6.55 + (c + 0.5) * 10.725
-        ann(uc - 0.2125, 5.1, uc + 0.2125, 29.5, -1.9)
-    for r_ in range(3):
-        vc = 8 + (r_ + 0.5) * 6.2
-        ann(1.4, vc - 0.2, 54.6, vc + 0.2, -1.9)
-    ann(0.5, 4.5, 55.5, 5.1, -2.2); ann(0.5, 29.5, 55.5, 30.5, -2.2)            # outer frame
-    ann(0.5, 5.1, 1.4, 29.5, -2.2); ann(54.6, 5.1, 55.5, 29.5, -2.2)
+        c, r = i % 6, i // 6
+        u, v = AU + c * PU, AV + r * PV
+        world.append(gb.front_box(1, u, v, ANN_W, ANN_H, -1.4, -0.9, window_texture(f'scw{i:02d}d', w['legend'], w['kind'], False)))
+        place(w['ent'], [gb.front_box(1, u, v, ANN_W, ANN_H, -1.7, -1.4, window_texture(f'scw{i:02d}l', w['legend'], w['kind'], True))])
+    ann = lambda u0, v0, u1, v1, y0, tex='sc_black': world.append(Box(door_xy(1, u0, 0)[0], y0, door_xy(1, 0, v1)[1], door_xy(1, u1, 0)[0], -0.9,
+                                                                      door_xy(1, 0, v0)[1], tex=tex))
+    ul, ur, vt, vb = AU - PU / 2, AU + 5.5 * PU, AV - PV / 2, AV + 3.5 * PV      # the grid's outer edges
+    for c in range(1, 6):                              # bezel bars between the windows
+        ann(ul + c * PU - 0.2, vt, ul + c * PU + 0.2, vb, -1.9)
+    for r_ in range(1, 4):
+        ann(ul, vt + r_ * PV - 0.2, ur, vt + r_ * PV + 0.2, -1.9)
+    ann(ul - 0.6, vt - 0.6, ur + 0.6, vt + 0.2, -2.2, 'sc_bezel'); ann(ul - 0.6, vb - 0.2, ur + 0.6, vb + 0.6, -2.2, 'sc_bezel')   # frame
+    ann(ul - 0.6, vt + 0.2, ul + 0.2, vb - 0.2, -2.2, 'sc_bezel'); ann(ur - 0.2, vt + 0.2, ur + 0.6, vb - 0.2, -2.2, 'sc_bezel')
     gauge(1, 10, 37, 'GATE POS', [(0, 100, 20, 10, 2, None)], 'PERCENT', 'p_gate')          # by GOV MODE
     gauge(1, 22, 37, 'GEN FREQ', [(54, 66, 2, 1, 0.2, None)], 'Hz', 'p_hz')
     gauge(1, 34, 37, 'BUS FREQ', [(54, 66, 2, 1, 0.2, None)], 'Hz', 'p_sfreq')
@@ -610,7 +641,8 @@ def build_panels(m, dev):
     gauge(2, 37, ROW1, 'SHAFT VIB', [(0, 20, 5, 5, 1, None)], 'MILS P-P', 'p_vib', red=(12, 20), xl=5)
     gauge(2, 7, ROW2, 'HPU PRESS', [(0, 400, 100, 50, 10, None)], 'PSI', 'p_opu', red=(0, 220), xr=5)
     gauge(2, 17, ROW2, 'BRAKE AIR PRESS', [(0, 150, 25, 25, 5, None)], 'PSI', 'p_air', red=(0, 50), xl=5, xr=5)
-    gauge(2, 27, ROW2, 'NET HEAD', [(0, 60, 10, 10, 2, None)], 'FT', 'p_head', xl=5)
+    gauge(2, 27, ROW2, 'NET HEAD', [(0, 60, 10, 10, 2, None)], 'FT', 'p_head', xl=5, xr=5)
+    gauge(2, 37, ROW2, 'STATOR TEMP', [(0, 150, 25, 25, 5, None)], 'DEG C', 'p_st', red=(120, 150), xl=5)
     frame(D, 1.5, 40, 53, 22)
     for u, nm in ((8, 'r_lp'), (21, 'r_wp'), (34, 'r_hp'), (47, 'r_ac')):
         cs_switch(2, u, CTL, nm)
@@ -710,6 +742,135 @@ def cabinet_body(ci, D):
         D.d.rectangle([x_0, y_0, x_1, y_1], fill=(30, 32, 30, 255))
 
 
+# =================================================================== room finishes
+def _field(rng, shape, cells, order=Image.BICUBIC):
+    """smooth random field in -1..1: noise at `cells` resolution, enlarged to `shape` (h, w)"""
+    a = (rng.random((cells[0], cells[1])) * 255).astype(np.uint8)
+    im = Image.fromarray(a, 'L').resize((shape[1], shape[0]), order)
+    return np.asarray(im, float) / 127.5 - 1
+
+
+def block_texture(rgb, seed):
+    """painted concrete block, running bond: two 16 in blocks by four 8 in courses, 1024 px. The joints are
+    tooled grooves (shaded above, lit below, the paint a little darker in them); the faces carry the block's
+    pores under the paint and a faint mottle."""
+    S = 1024; BW, BH, J = 512, 256, 6.5                # block, course and half the joint, px
+    rng = np.random.default_rng(seed)
+    yy, xx = np.mgrid[0:S, 0:S].astype(float)
+    row = (yy // BH).astype(int)
+    dy = (yy + BH / 2) % BH - BH / 2                    # distance below the nearest bed joint
+    xo = xx + (row % 2) * (BW / 2)
+    dx = (xo + BW / 2) % BW - BW / 2                    # distance right of the nearest head joint
+    gh = np.clip(1 - np.abs(dy) / J, 0, 1); gv = np.clip(1 - np.abs(dx) / J, 0, 1)
+    gh, gv = gh * gh * (3 - 2 * gh), gv * gv * (3 - 2 * gv)
+    groove = np.maximum(gh, gv)
+    lip = np.clip(1 - np.abs(np.abs(dy) - J) / 3.0, 0, 1) * np.sign(dy)        # light on the lower lip, shade on the upper
+    shade = 1 - 0.13 * groove + 0.07 * lip * (1 - gv)
+    block = (row * 7 + (xo // BW).astype(int) * 13) % 11                         # each block a hair lighter or darker
+    shade *= 1 + 0.012 * (block / 5.0 - 1)
+    shade *= 1 + 0.007 * _field(rng, (S, S), (9, 9)) + 0.008 * _field(rng, (S, S), (64, 64))
+    pores = (rng.random((S, S)) < 0.012).astype(float)
+    pores = np.asarray(Image.fromarray((pores * 255).astype(np.uint8), 'L').resize((S // 2, S // 2), Image.BILINEAR)
+                       .resize((S, S), Image.BILINEAR), float) / 255
+    shade *= 1 - 0.55 * pores * (1 - groove)
+    shade += rng.normal(0, 0.008, (S, S))
+    return Image.fromarray(np.clip(np.array(rgb, float)[None, None, :] * shade[..., None], 0, 255).astype(np.uint8), 'RGB')
+
+
+def floor_texture():
+    """vinyl composition tile, 12 in, two quiet tones laid checkerwise with the grain turned: 2 x 2 tiles, 1024 px"""
+    S, T = 1024, 512
+    rng = np.random.default_rng(21)
+    img = np.zeros((S, S, 3))
+    for i in range(2):
+        for j in range(2):
+            base = np.array((174, 172, 162) if (i + j) % 2 else (152, 152, 146), float)
+            streak = _field(rng, (T, T), (160, 10))                    # long streaks along x
+            fleck = _field(rng, (T, T), (128, 128), Image.BILINEAR)
+            if (i + j) % 2:
+                streak = streak.T
+            tone = 1 + 0.035 * streak + 0.025 * np.clip(fleck * 2.5, -1, 1) + rng.normal(0, 0.012, (T, T))
+            img[i * T:(i + 1) * T, j * T:(j + 1) * T] = base[None, None, :] * tone[..., None]
+    wear = 1 + 0.012 * _field(rng, (S, S), (7, 7))
+    img *= wear[..., None]
+    for p in (0, T):                                                    # joints: a dark hairline and a faint light edge
+        for k, f in ((0, 0.62), (1, 0.78), (2, 1.05), (S - 1, 0.78)):
+            q = (p + k) % S
+            img[q, :, :] *= f; img[:, q, :] *= f
+    return Image.fromarray(np.clip(img, 0, 255).astype(np.uint8), 'RGB')
+
+
+def ceiling_texture():
+    """2 x 4 ft lay-in acoustic tile in a white grid: fissured mineral fibre, 512 x 1024 px"""
+    Wd, Hd = 512, 1024
+    rng = np.random.default_rng(31)
+    im = Image.new('RGB', (Wd, Hd), (232, 230, 222)); d = ImageDraw.Draw(im)
+    for _ in range(2200):                                               # pinholes
+        x, y = rng.integers(14, Wd - 14), rng.integers(14, Hd - 14)
+        g = int(rng.integers(184, 208)); d.point((x, y), fill=(g, g - 1, g - 6)); d.point((x + 1, y), fill=(g, g - 1, g - 6))
+    for _ in range(150):                                                # short fissures
+        x, y, a, ln = rng.integers(16, Wd - 16), rng.integers(16, Hd - 16), rng.random() * math.pi, rng.integers(4, 12)
+        g = int(rng.integers(176, 200))
+        d.line([(x, y), (x + ln * math.cos(a), y + ln * math.sin(a))], fill=(g, g - 1, g - 6), width=int(rng.choice((1, 1, 2))))
+    a = np.asarray(im, float) + rng.normal(0, 2.0, (Hd, Wd, 1))
+    im = Image.fromarray(np.clip(a, 0, 255).astype(np.uint8), 'RGB'); d = ImageDraw.Draw(im)
+    d.rectangle([0, 0, Wd - 1, Hd - 1], outline=(176, 174, 166), width=11)     # the tile's shadowed edge in the grid
+    d.rectangle([0, 0, Wd - 1, Hd - 1], outline=(244, 243, 238), width=8)      # T-bar, half on each tile
+    return im
+
+
+def door_texture():
+    """hollow metal door, 36 x 84 in, painted: shaded edges, a narrow wire-glass lite on the latch side and a
+    stainless kick plate; 96 x 224 mapping size, drawn 8 times finer"""
+    K = 8; Wd, Hd = 96 * K, 224 * K
+    rng = np.random.default_rng(41)
+    yy, xx = np.mgrid[0:Hd, 0:Wd].astype(float)
+    tone = 1 + 0.018 * _field(rng, (Hd, Wd), (6, 60)) + rng.normal(0, 0.006, (Hd, Wd)) - 0.05 * (yy / Hd)
+    edge = np.minimum(np.minimum(xx, Wd - 1 - xx), np.minimum(yy, Hd - 1 - yy))
+    tone *= 0.82 + 0.18 * np.clip(edge / 10, 0, 1)
+    im = Image.fromarray(np.clip(np.array((112, 130, 142), float)[None, None, :] * tone[..., None], 0, 255).astype(np.uint8), 'RGB')
+    d = ImageDraw.Draw(im)
+    U = 2 * K                                                            # px per unit
+    # lite: 5 x 22 in clear, in a frame, wire glass
+    x0, y0, x1, y1 = Wd - 16.5 * U, 18 * U, Wd - 7.5 * U, 50 * U
+    d.rectangle([x0 - 1.2 * U, y0 - 1.2 * U, x1 + 1.2 * U, y1 + 1.2 * U], fill=(60, 72, 80), outline=(40, 48, 54), width=3)
+    for y in range(int(y0), int(y1)):
+        g = 22 + 26 * (y - y0) / (y1 - y0)
+        d.line([(x0, y), (x1, y)], fill=(int(g), int(g + 6), int(g + 10)))
+    step = 1.0 * U
+    k = -int((y1 - y0) / step) - 2
+    while x0 + k * step < x1:                                            # diamond wire
+        for sgn in (1, -1):
+            xa = x0 + k * step if sgn > 0 else x1 - k * step
+            d.line([(xa, y0), (xa + sgn * (y1 - y0), y1)], fill=(92, 100, 104), width=1)
+        k += 1
+    d.rectangle([x1 + 1, y0 - 1.2 * U, x1 + 1.2 * U, y1 + 1.2 * U], fill=(60, 72, 80))    # the wires end at the frame
+    d.rectangle([x0 - 1.2 * U, y0 - 1.2 * U, x0 - 1, y1 + 1.2 * U], fill=(60, 72, 80))
+    d.rectangle([x0 - 1.2 * U, y0 - 1.2 * U, x1 + 1.2 * U, y1 + 1.2 * U], outline=(40, 48, 54), width=3)
+    # kick plate, 10 in
+    ky = Hd - 14 * U
+    kp = np.asarray(im, float)
+    kp[int(ky):Hd - 2 * K, 2 * K:Wd - 2 * K] = (np.array((172, 174, 172), float)[None, None, :]
+        * (1 + 0.05 * _field(rng, (Hd - 2 * K - int(ky), Wd - 4 * K), (4, 120)))[..., None])
+    im = Image.fromarray(np.clip(kp, 0, 255).astype(np.uint8), 'RGB'); d = ImageDraw.Draw(im)
+    d.line([(2 * K, ky), (Wd - 2 * K, ky)], fill=(214, 216, 214), width=2)
+    for sx in (4 * K, Wd - 4 * K):
+        for sy in (ky + 2 * K, Hd - 4 * K):
+            d.ellipse([sx - 4, sy - 4, sx + 4, sy + 4], fill=(120, 122, 120))
+    return im
+
+
+def room_finishes():
+    """the room's surfaces at 24-32 texels a unit, in place of the GoldSrc map's 128 px ones"""
+    HIRES['sc_wall'] = block_texture((198, 204, 186), 3)        # upper wall: pale green
+    TEX['sc_walld'] = TEX['sc_wall']; HIRES['sc_walld'] = block_texture((126, 146, 124), 4)   # dado: darker green
+    solid_tex('sc_stripe', (66, 84, 68))
+    TEX['sc_floor'] = Image.new('RGB', (128, 128)); HIRES['sc_floor'] = floor_texture()
+    TEX['sc_ceil'] = Image.new('RGB', (64, 128)); HIRES['sc_ceil'] = ceiling_texture()
+    TEX['scdoor'] = Image.new('RGB', (96, 224)); HIRES['scdoor'] = door_texture()
+    TEX['sc_doorf'] = gb.noise(Image.new('RGB', (32, 32), (62, 76, 86)), 3)
+
+
 def build_room():
     gb.build_room()
     gb.ents[:] = [e for e in gb.ents if e['classname'] == 'worldspawn']
@@ -717,6 +878,34 @@ def build_room():
     old = lambda b: isinstance(b, Box) and ((b.lo[2] == 108 and b.hi[2] == 109) or                  # cap, latch
                                             (b.tex == 'sc_metal' and b.lo[1] == -1.6 and b.lo[2] == 50))
     world[:] = [b for b in world if not old(b)]
+    # the furniture is studio models, not blocks: out go the old door, extinguisher, clock, desk and chair
+    gone = lambda b: isinstance(b, Box) and (b.tex in ('sc_door', 'sc_extg', 'sc_deskm', 'sc_wood', 'sc_chair')
+                                             or any(t == 'sc_clock' for t, _ in b.faces.values())
+                                             or (b.tex == 'sc_metal' and b.lo in ((101, -188, 0), (-160, -207, 98), (-158.5, -178, 44))))
+    world[:] = [b for b in world if not gone(b)]
+    room_finishes()
+    # walls: a painted dado five courses high, a stripe, and the lighter wall above
+    walls = [b for b in world if isinstance(b, Box) and b.tex == 'sc_wall']
+    world[:] = [b for b in world if b not in walls]
+    DADO = 5 * 128 / 12                                 # five 8 in courses (the texture's four are 128/3 units)
+    for b in walls:
+        (x0, y0, z0), (x1, y1, z1) = b.lo, b.hi
+        for za, zb, t in ((z0, DADO, 'sc_walld'), (DADO, DADO + 1.6, 'sc_stripe'), (DADO + 1.6, z1, 'sc_wall')):
+            world.append(Box(x0, y0, za, x1, y1, zb, tex=t, scale=1 / 3))
+    X0 = -160
+    # door: 36 x 84 in hollow metal in a steel frame, lever and three hinges
+    W(X0, -211, 0, X0 + 1.5, -163, 112, tex='sc_doorf', faces={(1, 0, 0): ('scdoor', (211 / 0.5, 112 / 0.5, 0.5, 0.5))})
+    for a in ((X0, -213.7, 0, X0 + 2.3, -211, 114.7), (X0, -163, 0, X0 + 2.3, -160.3, 114.7), (X0, -211, 112, X0 + 2.3, -163, 114.7)):
+        W(*a, tex='sc_doorf')
+    ROOM_PROPS.append(('lever', (X0 + 1.5, -166.7, 48), 90))
+    for z in (13, 56, 99):
+        ROOM_PROPS.append(('butt_hinge', (X0 + 1.5, -211, z), 90))
+    ROOM_PROPS.append(('extinguisher', (X0, -137, 29), 90))
+    ROOM_PROPS.append(('clock', (X0, -32, 112), 90))
+    ROOM_PROPS.append(('desk', (105, -158, 0), 0))
+    ROOM_PROPS.append(('chair', (101, -191, 0), 14))
+    for a in ((X0, -142, 28, X0 + 9, -132, 51), (68, -176, 0, 142, -140, 40), (91, -202, 0, 112, -180, 42)):
+        W(*a, tex='PCLIP')                               # the models have no collision of their own
     # the troffers light the room themselves (texture lights, out/sablecreek.rad); two dim fills
     E.append(('light', {'origin': '0 -60 70', '_light': '255 246 232 ' + LIGHT_FILL}, [], []))
     E.append(('light', {'origin': '-120 -120 80', '_light': '255 246 232 ' + LIGHT_FILL}, [], []))
@@ -810,7 +999,7 @@ def main():
     for name, img in TEX.items():
         if name.startswith('+'):
             continue                                   # the GoldSrc map's animated lamps
-        im = pow2(img, 2048 if name.startswith('scd') else 1024)
+        im = pow2(HIRES.get(name, img), 2048 if name.startswith('scd') else 1024)
         factors[name] = (im.size[0] / img.size[0], im.size[1] / img.size[1])
         mat = f'sablecreek/{name.lower()}'
         if name in ADDITIVE:
@@ -818,7 +1007,7 @@ def main():
         elif name in UNLIT:
             C.material(mat, im, 'UnlitGeneric', compress=im.size[0] * im.size[1] >= 128 * 128)
         else:
-            C.material(mat, im, 'LightmappedGeneric', {'$surfaceprop': 'metal'}, compress=im.size[0] * im.size[1] >= 128 * 128)
+            C.material(mat, im, 'LightmappedGeneric', {'$surfaceprop': SURF.get(name, 'metal')}, compress=im.size[0] * im.size[1] >= 128 * 128)
 
     def tex(name):
         if name == 'ORIGIN':
@@ -838,7 +1027,7 @@ def main():
         C.material(f'models/sablecreek/{name}', im, 'UnlitGeneric' if unlit else 'VertexLitGeneric', {'$model': 1} if unlit else {})
     for name, make in srcparts.TEXTURES.items():
         C.material(f'models/sablecreek/{name}', make(), 'VertexLitGeneric', compress=True)
-    for model in sorted({p_[1] for p_ in PROPS}):
+    for model in sorted({p_[1] for p_ in PROPS} | {p_[0] for p_ in ROOM_PROPS}):
         files = write_model(f'models/sablecreek/{model}.mdl', srcparts.PARTS[model](), skins=srcparts.SKINS.get(model, ()))
         for rel, data in files.items():
             C.add(rel, data)

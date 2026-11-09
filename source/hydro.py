@@ -1,6 +1,6 @@
 """
-Sable Creek Unit 1 for Half-Life 2: the plant as four tick programs of logic entities (see srclogic.py):
-fast (0.03 s), medium (0.12 s), slow (0.24 s) and the annunciator (0.24 s).
+Sable Creek Unit 1 for Half-Life 2: the plant as five tick programs of logic entities (see srclogic.py):
+fast (0.03 s), medium (0.12 s), slow (0.24 s) and the annunciator's two halves (0.24 s each).
 
 The controls (nameplates as engraved; the variable names inside are the GoldSrc map's):
   CP-1  25 SYNC, 52G GEN BKR, 41 FIELD BKR, 86U LOCKOUT switches; WICKET GATE LOWER / RAISE dials
@@ -51,16 +51,27 @@ ATAN_PTS = [(-2.0, -63.4), (-0.7, -35), (0, 0), (0.7, 35), (2.0, 63.4)]
 # shaft vibration (mils p-p) on line for each gate %: the draft-tube vortex rope rough zone around 25-50 %
 VIB_PTS = [(0, 1), (15, 3), (27, 8), (45, 6), (60, 2)]
 DT_FAST, DT_MED, DT_SLOW = 0.03, 0.12, 0.24
+# wicket gate servomotor timing: full stroke in 10 s opening, 5 s closing (the shutdown solenoid closes the
+# gates at the same rate); an open flume has no water hammer to slow the closure for
+GATE_OPEN, GATE_CLOSE = 10.0, 20.0     # %/s
+SNL_GATE = 15.0                        # speed-no-load gate, %
+I_RATED = 77.0                         # rated stator current, % of 409 A (316 A: 250 kW at 0.95 pf, 480 V)
 
+# Annunciator, 4 rows of 6: electrical trips, mechanical trips, alarms, levels and status. Device numbers are
+# IEEE C37.2 (63Q oil pressure, 63A air pressure, 71 level, 80 flow).
 ANN_WINDOWS = [
-    ('ovsp', '12 OVERSPEED|TRIP', 'trip'), ('lock', '86U LOCKOUT|TRIP', 'trip'), ('gbkr', '52G|TRIP', 'trip'),
-    ('oop', '52G OOP|CLOSE', 'trip'), ('rp', '32 REV PWR|TRIP', 'trip'),
-    ('lof', '40 LOF|TRIP', 'trip'), ('ov', '59 OV|TRIP', 'trip'), ('bthh', '38 BRG TEMP|HH TRIP', 'trip'),
-    ('bth', '38 BRG TEMP|HI', 'alarm'), ('vib', '39 VIB|HI', 'alarm'),
-    ('hyd', 'HPU PRESS|LO', 'alarm'), ('oilp', 'LUBE OIL|PRESS LO', 'alarm'), ('watp', 'CW FLOW|LO', 'alarm'),
-    ('air', 'BRAKE AIR|PRESS LO', 'alarm'), ('brk', 'BRAKES|APPLIED', 'status'),
-    ('rhi', 'FOREBAY|LEVEL HI', 'alarm'), ('rlo', 'FOREBAY|LEVEL LO', 'alarm'), ('spill', 'SPILL GATE|OPEN', 'status'),
-    ('plc', 'GOV|IN MAN', 'status'), ('avr', 'AVR|IN MAN', 'status')]
+    ('lock', '86U UNIT|LOCKOUT', 'trip'), ('gbkr', '52G GEN BKR|TRIPPED', 'trip'),
+    ('oc', '50 GEN INST|OVERCURRENT|TRIP', 'trip'), ('lof', '40 LOSS OF|FIELD|TRIP', 'trip'),
+    ('rp', '32 REVERSE|POWER|TRIP', 'trip'), ('ov', '59 GEN|OVERVOLTAGE|TRIP', 'trip'),
+    ('ovsp', '12 OVERSPEED|TRIP', 'trip'), ('bthh', '38 THR BRG|TEMP HI-HI|TRIP', 'trip'),
+    ('sthh', '49 STATOR|TEMP HI-HI|TRIP', 'trip'), ('hyll', '63Q HPU|PRESS LO-LO|TRIP', 'trip'),
+    ('fbll', '71 FOREBAY|LEVEL LO-LO|TRIP', 'trip'), ('vib', '39 SHAFT|VIBRATION|HI', 'alarm'),
+    ('bth', '38 THR BRG|TEMP HI', 'alarm'), ('sth', '49 STATOR|TEMP HI', 'alarm'),
+    ('hyd', '63Q HPU|PRESS LO', 'alarm'), ('oilp', '63Q LUBE OIL|PRESS LO', 'alarm'),
+    ('watp', '80 CW|FLOW LO', 'alarm'), ('air', '63A BRAKE AIR|PRESS LO', 'alarm'),
+    ('rhi', '71 FOREBAY|LEVEL HI', 'alarm'), ('rlo', '71 FOREBAY|LEVEL LO', 'alarm'),
+    ('spill', 'SPILL GATE|OPEN', 'status'), ('brk', 'BRAKES|APPLIED', 'status'),
+    ('plc', 'GOV|IN MANUAL', 'status'), ('avr', 'AVR|IN MANUAL', 'status')]
 
 INIT = dict(n=0, g=0, v=0, x=0, hp=0, air=0, bt=24, l=7, q=75, sg=0.75)
 
@@ -71,10 +82,11 @@ def build():
     F = Program(m, 'f', DT_FAST)          # fast: gate travel, runner, rotor, synchronizing, 52G
     M = Program(m, 'm', DT_MED)           # medium: gate commands, governor, excitation, protection, brakes
     S = Program(m, 's', DT_SLOW)          # slow: river, spillway, auxiliaries, bearings, sound levels
-    A = Program(m, 'a', DT_SLOW)          # annunciator
-    # fast ticks fall on odd server ticks, medium ones on 6 mod 8, slow and annunciator ones on 0 mod 8,
-    # half a period apart: no two loops ever share a tick
-    F.start_delay, M.start_delay, S.start_delay, A.start_delay = 0.1, 0.115, 0.145, 0.265
+    A = Program(m, 'a', DT_SLOW)          # annunciator, upper two rows
+    B = Program(m, 'b', DT_SLOW)          # annunciator, lower two rows
+    # fast ticks fall on odd server ticks, medium ones on 6 mod 8, the slow one on 0 mod 16 and the annunciator's
+    # two halves on 8 and 10 mod 16: no two loops ever share a tick
+    F.start_delay, M.start_delay, S.start_delay, A.start_delay, B.start_delay = 0.1, 0.115, 0.145, 0.265, 0.295
     dev = {'needles': {}, 'switches': {}, 'dials': {}, 'lamps': {}, 'windows': [], 'sounds': {}, 'scope': None}
     df, dm, ds = DT_FAST, DT_MED, DT_SLOW
 
@@ -206,7 +218,7 @@ def build():
     pe = F.var('pe', 0, -5, 5, clamp=False)         # electrical power, pu
     qe = F.var('qe', 0, -5, 5, clamp=False)         # reactive power, pu
     cb = F.flag('cb')
-    c_oop = F.flag('c_oop')                         # 52G closed out of phase
+    c_oop = F.flag('c_oop')                         # 52G closed too far out of phase: 50 instantaneous overcurrent
     # medium
     n_prev = M.var('n_prev', 0, 0, 170)             # the last medium tick's speed (the governor's derivative)
     v = M.var('v', 0, 0, 140)                       # generator volts, %
@@ -215,6 +227,9 @@ def build():
     gi = M.var('gi', 0, 0, 100)                     # PLC governor integrator (gate %)
     grate = M.var('grate', 0, -200, 20)             # the gate's speed, %/s (the fast program moves it)
     exc = M.flag('exc'); tr = M.flag('tr'); brake = M.flag('brake')
+    mech = M.flag('mech')                           # the lockout was operated by a mechanical trip (quick shutdown)
+    topen = M.flag('topen')                         # the lockout trips 52G and 41 (at once, or at speed-no-load gate)
+    ia = M.var('ia', 0, 0, 400)                     # stator current, % of 409 A
     rp_t = M.var('rp_t', 0, 0, 20)
     gr_t = M.var('gr_t', 0, 0, 5); gl_t = M.var('gl_t', 0, 0, 5)       # how long a gate dial has been held
     # slow
@@ -230,10 +245,17 @@ def build():
     lp = S.var('lp', 0, 0, 60)                      # lube oil pressure, psi
     cw = S.var('cw', 0, 0, 100)                     # cooling water flow, gpm
     c_bt = S.flag('c_bt')                           # bearing at the high-high trip
+    st = S.var('st', 25, 0, 200)                    # stator winding temperature, deg C
+    c_st = S.flag('c_st')                           # stator at the high-high trip
+    vg = S.var('vg', 100.4, 95, 105)                # grid volts at the 480 V bus, %
+    qv = S.var('qv', 2.0, 1, 3)                     # the vars the grid's volts take: V^2 / XS less the EMF's share
+    vup = S.flag('vup', 1)
     # each program reads the others' values through mirrors (one tick of theirs late)
     x_f, v_f, exc_f, tr_f, grate_f, lv_f = (F.mirror(vv, vv.name + '_f') for vv in (x, v, exc, tr, grate, lv))
+    topen_f, qv_f = F.mirror(topen, 'topen_f'), F.mirror(qv, 'qv_f')
     n_m, g_m, cb_m, pe_m, qe_m, dl_m, oop_m = (M.mirror(vv, vv.name + '_m') for vv in (n, g, cb, pe, qe, dl, c_oop))
     hp_m, air_m, lv_m, q_m, sg_m, cbt_m = (M.mirror(vv, vv.name + '_m') for vv in (hp, air, lv, q, sg, c_bt))
+    cst_m, vg_m = M.mirror(c_st, 'c_st_m'), M.mirror(vg, 'vg_m')
     plc_m, avr_m = M.mirror(plc, 'plc_m'), M.mirror(avr, 'avr_m')
     n_s, g_s, v_s, pe_s, cb_s, plc_s, avr_s, brk_s, qf_s = (S.mirror(vv, vv.name + '_s') for vv in (n, g, v, pe, cb, plc, avr, brake, qf))
     qf_m = M.mirror(qf, 'qf_m')
@@ -272,7 +294,8 @@ def build():
     Tt = 0.018 * G * hh - pwl(G, B_PTS) * rh * w
     Tm = Tt
     Pe = CB * 0.02 * X * sin_deg(dl.r)              # electrical power, pu (E = field / 100, XS = 0.5)
-    Qe = CB * (0.02 * X * cos_deg(dl.r) - 2)        # reactive power, pu (lagging +)
+    # reactive power, pu (lagging +); it falls 0.018 pu for each % the grid's volts stand above 480 V
+    Qe = CB * (0.02 * X * cos_deg(dl.r) - qv_f.r)
     F.set(pe, Pe)
     F.set(qe, Qe)
     tf = aff(sq(N), 8e-6, 0.005)                    # friction and windage, 0.005 + 0.08 w^2
@@ -301,13 +324,17 @@ def build():
     # sync lamps, dark at 12 o'clock: 255 |sin(phase / 2)|
     tu = th.r / 360
     F.sink('SYNCLAMPS', 'Alpha', hss.r * phs * (1020 * tu * (1 - tu)))
-    # 52G: closes in phase (switch on or off). Out of phase the sync check (switch on) refuses it and the
-    # handle springs back; with the switch off nothing stops it: closed out of phase, the unit trips.
+    # 52G. With 25 SYNC on, the sync check refuses a close outside its window. With it off nothing supervises
+    # the close: within 45 deg the breaker holds and the rotor is wrenched into step (the kW swings hard, and
+    # if the speed is too far off it slips poles and 40 trips); further out, or with no field, the inrush
+    # operates the 50 instantaneous overcurrent relay.
     closing = c52.r * NOT(CB) * NOT(TR_f)
-    close = closing * pok
+    soft = phs * OR(below(th.r, 45), step(th.r, 315))
+    close = closing * OR(pok, NOT(hss.r) * soft)
     # held until the trip it causes: the close is a one-tick pulse, shorter than the medium loop's tick
-    F.set(c_oop, OR(closing * NOT(pok) * NOT(hss.r), c_oop.r * NOT(TR_f)))
-    cb_new = CB * NOT(t52.r) * NOT(TR_f) + close
+    F.set(c_oop, OR(closing * NOT(hss.r) * NOT(soft), c_oop.r * NOT(TR_f)))
+    # the lockout opens 52G at once for an electrical trip, at speed-no-load gate for a mechanical one
+    cb_new = CB * NOT(t52.r) * NOT(topen_f.r) + close
     F.set(cb, cb_new)
     # the load angle starts at the phase the breaker closed on, then swings with the rotor
     dl1 = dl.r + 216 * df * (n_new - 100)
@@ -323,7 +350,6 @@ def build():
     needle(F, 'p_gate', G / 100)
     hz = (0.6 * N - 54) / 12                                # 54-66 Hz
     needle(F, 'p_hz', hz)
-    needle(F, 'p_sfreq', sel(CB, 0.5, hz))                  # the station bus: the grid's on line, the unit's off
     lamp('LP_cb', cb, ('red', 'green'))
     cb.on_rise('r_52_flag', 'Skin', 0).on_fall('r_52_flag', 'Skin', 1)      # 52G switch target: red closed, green tripped
     lamp('L_perm', perm, ('green', None))
@@ -354,26 +380,27 @@ def build():
     gi_up = sel(step(Nm, 90), gi.r + dm * GOV_KI * gerr, 15)
     M.set(gi, sel(plc_off, gi_up - relu(gi_up - glim), Gm))       # follows the gate when not governing
     M.set(n_prev, Nm)
-    d_plc_off = plc_off * sel(BRK, -10, clamp((g_cmd - Gm) * 4, -10, 10))
+    d_plc_off = plc_off * sel(BRK, -10, clamp((g_cmd - Gm) * 4, -GATE_CLOSE, GATE_OPEN))
     # PLC on line: forebay level control. It holds the forebay at 7.0 m (23.0 ft), opening the gate as the
     # level rises (so the unit passes the river's flow), never below 17 % gate
     el_m = q_m.r - Gm * shead(lv_m.r) - 100 * sg_m.r
     d_on = clamp(0.5 * el_m + 5 * (lv_m.r - 7.0), -2, 2)
     d_on = d_on + relu(-d_on) * below(Gm, 17, 0.5)
     d_plc_on = plc_m.r * CBm * NOT(TR) * oil_open * d_on
-    # a trip shuts the gate at once (160 %/s)
+    # a trip closes the gate at the servomotors' full closing rate (the shutdown solenoid)
 
     # ------------------------------------------------------------ excitation
-    # 41 closes from 90 % speed and stays closed; it opens on a trip or by hand
-    exc_new = NOT(TR) * NOT(t41.r) * OR(EXC, c41.r * step(Nm, 90, 0.05))
+    # 41 closes from 90 % speed and stays closed; it opens by hand or with 52G when the lockout trips them
+    exc_new = NOT(t41.r) * OR(EXC * NOT(topen.r), c41.r * step(Nm, 90, 0.05) * NOT(TR))
     M.set(exc, exc_new)
     # Static exciter fed from the generator's own terminals: its ceiling is 1.4 x the volts, so with no volts
     # it can't build the field; while the volts are under 40 % the station battery flashes the field (30 %).
     flash = EXC * below(V, 40)
     ceiling = 1.4 * V + relu(30 * flash - 1.4 * V)
-    # AVR: off line it holds 480 V; on line it holds 0.95 power factor lagging (Q = 0.33 P). PI, and it
-    # tracks the manual setting while in MAN so the change-over is bumpless.
-    err = sel(CBm, 100 * (0.33 * relu(Pm) - Qm), 100 - V)
+    # AVR: off line it matches the bus volts (voltage matching, for synchronizing); on line it holds 0.95
+    # power factor lagging (Q = 0.33 P). PI, and it tracks the manual setting while in MAN so the change-over
+    # is bumpless.
+    err = sel(CBm, 100 * (0.33 * relu(Pm) - Qm), vg_m.r - V)
     u_man = pwl(kfa_m.r, KNOB_PTS)
     ki = aff(CBm, -0.6, 1.2)
     u_cmd = clamp(sel(avr_m.r, ui.r + 0.8 * err, u_man), 0, 140)
@@ -383,7 +410,7 @@ def build():
     # the field current follows the exciter through the field winding (1.5 s); opened, it discharges (0.4 s)
     M.set(x, X + dm * (u - X) * aff(EXC, 1 / 1.5 - 1 / 0.4, 1 / 0.4))
     # volts: off line the open-circuit curve times speed; on line the grid's, raised a little by the vars
-    M.set(v, clamp(sel(CBm, 100 + 100 * XT * Qm, pwl(X, OCC_PTS) * Nm / 100), 0, 140))
+    M.set(v, clamp(sel(CBm, vg_m.r + 100 * XT * Qm, pwl(X, OCC_PTS) * Nm / 100), 0, 140))
     # with the AVR on, the firing-angle knob follows it
     k_cmd = clamp(pwl(u_cmd, [(b, a) for a, b in KNOB_PTS]), 0, 1)
     M.sink('k_fa', 'SetPosition', gate(k_cmd, avr_m.r, 0, 1))
@@ -396,19 +423,28 @@ def build():
     M.set(rp_t, (rp_t.r + dm) * rev)
     causes = {
         'ovsp': step(Nm, 140),                              # 12 overspeed, 140 %
-        'oop': oop_m.r,                                     # 52G closed out of phase
+        'oc': oop_m.r,                                      # 50: 52G closed too far out of phase
         'rp': step(rp_t.r, 8),                              # 32 reverse power for 8 s
         'lof': CBm * OR(below(X, 60), step(dl_m.r, 120), below(dl_m.r, -120)),   # 40 loss of field / pole slip
         'ov': NOT(CBm) * step(V, 115),                      # 59 overvoltage, 115 %
-        'bthh': cbt_m.r,                                    # 38 bearing temperature high-high, 90 C
+        'bthh': cbt_m.r,                                    # 38 thrust bearing high-high, 90 C
+        'sthh': cst_m.r,                                    # 49 stator winding high-high, 120 C
+        'hyll': step(Gm, 0.5) * below(hp_m.r, 210),         # 63Q: governor oil nearly gone with the gate open
+        'fbll': below(lv_m.r, 4.75) * step(Nm, 1, 0.5),     # 71: the flume would draw air
     }
-    other = OR(step(Gm, 0.5) * below(hp_m.r, 210),          # hydraulic oil gone with the gate open
-               below(lv_m.r, 4.75) * step(Nm, 1, 0.5),      # the intake would draw air
-               gt_trip.r)                                   # 86U turned to TRIP
-    tr_new = OR(*causes.values(), other, TR * NOT(gt_rst.r))      # latched until 86U is turned to RESET
+    # Every trip operates the 86U lockout and closes the gates. An electrical trip (or the 86U handle) is an
+    # immediate shutdown: 52G and 41 open at once, and the unit overspeeds until the gates are shut. A
+    # mechanical trip is a quick shutdown: 52G stays closed while the gates close, so the grid holds the speed,
+    # and 52G and 41 open as the gate passes speed-no-load.
+    elec = OR(*(causes[k] for k in ('ovsp', 'oc', 'rp', 'lof', 'ov')), gt_trip.r)
+    mcause = OR(*(causes[k] for k in ('bthh', 'sthh', 'hyll', 'fbll')))
+    tr_new = OR(elec, mcause, TR * NOT(gt_rst.r))           # latched until 86U is turned to RESET
     M.set(tr, tr_new)
     target(tr, 'r_gt')                                       # 86U target: red while locked out
-    M.set(grate, (d_man + d_plc_off + d_plc_on) * NOT(tr_new) - 160 * tr_new)
+    mech_new = tr_new * NOT(elec) * OR(mcause * NOT(TR), mech.r)
+    M.set(mech, mech_new)
+    M.set(topen, tr_new * NOT(mech_new * CBm * step(Gm, SNL_GATE + 1)))
+    M.set(grate, (d_man + d_plc_off + d_plc_on) * NOT(tr_new) - GATE_CLOSE * tr_new)
     # generator air brakes: applied by air (50 psi at least), only below 30 % speed; springs release them
     M.set(brake, NOT(hbr_m.r) * step(air_m.r, 50) * OR(BRK, below(Nm, 30)))
 
@@ -419,7 +455,9 @@ def build():
     aP, aQ = absx(Pm), absx(Qm)
     smax = aQ + relu(aP - aQ)
     s_app = 0.96 * smax + 0.398 * (aP + aQ - smax)
-    needle(M, 'p_amps', 409 * s_app * 100 / clamp(V, 50, None) / 500)
+    ia_new = 100 * s_app * 100 / clamp(V, 50, None)
+    M.set(ia, ia_new)
+    needle(M, 'p_amps', 409 * ia_new / 50000)
     needle(M, 'p_exc', X / 120)                             # 0-60 A
     needle(M, 'p_fa', 1 - EXC * k_cmd)                      # firing angle 0-90 deg
     lamp('LP_exc', exc, ('red', 'green'))
@@ -467,11 +505,19 @@ def build():
     S.set(bt, bt.r + ds * ((sel(cool.r, 24 + 28 * ws + 10 * relu(pe_s.r), 24 + 100 * ws) - bt.r) / 60
                            + 6 * ws * NOT(lube.r)))
     S.set(c_bt, step(bt.r, 90))
+    # stator winding: it heats with the square of the current (60 C rise at rated amps) and a little with
+    # speed (core loss and windage), four minutes' time constant: 93 C at rated load
+    S.set(st, st.r + ds * (25 + 60 * sq(S.mirror(ia, 'ia_s').r / I_RATED) + 8 * ws - st.r) / 240)
+    S.set(c_st, step(st.r, 120))
+    # the grid at the 480 V bus: stiff at 60 Hz, but its volts wander between 476 and 486 V
+    S.set(vg, vg.r + ds * 0.02 * (2 * vup.r - 1))
+    S.set(vup, clamp(vup.r + below(vg.r, 99.2) - step(vg.r, 101.3), 0, 1))
+    S.set(qv, aff(vg.r, 0.018, 0.2))
 
     # ------------------------------------------------------------ slow meters
-    # grid volts: the 480 V bus the utility feeds through the step-up transformer. The grid is stiff (the sync
-    # check compares the generator against 100 %), so it reads 480 V whether 52G is open or closed.
-    needle(S, 'p_gridv', 100 / 125)                          # 0-600 V
+    needle(S, 'p_gridv', vg.r / 125)                         # the 480 V bus the utility feeds, 0-600 V
+    needle(S, 'p_sfreq', 0.5)                                # and its frequency: the grid's 60 Hz, 54-66 Hz
+    needle(S, 'p_st', st.r / 150)                            # stator winding, 0-150 C
     needle(S, 'p_lube', lp.r / 60)
     needle(S, 'p_cw', cw.r / 100)
     needle(S, 'p_bt', (bt.r - 20) / 80)
@@ -487,66 +533,82 @@ def build():
     # ACKNOWLEDGE makes it steady and silences the horn; once the condition has cleared, RESET puts the
     # window out; TEST lights every window while held in. Trip windows take the protective relays' targets,
     # which stay up until the 86 lockout is reset.
-    ack = A.var('ack', 0, 0, 1); arst = A.var('arst', 0, 0, 1); atest = A.flag('atest')
-    for name, label, var, wait in (('b_ack', 'ACK', ack, 0.4), ('b_rst', 'RESET', arst, 0.4), ('b_test', 'TEST', atest, 3)):
+    # The windows are split between two programs (A: the upper two rows, B: the lower two) that run on
+    # different server ticks, each with its own copy of the pushbuttons' pulses.
+    half = len(ANN_WINDOWS) // 2
+    pb = {}
+    for P in (A, B):
+        pb[P] = (P.var(f'ack_{P.name}', 0, 0, 1), P.var(f'arst_{P.name}', 0, 0, 1), P.flag(f'atest_{P.name}'))
+    for k, (name, label, wait) in enumerate((('b_ack', 'ACK', 0.4), ('b_rst', 'RESET', 0.4), ('b_test', 'TEST', 3))):
         e = m.ent('func_button', name, spawnflags=1024, speed=20, lip=1, wait=wait, movedir='0 90 0', sounds=0)
-        if var is atest:
-            e.out('OnIn', var.ent, 'SetValue', 1).out('OnOut', var.ent, 'SetValue', 0)
-        else:
-            e.out('OnPressed', var.ent, 'SetValue', 1)
+        for P in (A, B):
+            if k == 2:
+                e.out('OnIn', pb[P][k].ent, 'SetValue', 1).out('OnOut', pb[P][k].ent, 'SetValue', 0)
+            else:
+                e.out('OnPressed', pb[P][k].ent, 'SetValue', 1)
         e.out('OnPressed', 's_click', 'PlaySound')
         dev.setdefault('buttons', {})[name] = {'ent': e, 'label': label}
     blink = A.flag('blink')
     A.set(blink, NOT(blink.r))                      # windows flash at about 2 Hz
-    ACK, RST, TEST = ack.r, arst.r, atest.r
-    A.add(ack, -ACK); A.add(arst, -RST)
-    am = lambda vv: A.mirror(vv, vv.name + '_a').r
     keep = NOT(gt_rst.r)
-    trips = {}
-    for key in ('ovsp', 'lock', 'gbkr', 'oop', 'rp', 'lof', 'ov', 'bthh'):
-        t = M.flag(f't_{key}')
+    m_flags = {}
+    for key in (k for k, _, kind in ANN_WINDOWS if kind == 'trip'):
+        t = m_flags[key] = M.flag(f't_{key}')
         if key in causes:                                          # protective relay targets: latch until the reset
             M.set(t, OR(causes[key], t.r * keep))
         elif key == 'gbkr':                                        # 52G opened by protection (cleared when it closes again)
             M.set(t, OR(CBm * tr_new, t.r * keep * NOT(CBm)))
         else:                                                      # 86 lockout
             M.set(t, TR)
-        trips[key] = A.mirror(t, f't_{key}_a').r
-    raw = dict(trips)
-    ga, cba = am(g), am(cb)
-    lva = am(lv)
-    raw.update({
-        'bth': step(am(bt), 76), 'vib': cba * step(ga, 25) * below(ga, 50),
-        'hyd': below(am(hp), 240), 'oilp': below(am(lp), 20), 'watp': below(am(cw), 35), 'air': below(am(air), 50),
-        'brk': am(brake), 'rhi': step(lva, 7.5), 'rlo': below(lva, 6.25), 'spill': step(am(sg), 0.01),
-        'plc': NOT(am(plc)), 'avr': NOT(am(avr))})
-    unacked, news = [], []
-    for i, (key, legend, kind) in enumerate(ANN_WINDOWS):
-        lit = A.flag(f'w_{key}')
-        if kind == 'status':                                       # status points: lit while true, no horn
-            A.set(lit, OR(raw[key], TEST))
-        else:
-            ua, aa = A.flag(f'ua_{key}'), A.flag(f'aa_{key}')    # unacknowledged (flashing), acknowledged (steady)
-            new = raw[key] * NOT(ua.r) * NOT(aa.r)
-            ua_new = OR(ua.r * NOT(ACK), new)
-            aa_new = OR(aa.r * NOT(RST * NOT(raw[key])), ua.r * ACK)
-            A.set(ua, ua_new); A.set(aa, aa_new)
-            A.set(lit, OR(aa_new, ua_new * blink.r, TEST))
-            unacked.append(ua_new); news.append(new)
-        e = m.ent('func_brush', f'A{i:02d}', StartDisabled=1, Solidity=1)
-        lit.on_rise(e, 'Enable').on_fall(e, 'Disable')
-        dev['windows'].append({'ent': e, 'legend': legend, 'kind': kind})
-    # the horn sounds while any alarm is unacknowledged; a relay clicks for each new one
+    RAW = {'bth': lambda a: step(a(bt), 76), 'sth': lambda a: step(a(st), 105),
+           'vib': lambda a: a(cb) * step(a(g), 25) * below(a(g), 50),
+           'hyd': lambda a: below(a(hp), 240), 'oilp': lambda a: below(a(lp), 20), 'watp': lambda a: below(a(cw), 35),
+           'air': lambda a: below(a(air), 50), 'brk': lambda a: a(brake), 'rhi': lambda a: step(a(lv), 7.5),
+           'rlo': lambda a: below(a(lv), 6.25), 'spill': lambda a: step(a(sg), 0.01),
+           'plc': lambda a: NOT(a(plc)), 'avr': lambda a: NOT(a(avr))}
+    sums = {}
+    for P, lo in ((A, 0), (B, half)):
+        ack, arst, atest = pb[P]
+        ACK, RST, TEST = ack.r, arst.r, atest.r
+        P.add(ack, -ACK); P.add(arst, -RST)
+        BL = blink.r if P is A else P.mirror(blink, 'blink_b').r
+        seen = {}
+        def am(vv, P=P, seen=seen):
+            if vv.name not in seen:
+                seen[vv.name] = P.mirror(vv, f'{vv.name}_{P.name}').r
+            return seen[vv.name]
+        unacked, news = [], []
+        for i, (key, legend, kind) in list(enumerate(ANN_WINDOWS))[lo:lo + half]:
+            raw = am(m_flags[key]) if key in m_flags else RAW[key](am)
+            lit = P.flag(f'w_{key}')
+            if kind == 'status':                                   # status points: lit while true, no horn
+                P.set(lit, OR(raw, TEST))
+            else:
+                ua, aa = P.flag(f'ua_{key}'), P.flag(f'aa_{key}')    # unacknowledged (flashing), acknowledged (steady)
+                new = raw * NOT(ua.r) * NOT(aa.r)
+                ua_new = OR(ua.r * NOT(ACK), new)
+                aa_new = OR(aa.r * NOT(RST * NOT(raw)), ua.r * ACK)
+                P.set(ua, ua_new); P.set(aa, aa_new)
+                P.set(lit, OR(aa_new, ua_new * BL, TEST))
+                unacked.append(ua_new); news.append(new)
+            e = m.ent('func_brush', f'A{i:02d}', StartDisabled=1, Solidity=1)
+            lit.on_rise(e, 'Enable').on_fall(e, 'Disable')
+            dev['windows'].append({'ent': e, 'legend': legend, 'kind': kind})
+        tot_u, tot_n = C(0), C(0)
+        for u_, n_ in zip(unacked, news):
+            tot_u, tot_n = tot_u + u_, tot_n + n_
+        sums[P] = (tot_u, tot_n)
+    # the horn sounds while any alarm is unacknowledged; a relay clicks for each new one. B hands its two
+    # sums to A as flags.
+    ub, nb = B.flag('ub'), B.flag('nb')
+    B.set(ub, step(sums[B][0], 0.5)); B.set(nb, step(sums[B][1], 0.5))
     horn, anew = A.flag('horn'), A.flag('anew')
-    tot_u, tot_n = unacked[0], news[0]
-    for u_, n_ in zip(unacked[1:], news[1:]):
-        tot_u, tot_n = tot_u + u_, tot_n + n_
-    A.set(horn, step(tot_u, 0.5)); A.set(anew, step(tot_n, 0.5))
+    A.set(horn, step(sums[A][0] + A.mirror(ub, 'ub_a').r, 0.5)); A.set(anew, step(sums[A][1] + A.mirror(nb, 'nb_a').r, 0.5))
     h_on, h_off, r_new = armed_relay('horn_on'), armed_relay('horn_off'), armed_relay('anew_on')
     horn.on_rise(h_on, 'Trigger').on_fall(h_off, 'Trigger'); anew.on_rise(r_new, 'Trigger')
     h_on.out('OnTrigger', 's_horn', 'PlaySound'); h_off.out('OnTrigger', 's_horn', 'StopSound')
     r_new.out('OnTrigger', 's_relay', 'PlaySound')
-    dev['ack_at_start'] = ack
+    dev['ack_at_start'] = [pb[A][0], pb[B][0]]
 
     # ------------------------------------------------------------ sounds
     # the turbine's pitch follows its speed and its loudness the water through it; the generator hums
@@ -572,13 +634,15 @@ def build():
     M.compile()
     S.compile()
     A.compile()
+    B.compile()
     # the alarms standing when the map starts are acknowledged, as an operator would have left them;
     # then the sounds and the horn are armed
-    m['a_auto'].out('OnMapSpawn', dev['ack_at_start'].ent, 'SetValue', 1, 0.6)
+    for v_ in dev['ack_at_start']:
+        m['a_auto'].out('OnMapSpawn', v_.ent, 'SetValue', 1, 0.6)
     for e in m.ents:
         if e.cls == 'logic_relay' and e.name.endswith(('_on', '_off', '_brk_r')):
             m['f_auto'].out('OnMapSpawn', e, 'Enable', None, 1.5)
-    return m, (F, M, S, A), dev
+    return m, (F, M, S, A, B), dev
 
 
 BIGT = 1.0e4

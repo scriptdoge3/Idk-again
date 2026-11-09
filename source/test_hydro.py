@@ -59,14 +59,15 @@ def to_speed_no_load(s):
     return t
 
 
-def trim(s, lo=100.03, hi=100.25):
-    """short taps on RAISE / LOWER, waiting for the speed to settle after each (it takes 15-20 s)"""
+def trim(s, lo=0.04, hi=0.25):
+    """short taps on RAISE / LOWER, waiting for the speed to settle after each (it takes 15-20 s), until the
+    unit runs a little faster than the grid"""
     for _ in range(40):
         s.run(20.0)
-        n = V(s, 'n')
-        if lo <= n <= hi:
+        slip = V(s, 'n') - 100
+        if lo <= slip <= hi:
             return True
-        s.hold('k_gr' if n < lo else 'k_gl', 0.3 if abs(n - 100.1) < 1 else 0.6)
+        s.hold('k_gr' if slip < lo else 'k_gl', 0.3 if abs(slip - 0.1) < 1 else 0.6)
     return False
 
 
@@ -90,8 +91,8 @@ def scenario_idle():
     fb, sp = s['p_hw'].pos() * 35, s['p_spill'].pos() * 4
     check(abs(fb - 23.0) < 0.4 and abs(sp - V(s, 'sg') * 3.2808) < 0.1, f'FOREBAY LEVEL reads {fb:.1f} ft, spill GATE POS {sp:.2f} ft')
     lit = [w['legend'] for w in dev['windows'] if s[w['ent'].name].on]
-    check(set(lit) == {'HPU PRESS|LO', 'LUBE OIL|PRESS LO', 'CW FLOW|LO', 'BRAKE AIR|PRESS LO',
-                       'SPILL GATE|OPEN', 'GOV|IN MAN', 'AVR|IN MAN'}, f'windows lit at rest: {lit}')
+    check(set(lit) == {'63Q HPU|PRESS LO', '63Q LUBE OIL|PRESS LO', '80 CW|FLOW LO', '63A BRAKE AIR|PRESS LO',
+                       'SPILL GATE|OPEN', 'GOV|IN MANUAL', 'AVR|IN MANUAL'}, f'windows lit at rest: {lit}')
     check(not s['s_horn'].playing, 'no horn at start')
     check(abs(s['k_fa'].pos() - hydro.KNOB0) < 0.01, 'firing-angle knob at rated no-load field')
     flip(s, 'r_lp_r'); on = V(s, 'lube'); flip(s, 'r_lp_l')
@@ -113,7 +114,7 @@ def scenario_manual_start():
     peak = 0
     for _ in range(int(12 / 0.06)):
         s.run(0.06); peak = max(peak, V(s, 'v'))
-    check(abs(V(s, 'v') - 100) < 1.5 and peak < 108, f"field flashing, the AVR brings the volts to 480 V ({V(s, 'v') * 4.8:.0f} V, peak {peak * 4.8:.0f} V)")
+    check(abs(V(s, 'v') - V(s, 'vg')) < 1.5 and peak < 108, f"field flashing, the AVR matches the bus volts ({V(s, 'v') * 4.8:.0f} V, bus {V(s, 'vg') * 4.8:.0f} V, peak {peak * 4.8:.0f} V)")
     flip(s, 'r_ss_r')
     ok = trim(s)
     check(ok, f"trimmed by hand to {V(s, 'n'):.3f} %")
@@ -176,7 +177,11 @@ def scenario_plc_start():
     amps = s['p_amps'].pos() * 500
     check(abs(amps - amps_true) < 0.05 * amps_true + 5, f'GEN AMPS reads {amps:.0f} A (|S|/V gives {amps_true:.0f} A at {kw(s):.0f} kW)')
     gridv = s['p_gridv'].pos() * 600
-    check(abs(gridv - 480) < 1, f'GRID VOLTS reads {gridv:.0f} V')
+    busf = 54 + 12 * s['p_sfreq'].pos()
+    check(abs(gridv - 4.8 * V(s, 'vg')) < 1 and 474 < gridv < 488, f'GRID VOLTS reads {gridv:.0f} V')
+    check(abs(busf - 60) < 0.01, f'BUS FREQ reads {busf:.2f} Hz')
+    stt = s['p_st'].pos() * 150
+    check(30 < stt < 100 and abs(stt - V(s, 'st')) < 1, f"STATOR TEMP reads {stt:.0f} C at {amps:.0f} A")
     return s
 
 
@@ -186,41 +191,45 @@ def scenario_load_rejection(s):
     peak = 0
     for _ in range(int(40 / 0.06)):
         s.run(0.06); peak = max(peak, V(s, 'n'))
-    check(V(s, 'tr') == 0 and 115 < peak < 140, f'the governor catches it: peak {peak:.1f} %, no trip')
+    check(V(s, 'tr') == 0 and 105 < peak < 130, f'the governor catches it: peak {peak:.1f} %, no trip')
     check(abs(V(s, 'n') - 100) < 1.5, f"back at speed-no-load: {V(s, 'n'):.2f} %, gate {V(s, 'g'):.1f} %")
     return s
 
 
 def scenario_trip(s):
     print('wicket gate trip on line')
+    g0 = V(s, 'g')
     flip(s, 'r_gt_r', 0.1)
     s.run(0.9)
-    check(V(s, 'tr') == 1 and V(s, 'cb') == 0 and V(s, 'exc') == 0, 'tripped: 52G and 41 open')
-    check(V(s, 'g') < 1, f"gate shut at once ({V(s, 'g'):.1f} %)")
-    s.run(1.0)
+    check(V(s, 'tr') == 1 and V(s, 'cb') == 0 and V(s, 'exc') == 0, 'immediate shutdown: 52G and 41 open at once')
+    check(V(s, 'g') > 5, f"the gates close at the servomotor rate ({g0:.0f} % -> {V(s, 'g'):.0f} % after 1 s)")
+    peak = 0
+    for _ in range(int(6 / 0.06)):
+        s.run(0.06); peak = max(peak, V(s, 'n'))
+    check(V(s, 'g') < 1 and 104 < peak < 140, f"gates shut in about {g0 / 20:.1f} s; the unit overspeeds to {peak:.0f} % meanwhile, under the 12 setting")
     check(V(s, 'plc') == 0 and V(s, 'avr') == 0 and s['r_52_r'].ang == 0 and s['r_52_l'].ang == 0 and s['r_gt_r'].ang == 0,
           'GOV and AVR dropped to MAN; the 52G and 86U handles back at normal (spring return)')
     flip(s, 'r_plc_r')
     check(V(s, 'plc') == 0, 'GOV stays in MAN while locked out')
-    check(V(s, 'ua_lock') == 1 and V(s, 'ua_gbkr') == 1, '86 LOCKOUT and 52G GEN BKR TRIPPED flash')
+    check(V(s, 'ua_lock') == 1 and V(s, 'ua_gbkr') == 1, '86U UNIT LOCKOUT and 52G GEN BKR TRIPPED flash')
     flashes = set()
     for _ in range(12):
-        s.run(0.12); flashes.add(s['A01'].on)
+        s.run(0.12); flashes.add(s['A00'].on)
     check(flashes == {True, False}, 'the windows blink')
     check(s['s_horn'].playing, 'horn')
     s.run(5)
     check(s['s_horn'].playing, 'the horn keeps sounding until acknowledged')
     s.use('b_ack'); s.run(0.6)
-    check(not s['s_horn'].playing and V(s, 'aa_lock') == 1 and s['A01'].on, 'ACKNOWLEDGE: horn off, windows steady')
+    check(not s['s_horn'].playing and V(s, 'aa_lock') == 1 and s['A00'].on, 'ACKNOWLEDGE: horn off, windows steady')
     s.run(3)
     if s['s_horn'].playing:                         # the gate slam drew the oil low: a new alarm
         s.use('b_ack'); s.run(0.6)
     flip(s, 'r_gt_l', 0.8)
     check(V(s, 'tr') == 0, '86U RESET clears the lockout')
     s.run(0.5)
-    check(s['A01'].on, 'the windows stay lit until RESET')
+    check(s['A00'].on, 'the windows stay lit until RESET')
     s.use('b_rst'); s.run(0.6)
-    check(not s['A01'].on and not s['A02'].on, 'RESET puts them out')
+    check(not s['A00'].on and not s['A01'].on, 'RESET puts them out')
     s.use('b_test'); s.run(0.6)
     check(all(s[w['ent'].name].on for w in dev['windows']), 'TEST lights every window')
     s.run(3.5)
@@ -243,7 +252,7 @@ def scenario_blind_close():
     flip(s, 'r_exc_r'); s.run(10)
     wait_for(s, lambda: 90 < V(s, 'th') < 270, 60)
     flip(s, 'r_52_r', 0.6)
-    check(V(s, 'tr') == 1 and V(s, 'cb') == 0 and V(s, 'ua_oop') == 1, '52G CLOSED OUT OF PHASE trip')
+    check(V(s, 'tr') == 1 and V(s, 'cb') == 0 and V(s, 'ua_oc') == 1, '50 GEN INST OVERCURRENT trip')
     print('52G refused by the sync check')
     s.run(1.0)
     flip(s, 'r_gt_l', 0.8)
@@ -256,6 +265,38 @@ def scenario_blind_close():
     check(V(s, 'cb') == 0 and V(s, 'tr') == 0, 'refused, no trip')
     s.run(1.0)
     check(s['r_52_r'].ang == 0, 'the handle springs back to normal')
+
+
+def scenario_rough_close():
+    print('52G closed unsupervised 30 deg out')
+    s = new_sim()
+    start_aux(s)
+    flip(s, 'r_plc_r'); flip(s, 'r_avr_r')
+    wait_for(s, lambda: V(s, 'n') > 92, 60)
+    flip(s, 'r_exc_r'); s.run(25)
+    wait_for(s, lambda: 25 < V(s, 'th') < 35, 120)
+    th = V(s, 'th')
+    flip(s, 'r_52_r', 0.06)
+    ks = []
+    for _ in range(int(5 / 0.03)):
+        s.run(0.03); ks.append(kw(s))
+    check(V(s, 'cb') == 1 and V(s, 'tr') == 0, f'closed at {th:.0f} deg with 25 SYNC off: the breaker holds')
+    check(max(ks) - min(ks) > 150 and abs(ks[-1] - ks[-20]) < 5, f'the rotor is wrenched into step: {max(ks):.0f} kW to {min(ks):.0f} kW, then steady')
+
+
+def scenario_quick_shutdown(s):
+    print('lube oil lost at load: 38 trip, quick shutdown')
+    flip(s, 'r_lp_l')
+    t = wait_for(s, lambda: V(s, 'tr') == 1, 60)
+    check(V(s, 'tr') == 1 and V(s, 'cb') == 1, f'38 THR BRG TEMP HI-HI after {t:.0f} s; 52G stays closed while the gates close')
+    peak, tcb = 0, None
+    for k in range(int(8 / 0.06)):
+        s.run(0.06); peak = max(peak, V(s, 'n'))
+        if tcb is None and V(s, 'cb') == 0:
+            tcb = (k + 1) * 0.06; gcb = V(s, 'g'); pcb = kw(s)
+    check(tcb is not None and gcb < 17 and V(s, 'exc') == 0, f'52G and 41 open {tcb:.1f} s later at {gcb:.0f} % gate')
+    check(peak < 102, f'no overspeed: peak {peak:.1f} %')
+    check(V(s, 'ua_bthh') == 1 and V(s, 'ua_lock') == 1, 'windows: 38 THR BRG TEMP HI-HI TRIP, 86U UNIT LOCKOUT')
 
 
 def scenario_overspeed(s):
@@ -275,6 +316,9 @@ if __name__ == '__main__':
     scenario_trip(s)
     s = scenario_plc_start()
     scenario_load_rejection(s)
+    s = scenario_plc_start()
+    scenario_quick_shutdown(s)
     scenario_blind_close()
+    scenario_rough_close()
     print('FAILED:' if FAILS else 'all passed', *FAILS, sep='\n  ')
     sys.exit(1 if FAILS else 0)
