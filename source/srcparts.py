@@ -153,7 +153,19 @@ def latch():
 
 
 # ------------------------------------------------------------------ breaker control switch (SB style)
-SB_H = 2.9                 # escutcheon half size: a 4.4 in square plate
+SB_H = 2.9                 # escutcheon half size as first drawn
+K_SW = 1.15                # the control switches and spring dials are this much bigger across (5 in plates)
+K_LAMP = 1.25              # and the indicating lamps and pushbuttons this much (2.7 in bezels)
+
+
+def scaled(mb, k):
+    """a part made k times bigger across the panel (its depth unchanged), normals kept true"""
+    for verts, lookup, idx in mb.parts.values():
+        for i, (p, n, uv) in enumerate(verts):
+            n2 = np.array([n[0] / k, n[1], n[2] / k]); n2 /= (np.linalg.norm(n2) or 1)
+            verts[i] = ((p[0] * k, p[1], p[2] * k), tuple(n2), uv)
+        lookup.clear()
+    return mb
 
 
 def rounded_square(h, r, n=6):
@@ -186,7 +198,7 @@ def sb_plate(face, H=SB_H):
     return mb
 
 
-KP_FA = 4.2                # the firing-angle knob's plate, half size
+KP_FA = 4.3                # the firing-angle knob's plate, half size: a meter's width
 
 
 def knob_face_texture(kind):
@@ -218,12 +230,12 @@ def knob_face_texture(kind):
         for k in range(10):                             # every 10 degrees of firing angle, 90 down to 0
             a = -150 + 300 * k / 9
             major = k % 3 == 0
-            d.line([pt(2.62, a), pt(3.22 if major else 2.98, a)], fill=W, width=7 if major else 4)
+            d.line([pt(2.8, a), pt(3.36 if major else 3.12, a)], fill=W, width=7 if major else 4)
             if major:
-                d.text(pt(3.66, a), str(90 - 10 * k), font=font, fill=W, anchor='mm')
-        r = 2.62 * ppu
+                d.text(pt(3.78, a), str(90 - 10 * k), font=font, fill=W, anchor='mm')
+        r = 2.8 * ppu
         d.arc([c - r, c - r, c + r, c + r], -90 - 150, -90 + 150, fill=W, width=4)
-        d.text(pt(3.45, 180), 'DEG', font=small, fill=W, anchor='mm')
+        d.text(pt(3.55, 180), 'DEG', font=small, fill=W, anchor='mm')
     return im
 
 
@@ -304,18 +316,18 @@ PARTS = {
     'meter': meter,
     'needle': lambda: needle(GR - 0.45),
     'needle_scope': lambda: needle(GR - 0.5, tail=1.3, w=0.3, hub=0.55),
-    'knob': knob,
-    'knob_l': lambda: knob(1.2),                  # the firing-angle knob
-    'kp_spring': lambda: sb_plate('sc_m_kp_spring'),
+    'knob': lambda: knob(K_SW),
+    'knob_l': lambda: knob(1.3),                  # the firing-angle knob
+    'kp_spring': lambda: sb_plate('sc_m_kp_spring', SB_H * K_SW),
     'kp_fa': lambda: sb_plate('sc_m_kp_fa', KP_FA),
-    'button_amber': lambda: button('sc_m_amber'),
-    'button_black': lambda: button('sc_m_black'),
-    'lamp_bezel': lamp_bezel,
-    'pb_bezel': pb_bezel,
+    'button_amber': lambda: scaled(button('sc_m_amber'), K_LAMP),
+    'button_black': lambda: scaled(button('sc_m_black'), K_LAMP),
+    'lamp_bezel': lambda: scaled(lamp_bezel(), K_LAMP),
+    'pb_bezel': lambda: scaled(pb_bezel(), K_LAMP),
     'hinge': hinge,
     'latch': latch,
-    'sb_flag': sb_flag,
-    'sb_handle': sb_handle,
-    'sb_handle_red': lambda: sb_handle('sc_m_red'),   # 86U
+    'sb_flag': lambda: scaled(sb_flag(), K_SW),
+    'sb_handle': lambda: scaled(sb_handle(), K_SW),
+    'sb_handle_red': lambda: scaled(sb_handle('sc_m_red'), K_SW),   # 86U
 }
-PARTS.update({f'sb_plate_{sb_key(w)}': (lambda w=w: sb_plate(f'sc_m_sb_{sb_key(w)}')) for w in SB_FACES})
+PARTS.update({f'sb_plate_{sb_key(w)}': (lambda w=w: sb_plate(f'sc_m_sb_{sb_key(w)}', SB_H * K_SW)) for w in SB_FACES})

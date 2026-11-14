@@ -332,10 +332,20 @@ class FuncRotButton(Mover):
 
 
 class FuncButton(FuncRotButton):
-    """linear push button: modelled as 1 unit of travel at its speed"""
+    """linear push button: modelled as 1 unit of travel at its speed (none with "don't move", flag 1)"""
     def spawn(self):
         super().spawn()
-        self.dist = 1.0
+        self.dist = 0.0 if self.flags & 1 else 1.0
+
+
+class LogicBranch(SimEnt):
+    """holds a boolean; Test fires OnTrue or OnFalse"""
+    def spawn(self):
+        self.value = bool(self.k('InitialValue'))
+
+    def in_setvalue(self, v): self.value = bool(float(v or 0))
+    def in_toggle(self, v): self.value = not self.value
+    def in_test(self, v): self.fire('OnTrue' if self.value else 'OnFalse')
 
 
 class MomentaryRotButton(Mover):
@@ -472,7 +482,7 @@ class AmbientGeneric(SimEnt):
 
 CLASSES = {'math_counter': MathCounter, 'math_remap': MathRemap, 'logic_relay': LogicRelay,
            'logic_timer': LogicTimer, 'logic_auto': LogicAuto, 'func_brush': FuncBrush,
-           'func_rot_button': FuncRotButton, 'func_button': FuncButton,
+           'func_rot_button': FuncRotButton, 'func_button': FuncButton, 'logic_branch': LogicBranch,
            'momentary_rot_button': MomentaryRotButton, 'ambient_generic': AmbientGeneric}
 
 

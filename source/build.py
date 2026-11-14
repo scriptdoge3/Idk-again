@@ -44,6 +44,10 @@ HIRES = {}                    # texture -> the image its material is made from, 
 SURF = {'sc_floor': 'tile', 'sc_wall': 'concrete', 'sc_walld': 'concrete', 'sc_stripe': 'concrete',
         'sc_ceil': 'ceiling_tile', 'sc_rubber': 'rubber'}       # surface properties (footsteps); the rest are metal
 ROOM_PROPS = []               # (model, world position, yaw): the room's furniture, prop_static
+# The cabinets are 50 wide and 94 high with 46 x 82 doors (the GoldSrc map's are 60 x 108 with 56 x 96 doors):
+# four meters fill a row, the devices fill the door down to its vents, and the top row is at eye height.
+CABW, CAB_TOP = 50, 94
+gb.CX0[:] = [-75, -25, 25]; gb.DOOR_W = 46; gb.DOOR_TOP = 91; gb.DOOR_H = 82
 srcparts.PARTS.update(srcroom.PARTS); srcparts.MATERIALS.update(srcroom.MATERIALS); srcparts.TEXTURES.update(srcroom.TEXTURES)
 ADDITIVE = set()
 
@@ -323,8 +327,8 @@ def build_panels(m, dev):
     sw = dev['switches']
     dl = dev['dials']
     lamps = dev['lamps']
-    doors = [gb.Door(0, 'UNIT 1 GENERATOR CONTROL', 'CP-1', louvres=False), gb.Door(1, 'UNIT 1 ANNUNCIATOR', 'CP-2', louvres=False),
-             gb.Door(2, 'UNIT 1 AUXILIARIES', 'CP-3', louvres=False), gb.Door(gb.SP, 'SPILLWAY GATE', 'SP-1', w=gb.SP_W, h=gb.SP_H, louvres=False)]
+    doors = [gb.Door(0, 'UNIT 1 GENERATOR CONTROL', 'CP-1', w=gb.DOOR_W, h=gb.DOOR_H, louvres=False), gb.Door(1, 'UNIT 1 ANNUNCIATOR', 'CP-2', w=gb.DOOR_W, h=gb.DOOR_H, louvres=False),
+             gb.Door(2, 'UNIT 1 AUXILIARIES', 'CP-3', w=gb.DOOR_W, h=gb.DOOR_H, louvres=False), gb.Door(gb.SP, 'SPILLWAY GATE', 'SP-1', w=gb.SP_W, h=gb.SP_H, louvres=False)]
     nd = [0]
     door_xy = gb.door_xy
 
@@ -360,6 +364,7 @@ def build_panels(m, dev):
     for ci in range(3):
         title_plates(ci)
     holes = {ci: [] for ci in (0, 1, 2, gb.SP)}
+    K, KL = srcparts.K_SW, srcparts.K_LAMP               # how much bigger the switches and the lamps are than first drawn
     HIT_FRONT, CLIP_FRONT, CLIP_BACK = -3.5, -3.9, -2.75
 
     # Round parts of brush entities run deep into the cabinet (hidden there): the compiler fills empty cells
@@ -367,19 +372,20 @@ def build_panels(m, dev):
     # fraction of a square unit across, so they need the depth to survive. A hit box ends at the same depth.
     DEEP = {gb.SP: 5.5}
 
-    def hit(ci, u, v, r, back=-0.6):
+    def hit(ci, u, v, r, back=-0.6, down=None):
         """Invisible disc (player clip) over a control's whole plate, part of the control's own entity, so the
         player's use trace (a thin line from the crosshair) lands on it anywhere over the control. The
         clip layer in front of the panel gets a hole here (see clip_layer)."""
         x, z = door_xy(ci, u, v)
         # the hole reaches further up: you look down at the panel, so the sight line to the top of a control
         # passes the clip layer above it
-        holes[ci].append((math.floor(u - r - 1.0), math.floor(v - r - 3.0), math.ceil(u + r + 1.0), math.ceil(v + r + 0.6)))
+        down = down or r                                # how far it reaches below the centre
+        holes[ci].append((math.floor(u - r - 1.0), math.floor(v - r - 3.0), math.ceil(u + r + 1.0), math.ceil(v + down + 0.6)))
         # a square, not a disc: the compiler splits an entity's brushes by each other's planes and drops pieces
         # under 1 cubic unit, and a disc's 16 slanted planes would slice the knob into slivers. The square's
         # planes all lie outside the knob, and it covers the whole circle at any angle it is turned to.
         # Player clip, not solid: a solid one would hide the knob's faces.
-        return Box(x - r, HIT_FRONT, z - r, x + r, back, z + r, tex='PCLIP')
+        return Box(x - r, HIT_FRONT, z - down, x + r, back, z + r, tex='PCLIP')
 
     def clip_layer(ci, w, h):
         """Player clip over the panel face, just in front of the controls, with a hole over each one. When
@@ -410,19 +416,28 @@ def build_panels(m, dev):
 
     BZ = 4.75                                          # meter bezel half size (on the 0.25 grid)
 
+    METER_H = GR + 0.25                                # the meter case's half width
+
+    def meter_label_w(label):
+        """a meter nameplate's width: the case's exactly, or at least half a unit inside it each side. An edge
+        a hair off the case's would leave a sliver of door between the two lines, which the compiler drops."""
+        w = 0.55 * len(label) + 1.6
+        return 2 * METER_H if w > 2 * METER_H - 1.0 else w
+
     def meter_case(x, z, Y0, tex, xl=None, xr=None, ci=0):
         """Switchboard meter: the dial behind a square black bezel 1.9 deep. (A round cut-out would put planes
         through the dial, and the compilers drop the thin wedges that leaves.)"""
-        o = GR + 0.3
+        o = METER_H                                    # on the 0.25 grid, under the model's flange
         W(x - o, Y0 - 0.6, z - o, x + o, Y0, z + o, tex='sc_black',
-          faces={FRONT: (tex, face_map(x - GR - 0.3, z + o, DIAL / (2 * o)))})
+          faces={FRONT: (tex, face_map(x - o, z + o, DIAL / (2 * o)))})
         prop(ci, 'meter', (x, Y0, z))                 # square flange, round window, raised bezel
 
     def gauge_at(x, z, Y0, tex, ptr, xl=None, xr=None, ci=0):
         """Round meter facing -Y on a surface at y = Y0, and its needle (a momentary_rot_button the logic
         sets), 1 unit deep so the compilers keep it (they drop brush pieces under 1 cubic unit)."""
         meter_case(x, z, Y0, tex, ci=ci)
-        place(m[ptr], needle_brushes(x, z, Y0 - 1.6, Y0 - 0.6, GR - 0.45), angles=f'{-SWEEP} 0 0', distance=2 * SWEEP)
+        sp = float(m[ptr].kv.get('startposition', 0))      # the needle is built where it starts
+        place(m[ptr], needle_brushes(x, z, Y0 - 1.6, Y0 - 0.6, GR - 0.45), angles=f'{-SWEEP + sp * 2 * SWEEP:.2f} 0 0', distance=2 * SWEEP)
         prop(ci, 'needle', (x, Y0 - 1.1, z), m[ptr])
 
     def gauge(ci, u, v, label, scales, unit, ptr, red=None, xl=None, xr=None, tex=None):
@@ -430,7 +445,7 @@ def build_panels(m, dev):
         if tex is None:
             tex = dial_texture(f'scg{nd[0]}', scales, unit, red); nd[0] += 1
         gauge_at(x, z, -0.5, tex, ptr, xl, xr, ci)
-        plate(ci, u, v + BZ + 1.15, min(9.4, 0.55 * len(label) + 1.6), 1.4, label, px=0.8)
+        plate(ci, u, v + BZ + 1.15, meter_label_w(label), 1.4, label, px=0.8)
 
     def lens(col, on):
         name = f'sc_lens_{col}_{int(on)}'
@@ -445,41 +460,42 @@ def build_panels(m, dev):
         colors = lm['colors']
         pair = colors[1] is not None
         cols = colors if pair else (colors[0],)
-        us = (u - 1.5, u + 1.5) if pair else (u,)
+        us = (u - 2.0, u + 2.0) if pair else (u,)
         for uu in us:
             x, z = door_xy(ci, uu, v)
             prop(ci, 'lamp_bezel', (x, -0.5, z))
             # the dark lens stands 0.1 off the door: touching it, its twelve sides cut the door's face into
             # pieces, and a hairline one between a lens corner and a nameplate's edge was dropped (a crack)
-            world.append(prism(ngon(x, z, 0.85, 12), -1.45, -0.6, 'y', lens(cols[us.index(uu)], False)))
+            world.append(prism(ngon(x, z, 0.85 * KL, 12), -1.45, -0.6, 'y', lens(cols[us.index(uu)], False)))
         # one lit lens per entity: two brushes in one entity would cut each other into pieces the compiler drops
-        lensp = lambda uu, col, on: prism(ngon(*door_xy(ci, uu, v), 0.9, 12, phase=0), -1.6, 28, 'y', lens(col, on))
+        lensp = lambda uu, col, on: prism(ngon(*door_xy(ci, uu, v), 0.9 * KL, 12, phase=0), -1.6, 28, 'y', lens(col, on))
         ents = lm['ents']
         if pair:
             place(ents[0], [lensp(us[0], cols[0], True)])
             place(ents[1], [lensp(us[1], cols[1], True)])
-            plate(ci, u - 1.5, v + 2.1, 2.6, 1.0, labels[0], px=0.62); plate(ci, u + 1.5, v + 2.1, 2.6, 1.0, labels[1], px=0.62)
+            plate(ci, u - 2.0, v + 2.75, 3.9, 1.2, labels[0], px=0.7); plate(ci, u + 2.0, v + 2.75, 3.9, 1.2, labels[1], px=0.7)
         else:
             place(ents[0], [lensp(u, cols[0], True)])
-            plate(ci, u, v + 2.2, 5.4, 1.5, labels[0], px=0.62)
+            plate(ci, u, v + 2.85, 5.6, 1.4, labels[0], px=0.75)
 
-    def cs_switch(ci, u, v, name):
+    def cs_switch(ci, u, v, name, lab=None):
         """breaker-type control switch, spring return: a black escutcheon engraved with its two positions
         (left = pos[0], right = pos[1]), a target window (red with the breaker closed, the pump running, AUTO
         selected or the lockout tripped; green otherwise, set by the logic) and an L handle hanging at normal.
-        Its two buttons take the two halves of the plate: E on the left half turns it left, on the right half
-        right; either way it springs back."""
+        One press anywhere on the plate or the handle works it (an invisible button over the whole switch);
+        the logic turns the handle the way that changes its state, and it springs back."""
         r = sw[name]
         x, z = door_xy(ci, u, v)
         lt, rt = r['ents']
+        H = srcparts.SB_H * K
         prop(ci, f"sb_plate_{srcparts.sb_key(r['pos'])}", (x, -0.5, z))
         prop(ci, 'sb_flag', (x, -0.5, z), name=f'{name}_flag', skin=0 if r['init'] else 1)
-        plate(ci, u, v - 4.3, min(11.5, 0.5 * len(r['label']) + 1.6), 1.4, r['label'], px=0.75)   # above the plate: the handle hangs over anything below
-        full = hit(ci, u, v, 4.2)                       # one clip hole for the whole plate
-        (x0, y0, z0), (x1, y1, z1) = full.lo, full.hi
+        # the nameplate is above the plate: the handle hangs over anything below
+        plate(ci, u, v - H - 1.05 if lab is None else lab, min(8.3, 0.55 * len(r['label']) + 1.6), 1.5, r['label'], px=0.85)
+        place(r['use'], [hit(ci, u, v, H + 0.7, down=4.4 * K + 0.8)])
         org = lambda: Box(x - 0.5, -2.6, z - 0.5, x + 0.5, -1.6, z + 0.5, tex='ORIGIN')
-        place(lt, [Box(x0, y0, z0, x, y1, z1, tex='PCLIP'), Box(x - 2.7, -1.7, z - 0.5, x - 1.5, -0.7, z + 0.5, tex='sc_knob'), org()])
-        place(rt, [Box(x, y0, z0, x1, y1, z1, tex='PCLIP'), Box(x + 1.5, -1.7, z - 0.5, x + 2.7, -0.7, z + 0.5, tex='sc_knob'), org()])
+        place(lt, [Box(x - 2.9, -1.7, z - 0.5, x - 1.7, -0.7, z + 0.5, tex='sc_knob'), org()])
+        place(rt, [Box(x + 1.7, -1.7, z - 0.5, x + 2.9, -0.7, z + 0.5, tex='sc_knob'), org()])
         rt.kv['rendermode'] = '10'
         prop(ci, 'sb_handle_red' if r['grip'] == 'red' else 'sb_handle', (x, -2.1, z), lt)
 
@@ -488,7 +504,7 @@ def build_panels(m, dev):
         meter_case(x, z, -0.5, 'sc_sync', ci=ci)
         place(m[dev['scope']], needle_brushes(x, z, -2.1, -1.1, GR - 0.5, tail=1.3, w=0.3), distance=360, angles='0 0 0')
         prop(ci, 'needle_scope', (x, -1.6, z), m[dev['scope']])
-        plate(ci, u, v + BZ + 1.15, 9, 1.4, 'SYNCHROSCOPE', px=0.8)
+        plate(ci, u, v + BZ + 1.15, meter_label_w('SYNCHROSCOPE'), 1.4, 'SYNCHROSCOPE', px=0.8)
 
     def knob_panel(ci, u, v, name, label):
         """FIRING ANGLE: a knob whose position is the manual firing angle (90 deg at the left stop, no field;
@@ -496,33 +512,34 @@ def build_panels(m, dev):
         x, z = door_xy(ci, u, v)
         prop(ci, 'kp_fa', (x, -0.5, z))
         deep = DEEP.get(ci, 8.0)
-        body = round_knob(x, z, 1.9, -2.4, deep)
+        body = round_knob(x, z, 2.2, -2.4, deep)
         start = -150 + 300 * hydro.KNOB0
-        place(dl[name]['ent'], [body, hit(ci, u, v, 2.8, deep), Box(x - 0.5, -2.0, z - 0.5, x + 0.5, -1.0, z + 0.5, tex='ORIGIN')],
+        place(dl[name]['ent'], [body, hit(ci, u, v, 3.2, deep), Box(x - 0.5, -2.0, z - 0.5, x + 0.5, -1.0, z + 0.5, tex='ORIGIN')],
               angles=f'{start:.2f} 0 0')
         prop(ci, 'knob_l', (x, -1.5, z), dl[name]['ent'])
-        plate(ci, u, v - 5.6, 9.5, 1.4, label, px=0.8)
+        plate(ci, u, v - srcparts.KP_FA - 1.05, 9.4, 1.5, label, px=0.85)
 
     def spring_dial(ci, u, v, name):
         """spring-return dial: held, it turns 60 degrees clockwise to its stop; let go, it springs back. Its
         black plate is engraved with the rest mark, the stop and an arrow."""
         x, z = door_xy(ci, u, v)
+        H = srcparts.SB_H * K
         prop(ci, 'kp_spring', (x, -0.5, z))
         deep = DEEP.get(ci, 8.0)
-        body = round_knob(x, z, 1.9, -2.8, deep)
-        place(dl[name]['ent'], [body, hit(ci, u, v, 3.0, deep), Box(x - 0.5, -2.0, z - 0.5, x + 0.5, -1.0, z + 0.5, tex='ORIGIN')])
+        body = round_knob(x, z, 2.1, -2.8, deep)
+        place(dl[name]['ent'], [body, hit(ci, u, v, H, deep), Box(x - 0.5, -2.0, z - 0.5, x + 0.5, -1.0, z + 0.5, tex='ORIGIN')])
         prop(ci, 'knob', (x, -1.5, z), dl[name]['ent'])
-        plate(ci, u, v + 4.4, 5.6, 1.4, dl[name]['label'], px=0.8)
+        plate(ci, u, v + H + 1.05, 6.4, 1.5, dl[name]['label'], px=0.85)
 
     def pushbutton(ci, u, v, name, tex):
-        """illuminated-style pushbutton: a round cap in a chrome bezel; the func_button is 4 units deep (most
-        of it inside the cabinet) so it has room to travel 1.2 units in when pressed"""
-        x, z = door_xy(ci, u, v); D = doors[ci]
+        """pushbutton: a round cap in a chrome bezel; the func_button runs deep into the cabinet so it has room
+        to travel 1.2 units in when pressed"""
+        x, z = door_xy(ci, u, v)
         prop(ci, 'pb_bezel', (x, -0.5, z))
         b = dev['buttons'][name]
-        place(b['ent'], [prism(ngon(x, z, 1.35, 12, phase=0), -2.6, 20, 'y', tex), hit(ci, u, v, 2.4, 20)], lip=f'{(20 - HIT_FRONT) - 2 - 1.2:.2f}')
+        place(b['ent'], [prism(ngon(x, z, 1.35 * KL, 12, phase=0), -2.6, 20, 'y', tex), hit(ci, u, v, 3.0, 20)], lip=f'{(20 - HIT_FRONT) - 2 - 1.2:.2f}')
         prop(ci, 'button_amber' if tex == 'sc_btn_a' else 'button_black', (x, -2.6, z), b['ent'])
-        plate(ci, u, v + 3.2, 9.5, 1.4, b['label'], px=0.8)
+        plate(ci, u, v + 3.9, 7.0, 1.5, b['label'], px=0.85)
 
     def frame(D, u0, v0, w, h):
         """grouping line round a block of meters or controls (no label)"""
@@ -530,45 +547,46 @@ def build_panels(m, dev):
         D.d.rounded_rectangle([x0, y0, x1, y1], radius=6, outline=(70, 74, 70, 255), width=2)
         D.d.rounded_rectangle([x0 + 2, y0 + 2, x1 + 2, y1 + 2], radius=6, outline=(205, 208, 204, 255), width=1)
 
-    ROW1, ROW2, CTL = 13, 29, 50
+    # Every panel is laid out on the same columns: four for meters and breaker switches (10.5 apart), five
+    # for a row of switches and dials (8.6 apart).
+    C4 = (7.25, 17.75, 28.25, 38.75)
+    C5 = (5.8, 14.4, 23.0, 31.6, 40.2)
+    ROW1, ROW2, CTL = 13, 30, 50.5
+    FW = gb.DOOR_W - 2.4                               # frame width
 
-    # ------------------------------------------- left: unit control
+    # ------------------------------------------- left: generator control
     D = doors[0]
-    frame(D, 1.5, 5.5, 53, 32.5)
-    # the generator board: turbine speed, volts, amps and kilowatts on top; firing angle, power factor, grid
-    # volts and the synchroscope (with its lamps and the sync-check lamp) below
-    gauge(0, 7, ROW1, 'TURBINE RPM', [(0, 150, 25, 25, 5, None)], 'RPM', 'p_speed', red=(140, 150))
-    gauge(0, 17, ROW1, 'GEN VOLTS', [(0, 600, 100, 100, 20, None)], 'AC VOLTS', 'p_volts')
-    gauge(0, 27, ROW1, 'GEN AMPS', [(0, 500, 100, 50, 10, None)], 'AC AMPS', 'p_amps', red=(450, 500))
-    gauge(0, 37, ROW1, 'KW', [(0, 320, 80, 40, 10, None)], 'KW', 'p_kw')
-    gauge(0, 7, ROW2, 'EXC FIRING ANGLE', [(0, 90, 15, 15, 5, None)], 'DEG', 'p_fa')
-    gauge(0, 17, ROW2, 'POWER FACTOR', None, None, 'p_pf', tex=pf_texture('scg_pf'))
-    gauge(0, 27, ROW2, 'GRID VOLTS', [(0, 600, 100, 100, 20, None)], 'AC VOLTS', 'p_gridv')   # beside the scope
-    synchroscope(0, 37, ROW2)
-    world.append(gb.front_box(0, 49.5, ROW2 - 1, 5, 2, -1.0, -0.5, lens_texture('sc_slmp0', ('white', 'white'), (False, False))))
+    frame(D, 1.2, 5.5, FW, 32.5)
+    # turbine speed, volts, amps and kilowatts on top; firing angle, power factor, grid volts and the
+    # synchroscope below, with its lamps above it
+    gauge(0, C4[0], ROW1, 'TURBINE RPM', [(0, 150, 25, 25, 5, None)], 'RPM', 'p_speed', red=(140, 150))
+    gauge(0, C4[1], ROW1, 'GEN VOLTS', [(0, 600, 100, 100, 20, None)], 'AC VOLTS', 'p_volts')
+    gauge(0, C4[2], ROW1, 'GEN AMPS', [(0, 500, 100, 50, 10, None)], 'AC AMPS', 'p_amps', red=(450, 500))
+    gauge(0, C4[3], ROW1, 'KW', [(0, 320, 80, 40, 10, None)], 'KW', 'p_kw')
+    gauge(0, C4[0], ROW2, 'EXC FIRING ANGLE', [(0, 90, 15, 15, 5, None)], 'DEG', 'p_fa')
+    gauge(0, C4[1], ROW2, 'POWER FACTOR', None, None, 'p_pf', tex=pf_texture('scg_pf'))
+    gauge(0, C4[2], ROW2, 'GRID VOLTS', [(0, 600, 100, 100, 20, None)], 'AC VOLTS', 'p_gridv')
+    synchroscope(0, C4[3], ROW2)
+    world.append(gb.front_box(0, C4[3], 22.4, 5, 2, -1.0, -0.5, lens_texture('sc_slmp0', ('white', 'white'), (False, False))))
     sl = Image.new('RGB', (160, 64), (0, 0, 0)); d = ImageDraw.Draw(sl)
     for x0 in (0, 96):
         d.ellipse([x0 + 6, 6, x0 + 57, 57], fill=(255, 236, 190))
     TEX['sc_slmp1'] = sl; UNLIT.add('sc_slmp1'); ADDITIVE.add('sc_slmp1')
     E.append(('func_brush', {'targetname': 'SYNCLAMPS', 'rendermode': '5', 'renderamt': '0', 'Solidity': '1'}, [],
-              [gb.front_box(0, 49.5, ROW2 - 1, 5, 2, -1.3, -1.0, 'sc_slmp1')]))
-    lampw(0, 49.5, ROW2 + 5, 'L_perm', ('25 PERM',))
-    frame(D, 1.5, 40, 53, 44)
-    cs_switch(0, 8, CTL, 'r_ss')
-    cs_switch(0, 21, CTL, 'r_52'); lampw(0, 21, CTL + 9, 'LP_cb', ('CLOSED', 'OPEN'))
-    cs_switch(0, 34, CTL, 'r_exc'); lampw(0, 34, CTL + 9, 'LP_exc', ('CLOSED', 'OPEN'))
-    cs_switch(0, 47, CTL, 'r_gt')
-    plate(0, 11, CTL + 15.6, 13, 1.4, 'WICKET GATE', px=0.8)
-    spring_dial(0, 6, CTL + 21, 'k_gl'); spring_dial(0, 16, CTL + 21, 'k_gr')
-    cs_switch(0, 30, CTL + 21, 'r_br'); lampw(0, 30, CTL + 30, 'LP_brake', ('APPLIED', 'RELEASED'))
-    knob_panel(0, 45, CTL + 21, 'k_fa', dl['k_fa']['label'])
+              [gb.front_box(0, C4[3], 22.4, 5, 2, -1.3, -1.0, 'sc_slmp1')]))
+    # synchronizing and the breakers, each with its lamps under it; the lockout
+    frame(D, 1.2, 40, FW, 25)
+    cs_switch(0, C4[0], CTL, 'r_ss'); lampw(0, C4[0], CTL + 9.5, 'L_perm', ('25 PERM',))
+    cs_switch(0, C4[1], CTL, 'r_52'); lampw(0, C4[1], CTL + 9.5, 'LP_cb', ('CLOSED', 'OPEN'))
+    cs_switch(0, C4[2], CTL, 'r_exc'); lampw(0, C4[2], CTL + 9.5, 'LP_exc', ('CLOSED', 'OPEN'))
+    cs_switch(0, C4[3], CTL, 'r_gt')
 
     # ------------------------------------------- middle: the annunciator, the governor and the voltage regulator
     D = doors[1]
     # The annunciator: a lightbox of 24 windows, 4 rows of 6, behind a black bezel grid in a raised frame.
     # Each window is a dark lens in the world and a lit one (a func_brush the logic shows) just in front.
     PU, PV = 6.2, 4.4                                  # window pitch
-    AU, AV = 28 - 2.5 * PU, 17.6 - 1.5 * PV            # first window's centre: the grid is centred on the door
+    AU, AV = gb.DOOR_W / 2 - 2.5 * PU, 7.2 + PV / 2    # first window's centre: the grid is centred on the door
     for i, w in enumerate(dev['windows']):
         c, r = i % 6, i // 6
         u, v = AU + c * PU, AV + r * PV
@@ -584,31 +602,38 @@ def build_panels(m, dev):
         ann(ul, vt + r_ * PV - 0.15, ur, vt + r_ * PV + 0.15, -1.9)
     ann(ul - 0.5, vt - 0.5, ur + 0.5, vt + 0.15, -2.2, 'sc_bezel'); ann(ul - 0.5, vb - 0.15, ur + 0.5, vb + 0.5, -2.2, 'sc_bezel')   # frame
     ann(ul - 0.5, vt + 0.15, ul + 0.15, vb - 0.15, -2.2, 'sc_bezel'); ann(ur - 0.15, vt + 0.15, ur + 0.5, vb - 0.15, -2.2, 'sc_bezel')
-    gauge(1, 10, 37, 'GATE POS', [(0, 100, 20, 10, 2, None)], 'PERCENT', 'p_gate')          # by GOV MODE
-    gauge(1, 22, 37, 'GEN FREQ', [(54, 66, 2, 1, 0.2, None)], 'Hz', 'p_hz')
-    gauge(1, 34, 37, 'BUS FREQ', [(54, 66, 2, 1, 0.2, None)], 'Hz', 'p_sfreq')
-    gauge(1, 46, 37, 'FIELD AMPS', [(0, 60, 10, 10, 2, None)], 'DC AMPS', 'p_exc')          # by AVR MODE
-    cs_switch(1, 17, CTL, 'r_plc')
-    cs_switch(1, 39, CTL, 'r_avr')
-    # annunciator pushbuttons: ACKNOWLEDGE (amber), RESET and TEST (black)
-    frame(D, 1.5, 58.5, 53, 11)
-    for u, nm, tex in ((14, 'b_ack', 'sc_btn_a'), (28, 'b_rst', 'sc_btn_k'), (42, 'b_test', 'sc_btn_k')):
-        pushbutton(1, u, 63, nm, tex)
+    # its pushbuttons under it: ACK (amber), RESET and TEST (black)
+    for u, nm, tex in ((13, 'b_ack', 'sc_btn_a'), (23, 'b_rst', 'sc_btn_k'), (33, 'b_test', 'sc_btn_k')):
+        pushbutton(1, u, 29.8, nm, tex)
+    gauge(1, C4[0], 42.3, 'GATE POS', [(0, 100, 20, 10, 2, None)], 'PERCENT', 'p_gate')
+    gauge(1, C4[1], 42.3, 'GEN FREQ', [(54, 66, 2, 1, 0.2, None)], 'Hz', 'p_hz')
+    gauge(1, C4[2], 42.3, 'BUS FREQ', [(54, 66, 2, 1, 0.2, None)], 'Hz', 'p_sfreq')
+    gauge(1, C4[3], 42.3, 'FIELD AMPS', [(0, 60, 10, 10, 2, None)], 'DC AMPS', 'p_exc')
+    # the governor (mode, gate lower / raise) and the voltage regulator (mode, manual firing angle) in one row
+    GV = 62.0; LAB = GV - srcparts.KP_FA - 1.05
+    frame(D, 1.2, 53.6, FW, 15.2)
+    cs_switch(1, C5[0], GV, 'r_plc', lab=LAB)
+    plate(1, (C5[1] + C5[2]) / 2, LAB, 13, 1.5, 'WICKET GATE', px=0.85)
+    spring_dial(1, C5[1], GV, 'k_gl'); spring_dial(1, C5[2], GV, 'k_gr')
+    cs_switch(1, C5[3], GV, 'r_avr', lab=LAB)
+    knob_panel(1, C5[4], GV, 'k_fa', dl['k_fa']['label'])
 
     # ------------------------------------------- right: auxiliaries
     D = doors[2]
-    frame(D, 1.5, 5.5, 53, 32.5)
-    gauge(2, 7, ROW1, 'LUBE OIL PRESS', [(0, 60, 10, 10, 2, None)], 'PSI', 'p_lube', red=(0, 20), xr=5)
-    gauge(2, 17, ROW1, 'CW FLOW', [(0, 100, 20, 10, 5, None)], 'GPM', 'p_cw', red=(0, 35), xl=5, xr=5)
-    gauge(2, 27, ROW1, 'THRUST BRG TEMP', [(20, 100, 20, 10, 5, None)], 'DEG C', 'p_bt', red=(76, 100), xl=5, xr=5)
-    gauge(2, 37, ROW1, 'SHAFT VIB', [(0, 20, 5, 5, 1, None)], 'MILS P-P', 'p_vib', red=(12, 20), xl=5)
-    gauge(2, 7, ROW2, 'HPU PRESS', [(0, 400, 100, 50, 10, None)], 'PSI', 'p_opu', red=(0, 220), xr=5)
-    gauge(2, 17, ROW2, 'BRAKE AIR PRESS', [(0, 150, 25, 25, 5, None)], 'PSI', 'p_air', red=(0, 50), xl=5, xr=5)
-    gauge(2, 27, ROW2, 'NET HEAD', [(0, 60, 10, 10, 2, None)], 'FT', 'p_head', xl=5, xr=5)
-    gauge(2, 37, ROW2, 'STATOR TEMP', [(0, 150, 25, 25, 5, None)], 'DEG C', 'p_st', red=(120, 150), xl=5)
-    frame(D, 1.5, 40, 53, 22)
-    for u, nm in ((8, 'r_lp'), (21, 'r_wp'), (34, 'r_hp'), (47, 'r_ac')):
+    frame(D, 1.2, 5.5, FW, 32.5)
+    gauge(2, C4[0], ROW1, 'LUBE OIL PRESS', [(0, 60, 10, 10, 2, None)], 'PSI', 'p_lube', red=(0, 20))
+    gauge(2, C4[1], ROW1, 'CW FLOW', [(0, 100, 20, 10, 5, None)], 'GPM', 'p_cw', red=(0, 35))
+    gauge(2, C4[2], ROW1, 'THRUST BRG TEMP', [(20, 100, 20, 10, 5, None)], 'DEG C', 'p_bt', red=(76, 100))
+    gauge(2, C4[3], ROW1, 'SHAFT VIB', [(0, 20, 5, 5, 1, None)], 'MILS P-P', 'p_vib', red=(12, 20))
+    gauge(2, C4[0], ROW2, 'HPU PRESS', [(0, 400, 100, 50, 10, None)], 'PSI', 'p_opu', red=(0, 220))
+    gauge(2, C4[1], ROW2, 'BRAKE AIR PRESS', [(0, 150, 25, 25, 5, None)], 'PSI', 'p_air', red=(0, 50))
+    gauge(2, C4[2], ROW2, 'NET HEAD', [(0, 60, 10, 10, 2, None)], 'FT', 'p_head')
+    gauge(2, C4[3], ROW2, 'STATOR TEMP', [(0, 150, 25, 25, 5, None)], 'DEG C', 'p_st', red=(120, 150))
+    # the pumps, the compressor and the brakes in one row; the brakes' lamps under their switch
+    frame(D, 1.2, 40, FW, 25)
+    for u, nm in zip(C5, ('r_lp', 'r_wp', 'r_hp', 'r_ac', 'r_br')):
         cs_switch(2, u, CTL, nm)
+    lampw(2, C5[4], CTL + 9.5, 'LP_brake', ('APPLIED', 'RELEASED'))
 
     for ci in (0, 1, 2):
         clip_layer(ci, gb.DOOR_W, gb.DOOR_H)
@@ -618,13 +643,13 @@ def build_panels(m, dev):
     wall_ents = []
     D = doors[gb.SP]
     title_plates(gb.SP)
-    for nm in ('p_hw', 'p_rq', 'p_spill', 'r_sp_l', 'r_sp_r', 'k_sl', 'k_sr'):
+    for nm in ('p_hw', 'p_rq', 'p_spill', 'r_sp', 'r_sp_l', 'r_sp_r', 'k_sl', 'k_sr'):
         wall_ents.append(m[nm])
     gauge(gb.SP, 7, 12, 'FOREBAY LEVEL', [(0, 35, 5, 5, 1, None)], 'FT', 'p_hw', red=(29.5, 35), xl=5.5, xr=6.5)
     gauge(gb.SP, 20, 12, 'INFLOW', [(0, 120, 20, 20, 5, None)], 'CFS', 'p_rq', xl=6.5, xr=6.5)
     gauge(gb.SP, 33, 12, 'GATE POS', [(0, 4, 1, 1, 0.25, None)], 'FT', 'p_spill', xl=6.5, xr=5.5)
     cs_switch(gb.SP, 8, 32, 'r_sp')
-    plate(gb.SP, 27.5, 26.6, 13, 1.4, 'GATE', px=0.8)
+    plate(gb.SP, 27.5, 32 - srcparts.SB_H * K - 1.05, 13, 1.5, 'GATE', px=0.85)
     spring_dial(gb.SP, 22, 32, 'k_sl'); spring_dial(gb.SP, 33, 32, 'k_sr')
     W(-1, 0, gb.SP_TOP - gb.SP_H - 1, gb.SP_W + 1, 6, gb.SP_TOP + 1, tex='sc_paintd', scale=0.5)
     TEX['scdsp'] = D.img.convert('RGB')
@@ -636,6 +661,8 @@ def build_panels(m, dev):
         for b in e.brushes:
             if isinstance(b, CapPoly):
                 b.wall = True
+        if e.cls == 'func_button':                     # a switch's use button: it doesn't turn
+            continue
         sf = int(e.kv['spawnflags']); assert sf & 128
         sf = (sf & ~128) | 64                         # turns about X now (roll)
         if e.cls == 'func_rot_button':
@@ -679,29 +706,29 @@ def cabinet_body(ci, D):
     zd0, zd1 = gb.DOOR_TOP - gb.DOOR_H, gb.DOOR_TOP
     g = 0.3
     paint = lambda *a: W(*a, tex='sc_paintd', scale=0.5, faces={FRONT: ('sc_paint', (0, 0, 0.5, 0.5))})
-    xl = x0 + (0 if ci == 0 else 0.15); xr = x0 + 60 - (0 if ci == 2 else 0.15)
-    paint(xl, -0.5, 6, xd0 - g, 0, 108)                                     # frame
-    paint(xd1 + g, -0.5, 6, xr, 0, 108)
-    paint(xd0 - g, -0.5, zd1 + g, xd1 + g, 0, 108)
+    xl = x0 + (0 if ci == 0 else 0.15); xr = x0 + CABW - (0 if ci == 2 else 0.15)
+    paint(xl, -0.5, 6, xd0 - g, 0, CAB_TOP)                                     # frame
+    paint(xd1 + g, -0.5, 6, xr, 0, CAB_TOP)
+    paint(xd0 - g, -0.5, zd1 + g, xd1 + g, 0, CAB_TOP)
     paint(xd0 - g, -0.5, 6, xd1 + g, 0, zd0 - g)
     for a in ((xd0 - g, -0.25, zd0 - g, xd0, 0, zd1 + g), (xd1, -0.25, zd0 - g, xd1 + g, 0, zd1 + g),
               (xd0, -0.25, zd1, xd1, 0, zd1 + g), (xd0, -0.25, zd0 - g, xd1, 0, zd0)):
         W(*a, tex='sc_black')                                                # gasket in the gap
     if ci > 0:
-        W(x0 - 0.15, -0.5, 6, x0 + 0.15, 0, 108, tex='sc_black')            # joint with the cabinet to the left
-    for z in (18, 90):                                                       # hinges on the left edge
+        W(x0 - 0.15, -0.5, 6, x0 + 0.15, 0, CAB_TOP, tex='sc_black')            # joint with the cabinet to the left
+    for z in (18, CAB_TOP - 18):                                                       # hinges on the left edge
         prop(ci, 'hinge', (xd0 - 0.15, -0.75, z + 3))
-    prop(ci, 'latch', (xd1 - 3.0, -0.5, 55))                                 # latch: escutcheon and swing handle
-    for u0 in (6, 34):                                                       # vents: dark opening, six slats
+    prop(ci, 'latch', (xd1 - 1.5, -0.5, gb.DOOR_TOP - 39))                   # latch: escutcheon and swing handle, in the margin beside the meters
+    for u0 in (4, 26):                                                       # vents: dark opening, six slats
         x_a, x_b = xd0 + u0, xd0 + u0 + 16
         for k in range(6):
-            zt = gb.DOOR_TOP - (85.6 + k * 1.5)
+            zt = gb.DOOR_TOP - (gb.DOOR_H - 10.4 + k * 1.5)
             world.append(prism_x([(-0.5, zt), (-0.5, zt - 1.1), (-1.15, zt - 1.1)], x_a, x_b, 'sc_paintd'))
-    W(x0 - (0.6 if ci == 0 else 0), -1.0, 108, x0 + 60 + (0.6 if ci == 2 else 0), 32.6, 109.6,       # top cap
+    W(x0 - (0.6 if ci == 0 else 0), -1.0, CAB_TOP, x0 + CABW + (0.6 if ci == 2 else 0), 32.6, CAB_TOP + 1.6,     # top cap
       tex='sc_paintd', scale=0.5, faces={FRONT: ('sc_paint', (0, 0, 0.5, 0.5))})
     # vent openings on the door art
-    for u0 in (6, 34):
-        x_0, y_0 = D.P(u0, 85.3); x_1, y_1 = D.P(u0 + 16, 94.6)
+    for u0 in (4, 26):
+        x_0, y_0 = D.P(u0, gb.DOOR_H - 10.7); x_1, y_1 = D.P(u0 + 16, gb.DOOR_H - 1.4)
         D.d.rectangle([x_0, y_0, x_1, y_1], fill=(30, 32, 30, 255))
 
 
@@ -841,6 +868,17 @@ def build_room():
     old = lambda b: isinstance(b, Box) and ((b.lo[2] == 108 and b.hi[2] == 109) or                  # cap, latch
                                             (b.tex == 'sc_metal' and b.lo[1] == -1.6 and b.lo[2] == 50))
     world[:] = [b for b in world if not old(b)]
+    # the cabinet bodies and plinths again, at this map's width
+    body = lambda b: isinstance(b, Box) and ((b.tex == 'sc_paintd' and b.lo[2] == 6 and b.hi[2] == 108)
+                                             or (b.tex == 'sc_rubber' and b.lo[2] == 0 and b.hi[2] == 6))
+    world[:] = [b for b in world if not body(b)]
+    for x0 in gb.CX0:
+        W(x0, 0, 6, x0 + CABW, 32, CAB_TOP, tex='sc_paintd', faces={FRONT: ('sc_paint', (0, 0, 0.5, 0.5))}, scale=0.5)
+        W(x0 + 1, 1, 0, x0 + CABW - 1, 31, 6, tex='sc_rubber')
+    # and the cable drops from the tray, down to the lower cabinet tops
+    for b in world:
+        if isinstance(b, Box) and b.tex == 'sc_rubber' and b.lo[2] == 109:
+            b.lo = (b.lo[0], b.lo[1], CAB_TOP + 1.6)
     # the furniture is studio models, not blocks: out go the old door, extinguisher, clock, desk and chair
     gone = lambda b: isinstance(b, Box) and (b.tex in ('sc_door', 'sc_extg', 'sc_deskm', 'sc_wood', 'sc_chair')
                                              or any(t == 'sc_clock' for t, _ in b.faces.values())

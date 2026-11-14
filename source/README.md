@@ -11,10 +11,10 @@ the console. The textures and sounds are packed inside the BSP, and no launch op
 
 ## Entities and speed
 
-The map has 1,671 entities, and only 150 of them use network slots: the needles, switches, dials,
-pushbuttons, lamps, annunciator windows and sounds (95), and the 55 models that move with them. The 67 fixed
-models are static props, which cost nothing. The plant logic (1,449 entities: `math_counter`,
-`math_remap`, `logic_relay`, `logic_timer`, `logic_auto`) is server-only and uses none. Half-Life 2 allows
+The map has 1,695 entities, and only 162 of them use network slots: the needles, switches, dials,
+pushbuttons, lamps, annunciator windows and sounds (107), and the 55 models that move with them. The 67 fixed
+models are static props, which cost nothing. The plant logic (1,461 entities: `math_counter`,
+`math_remap`, `logic_relay`, `logic_timer`, `logic_auto`, `logic_branch`) is server-only and uses none. Half-Life 2 allows
 2048 of each kind. The room's detail is world geometry (`func_detail`), which costs nothing while playing.
 
 What limits the logic is speed, not entity count. Each output the engine fires finds its target by
@@ -90,20 +90,30 @@ The plant is a per-unit machine model, the kind used in hydro studies:
 
 ## Controls
 
-The cabinets and the spillway panel are laid out as in the GoldSrc map. These things are different:
+The three cabinets are 50 wide and 94 high (37 x 70 in), narrower and lower than the GoldSrc map's, so the
+devices fill the doors down to the vents and the top meters are at eye height. Every panel uses the same
+columns: four for meters and breaker switches, five for a row of switches and dials.
+
+| Panel | Top to bottom |
+|---|---|
+| CP-1 generator control | eight meters; 25 SYNC, 52G, 41 and 86U with their lamps under them |
+| CP-2 annunciator | the annunciator and its ACK / RESET / TEST buttons; GATE POS, GEN FREQ, BUS FREQ, FIELD AMPS; GOV MODE, WICKET GATE LOWER / RAISE, AVR MODE, FIRING ANGLE in one row |
+| CP-3 auxiliaries | eight meters; LUBE OIL PUMP, CW PUMP, HPU PUMP, AIR COMP, BRAKES |
+
+The devices in detail:
 
 | Control | Now |
 |---|---|
-| Meters | 250-degree switchboard meters: square flange, round bezel, pointer with a counterweight; needle speed matched to its loop's update rate. |
-| CP-1 meters | TURBINE RPM, GEN VOLTS, GEN AMPS, KW; EXC FIRING ANGLE, POWER FACTOR, GRID VOLTS, SYNCHROSCOPE (sync lamps and 25 PERM beside it). GRID VOLTS is the 480 V bus the utility feeds; it wanders between 476 and 486 V. BUS FREQ is the grid's 60 Hz. GEN AMPS is apparent power over volts, \|S\| by alpha-max-plus-beta-min (within 4 %). |
-| Control switches | All breaker-type (SB style), spring return: the L handle hangs at normal; E on the left half of the plate turns it left, on the right half right, and it springs back. The state latches in the logic and shows in the target window (a model skin the logic sets): red closed / running / ON / AUTO / locked out, green otherwise. A protective trip changes the targets, not the handles. |
+| Meters | 250-degree switchboard meters: square flange, round bezel, pointer with a counterweight; each needle's speed is set a little above the fastest its quantity normally moves, so it sweeps instead of ticking along in steps; slow needles start where they read. |
+| CP-1 meters | TURBINE RPM, GEN VOLTS, GEN AMPS, KW; EXC FIRING ANGLE, POWER FACTOR, GRID VOLTS, SYNCHROSCOPE (sync lamps above it; 25 PERM under the 25 SYNC switch). GRID VOLTS is the 480 V bus the utility feeds; it wanders between 476 and 486 V. BUS FREQ is the grid's 60 Hz. GEN AMPS is apparent power over volts, \|S\| by alpha-max-plus-beta-min (within 4 %). |
+| Control switches | All breaker-type (SB style), spring return: the L handle hangs at normal. One press of E anywhere on the switch works it: an invisible button over the plate and handle asks a `logic_branch` that holds the switch's state, and the handle turns the way that changes it (right when off, left when on: 0.15 s over, 0.25 s held, 0.15 s back). So E on 52G closes it when it is open and trips it when it is closed. The state latches in the logic and shows in the target window (a model skin the logic sets): red closed / running / ON / AUTO / locked out, green otherwise. A protective trip changes the targets, not the handles. |
 | 52G, 41 | TRIP / CLOSE. A close is refused without the sync check (52G) or below 90 % speed (41). |
 | 25 SYNC | OFF / ON. |
 | 86U | RESET / TRIP, red handle. |
 | GOV MODE, AVR MODE | MAN / AUTO. A trip drops both to MAN; AUTO is blocked until 86U is reset. |
 | LUBE OIL PUMP, CW PUMP | STOP / START. |
 | HPU PUMP, AIR COMP | OFF / AUTO (they run on their pressure switches). |
-| BRAKES | RELEASE / APPLY; the target is red with APPLY selected (as at the start). The brakes go on only below 30 % speed and with air. |
+| BRAKES (CP-3) | RELEASE / APPLY; the target is red with APPLY selected (as at the start). The brakes go on only below 30 % speed and with air. |
 | GATE MODE (SP-1) | MAN / AUTO for the spill gate; it starts in AUTO. |
 | CP-2 meters | GATE POS by GOV MODE, GEN FREQ, BUS FREQ, FIELD AMPS by AVR MODE. |
 | CP-3 meters | LUBE OIL PRESS, CW FLOW, THRUST BRG TEMP, SHAFT VIB; HPU PRESS, BRAKE AIR PRESS, NET HEAD, STATOR TEMP. |
@@ -112,7 +122,8 @@ The cabinets and the spillway panel are laid out as in the GoldSrc map. These th
 | WICKET GATE LOWER / RAISE | Spring-return. Held: 0.25 %/s for 1 s, 2.5 %/s for 2 s, then 10 %/s. |
 | FIRING ANGLE knob | Position = firing angle, 90 deg (left stop) to 0 deg (right stop, 140 % field). Each new grab reverses direction (Source wheel). Tracks the AVR in AUTO for a bumpless transfer. |
 | SYNCHROSCOPE | Real phase angle; 216 deg/s per 1 % slip, max 1 rev/s. Sync lamps dark at 12 o'clock. |
-| Hit areas | Each control has an invisible player-clip box over its plate, and a clip layer in front of each panel has a hole over each control. E takes the control under the crosshair; between controls it does nothing. |
+| Hit areas | Each control has an invisible player-clip box over its plate (a switch's reaches down over its handle), and a clip layer in front of each panel has a hole over each control. E takes the control under the crosshair; between controls it does nothing. |
+| Sizes | Meters 8.6 units square (6.5 in); switch and dial plates 6.7 (5 in); lamps and pushbuttons 3.6 (2.7 in); annunciator windows 5.9 x 4.1. |
 
 ## Nameplates and terms
 
@@ -254,6 +265,10 @@ Brush rules for Source compilers, learned the hard way:
 - A world brush with slanted sides must not touch a door's face: it cuts the face into pieces along its
   sides, and a hairline piece next to a nameplate's edge gets dropped, leaving a crack. The lamps' dark
   lenses therefore stand 0.1 off the door, inside their bezels.
+- Two raised parts' edges must not run parallel a hair apart on a door (a meter's case and its nameplate):
+  the strip of door between them is a sliver the compiler drops. A meter's nameplate is either exactly as
+  wide as its case or half a unit inside it on each side. `holes2`-style scanning of the compiled doors
+  (every sample point covered by a front-facing triangle) catches both kinds.
 
 After compiling, `build.py` replaces gbsp's per-face triangle lists ("primitives"). The game reserves
 (corners - 2) x 3 indices for each face, and gbsp leaves zero-area triangles out of a face with a repeated

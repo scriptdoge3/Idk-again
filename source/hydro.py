@@ -55,6 +55,12 @@ DT_FAST, DT_MED, DT_SLOW = 0.03, 0.12, 0.24
 # gates at the same rate); an open flume has no water hammer to slow the closure for
 GATE_OPEN, GATE_CLOSE = 10.0, 20.0     # %/s
 SNL_GATE = 15.0                        # speed-no-load gate, %
+SW_SPEED, SW_HOLD = 300, 0.25          # control switch handles: 45 degrees in 0.15 s, held 0.25 s, then back
+# Needle speeds, degrees a second. A needle runs at its speed towards each new value and then waits for the
+# next, so one much faster than its quantity changes ticks along in steps; each is set a little above the
+# fastest its quantity normally moves, so it sweeps instead (and lags a sudden jump, as a damped meter does).
+NEEDLE_SPEED = {'f': 300, 'm': 110, 's': 40, 'p_opu': 20, 'p_air': 24, 'p_bt': 8, 'p_hw': 5, 'p_rq': 4, 'p_st': 5,
+                'p_gridv': 4, 'p_spill': 12, 'p_vib': 30, 'p_lube': 60, 'p_cw': 60}
 I_RATED = 77.0                         # rated stator current, % of 409 A (316 A: 250 kW at 0.95 pf, 480 V)
 
 # Annunciator, 4 rows of 6: electrical trips, mechanical trips, alarms, levels and status. Device numbers are
@@ -104,18 +110,24 @@ def build():
 
     def breaker_switch(P, name, label, pos=('TRIP', 'CLOSE'), grip='black'):
         """Breaker-type control switch, spring return: the handle hangs at normal; turned right (pos[1]) or
-        left (pos[0]) it sends a pulse and springs back. It is two buttons, one each way, on the two halves of
-        the plate; the left one is parented to the right one, so the one handle shows both. The state lives in
-        the logic and shows on the target flag. Returns the right and left pulses (one tick each)."""
-        rt = m.ent('func_rot_button', f'{name}_r', distance=45, speed=600, spawnflags=1024 + 128, sounds=0, wait=0.35)
-        lt = m.ent('func_rot_button', f'{name}_l', distance=45, speed=600, spawnflags=1024 + 128 + 2, sounds=0, wait=0.35,
+        left (pos[0]) it sends a pulse and springs back. One press anywhere on the switch works it: an
+        invisible button over the whole plate asks a logic_branch that holds the switch's state, which turns
+        the handle the way that changes it (right when off, left when on). The handle is two rotating
+        entities, one each way, the left one parented to the right one, so the one handle shows both. The
+        state lives in the logic and shows on the target flag. Returns the right and left pulses (one tick
+        each)."""
+        rt = m.ent('func_rot_button', f'{name}_r', distance=45, speed=SW_SPEED, spawnflags=128, sounds=0, wait=SW_HOLD)
+        lt = m.ent('func_rot_button', f'{name}_l', distance=45, speed=SW_SPEED, spawnflags=128 + 2, sounds=0, wait=SW_HOLD,
                    parentname=f'{name}_r')
+        br = m.ent('logic_branch', f'{name}_br', InitialValue=0)
+        use = m.ent('func_button', name, spawnflags=1024 + 1, speed=5, lip=0, movedir='0 90 0', sounds=0,
+                    wait=round(2 * 45 / SW_SPEED + SW_HOLD + 0.1, 2))       # not again until the handle is back
+        use.out('OnPressed', br, 'Test'); use.out('OnPressed', 's_click', 'PlaySound')
+        br.out('OnTrue', lt, 'Press'); br.out('OnFalse', rt, 'Press')
         vr, vl = P.var(f'{name}_rp', 0, 0, 1), P.var(f'{name}_lp', 0, 0, 1)
         rt.out('OnIn', vr.ent, 'SetValue', 1); lt.out('OnIn', vl.ent, 'SetValue', 1)
-        for e in (rt, lt):
-            e.out('OnPressed', 's_click', 'PlaySound')
         P.add(vr, -vr.r); P.add(vl, -vl.r)
-        dev['switches'][name] = {'ents': (lt, rt), 'label': label, 'pos': pos, 'grip': grip, 'init': 0}
+        dev['switches'][name] = {'ents': (lt, rt), 'use': use, 'branch': br, 'label': label, 'pos': pos, 'grip': grip, 'init': 0}
         return vr, vl
 
     def held(P, var, on, off, init=0, name=None):
@@ -125,11 +137,14 @@ def build():
         P.set(f, OR(on.r, f.r * NOT(off.r)))
         if name:
             dev['switches'][name]['init'] = init
+            dev['switches'][name]['branch'].kv['InitialValue'] = init
         return f
 
     def target(flag, name):
-        """the switch's target flag: red (skin 0) while the flag is on, green (skin 1) while off"""
+        """the switch's target flag: red (skin 0) while the flag is on, green (skin 1) while off; and its
+        branch, which sends the next press the other way"""
         flag.on_rise(f'{name}_flag', 'Skin', 0).on_fall(f'{name}_flag', 'Skin', 1)
+        flag.on_rise(f'{name}_br', 'SetValue', 1).on_fall(f'{name}_br', 'SetValue', 0)
 
     def dial(P, name, var, label, spring=True, start=0.0):
         """momentary_rot_button: its position (0..1) is the variable. Spring-return dials turn to their stop
@@ -141,12 +156,13 @@ def build():
         dev['dials'][name] = {'ent': e, 'label': label, 'spring': spring}
         return v
 
-    def needle(P, name, frac, imm=False, cond=None, speed=None):
+    def needle(P, name, frac, imm=False, cond=None, speed=None, start=0.0):
         """meter needle: a momentary_rot_button set to the value (0..1; the button clamps it). Its speed is
         matched to how often its loop updates it, so it glides from one value to the next like a damped
         switchboard movement instead of jumping and waiting."""
-        speed = speed or {'f': 300, 'm': 150, 's': 70}[P.name]
-        e = m.ent('momentary_rot_button', name, distance=250, speed=speed, spawnflags=1 + 128, startposition=0)
+        speed = speed or NEEDLE_SPEED.get(name, NEEDLE_SPEED[P.name])
+        # start: where the needle stands when the map loads (a slow needle would take half a minute to get there)
+        e = m.ent('momentary_rot_button', name, distance=250, speed=speed, spawnflags=1 + 128, startposition=round(start, 4))
         f = C(frac)
         if cond is not None:
             f = gate(clamp(f, 0, 1), cond, 0, 1)
@@ -337,15 +353,15 @@ def build():
 
     # ------------------------------------------------------------ fast meters and lamps
     needle(F, 'p_kw', Pe * PBASE / 320)                     # 0-320 kW
-    needle(F, 'p_head', hh * 40 / 60)                       # net head, 0-60 ft (40 ft rated)
+    needle(F, 'p_head', hh * 40 / 60, start=40 / 60)        # net head, 0-60 ft (40 ft rated)
     pf_ang = pwl(Qe / clamp(Pe, 0.03, None), ATAN_PTS)
-    needle(F, 'p_pf', sel(CB, 0.5 + pf_ang / 120, 0.5))
+    needle(F, 'p_pf', sel(CB, 0.5 + pf_ang / 120, 0.5), start=0.5)
     needle(F, 'p_speed', N / 150)
     needle(F, 'p_gate', G / 100)
     hz = (0.6 * N - 54) / 12                                # 54-66 Hz
     needle(F, 'p_hz', hz)
     lamp('LP_cb', cb, ('red', 'green'))
-    cb.on_rise('r_52_flag', 'Skin', 0).on_fall('r_52_flag', 'Skin', 1)      # 52G switch target: red closed, green tripped
+    target(cb, 'r_52')                                       # 52G switch target: red closed, green tripped
     lamp('L_perm', perm, ('green', None))
 
     # ================================================================ MEDIUM (0.12 s)
@@ -453,9 +469,9 @@ def build():
     M.set(ia, ia_new)
     needle(M, 'p_amps', 409 * ia_new / 50000)
     needle(M, 'p_exc', X / 120)                             # 0-60 A
-    needle(M, 'p_fa', 1 - EXC * k_cmd)                      # firing angle 0-90 deg
+    needle(M, 'p_fa', 1 - EXC * k_cmd, start=1.0)           # firing angle 0-90 deg
     lamp('LP_exc', exc, ('red', 'green'))
-    exc.on_rise('r_exc_flag', 'Skin', 0).on_fall('r_exc_flag', 'Skin', 1)   # 41 switch target
+    target(exc, 'r_exc')                                     # 41 switch target
     lamp('LP_brake', brake, ('red', 'green'))
 
     # ================================================================ SLOW
@@ -509,18 +525,18 @@ def build():
     S.set(qv, aff(vg.r, 0.018, 0.2))
 
     # ------------------------------------------------------------ slow meters
-    needle(S, 'p_gridv', vg.r / 125)                         # the 480 V bus the utility feeds, 0-600 V
-    needle(S, 'p_sfreq', 0.5)                                # and its frequency: the grid's 60 Hz, 54-66 Hz
-    needle(S, 'p_st', st.r / 150)                            # stator winding, 0-150 C
+    needle(S, 'p_gridv', vg.r / 125, start=100.4 / 125)      # the 480 V bus the utility feeds, 0-600 V
+    needle(S, 'p_sfreq', 0.5, start=0.5)                     # and its frequency: the grid's 60 Hz, 54-66 Hz
+    needle(S, 'p_st', st.r / 150, start=25 / 150)            # stator winding, 0-150 C
     needle(S, 'p_lube', lp.r / 60)
     needle(S, 'p_cw', cw.r / 100)
-    needle(S, 'p_bt', (bt.r - 20) / 80)
+    needle(S, 'p_bt', (bt.r - 20) / 80, start=(INIT['bt'] - 20) / 80)
     needle(S, 'p_vib', sel(cb_s.r, pwl(Gs, VIB_PTS), 3) / 20)
     needle(S, 'p_opu', hp.r / 400)
     needle(S, 'p_air', air.r / 150)
-    needle(S, 'p_hw', lv.r * FT / 35)                        # forebay level, 0-35 ft
-    needle(S, 'p_rq', 0.9 * q.r / 120)
-    needle(S, 'p_spill', sg.r * FT / 4)                      # spill gate opening, 0-4 ft
+    needle(S, 'p_hw', lv.r * FT / 35, start=INIT['l'] * FT / 35)     # forebay level, 0-35 ft
+    needle(S, 'p_rq', 0.9 * q.r / 120, start=0.9 * INIT['q'] / 120)
+    needle(S, 'p_spill', sg.r * FT / 4, start=INIT['sg'] * FT / 4)   # spill gate opening, 0-4 ft
 
     # ------------------------------------------------------------ annunciator
     # ISA manual-reset sequence (ISA-18.1 "M"): a new alarm flashes its window and sounds the horn;
