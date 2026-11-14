@@ -67,7 +67,9 @@ The plant is a per-unit machine model, the kind used in hydro studies:
   at the speed-no-load gate until 90 % speed, so start-up overshoots only about 2 %. On a full load
   rejection the speed peaks around 118 % and comes back to speed-no-load without tripping. With the governor in MAN
   nothing catches it, and 12 overspeed trips at 140 %.
-- **Auxiliaries:** in AUTO the governor oil pump runs on its pressure switch (on below 270 psi, off at 300)
+- **Auxiliaries:** every pump and the compressor is a fixed-speed motor started across the line. The lube
+  oil pressure and cooling water flow are up within a second of START and gone within a second of STOP.
+  In AUTO the governor oil pump runs on its pressure switch (on below 270 psi, off at 300)
   and the air compressor on its own (100 / 125 psi); you hear them start and stop. Bearings warm with speed and
   load over about a minute (52-60 C with cooling water); without it they head for 120 C, and without lube
   oil they wipe in seconds.

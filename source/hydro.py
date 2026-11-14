@@ -60,7 +60,7 @@ SW_SPEED, SW_HOLD = 300, 0.25          # control switch handles: 45 degrees in 0
 # next, so one much faster than its quantity changes ticks along in steps; each is set a little above the
 # fastest its quantity normally moves, so it sweeps instead (and lags a sudden jump, as a damped meter does).
 NEEDLE_SPEED = {'f': 300, 'm': 110, 's': 40, 'p_opu': 20, 'p_air': 24, 'p_bt': 8, 'p_hw': 5, 'p_rq': 4, 'p_st': 5,
-                'p_gridv': 4, 'p_spill': 12, 'p_vib': 30, 'p_lube': 60, 'p_cw': 60}
+                'p_gridv': 4, 'p_spill': 12, 'p_vib': 30, 'p_lube': 250, 'p_cw': 250}
 I_RATED = 77.0                         # rated stator current, % of 409 A (316 A: 250 kW at 0.95 pf, 480 V)
 
 # Annunciator, 4 rows of 6: electrical trips, mechanical trips, alarms, levels and status. Device numbers are
@@ -130,11 +130,14 @@ def build():
         dev['switches'][name] = {'ents': (lt, rt), 'use': use, 'branch': br, 'label': label, 'pos': pos, 'grip': grip, 'init': 0}
         return vr, vl
 
+    NEW = {}
+
     def held(P, var, on, off, init=0, name=None):
         """the state a spring-return switch sets: on with its right pulse, off with its left. init: the state
         at the start (the named switch's target then starts red)"""
         f = P.flag(var, init)
-        P.set(f, OR(on.r, f.r * NOT(off.r)))
+        NEW[var] = OR(on.r, f.r * NOT(off.r))          # its value this tick, for what must answer the switch at once
+        P.set(f, NEW[var])
         if name:
             dev['switches'][name]['init'] = init
             dev['switches'][name]['branch'].kv['InitialValue'] = init
@@ -498,8 +501,13 @@ def build():
                            + 0.15 * NOT(auto) * (step(ksr.r, 0.5) - step(ksl.r, 0.5))))
 
     # ------------------------------------------------------------ auxiliaries
-    S.set(lp, lp.r + ds * 2 * (36 * lube.r - lp.r))
-    S.set(cw, cw.r + ds * 2 * (62 * cool.r - cw.r))
+    # The lube oil and cooling water pumps are fixed-speed motors started across the line: at full speed in
+    # a fraction of a second, so the oil pressure (a gear pump) is up within half a second and the water flow
+    # (a centrifugal pump, with the water in the pipes to get moving) within a second; they fall as fast.
+    lp_new = lp.r + ds * 3.3 * (36 * NEW['lube'] - lp.r)
+    cw_new = cw.r + ds * 2.5 * (62 * NEW['cool'] - cw.r)
+    S.set(lp, lp_new)
+    S.set(cw, cw_new)
     # hydraulic oil (wicket gate servomotors): the pump runs on its pressure switch (on below 270 psi, off
     # at 300); the pilot valves leak, and every % of gate travel draws 0.5 psi
     hpu_new = hhp.r * OR(below(hp.r, 270), hpu.r * below(hp.r, 300))
@@ -528,8 +536,8 @@ def build():
     needle(S, 'p_gridv', vg.r / 125, start=100.4 / 125)      # the 480 V bus the utility feeds, 0-600 V
     needle(S, 'p_sfreq', 0.5, start=0.5)                     # and its frequency: the grid's 60 Hz, 54-66 Hz
     needle(S, 'p_st', st.r / 150, start=25 / 150)            # stator winding, 0-150 C
-    needle(S, 'p_lube', lp.r / 60)
-    needle(S, 'p_cw', cw.r / 100)
+    needle(S, 'p_lube', lp_new / 60)                         # this tick's values: the meters answer the switch at once
+    needle(S, 'p_cw', cw_new / 100)
     needle(S, 'p_bt', (bt.r - 20) / 80, start=(INIT['bt'] - 20) / 80)
     needle(S, 'p_vib', sel(cb_s.r, pwl(Gs, VIB_PTS), 3) / 20)
     needle(S, 'p_opu', hp.r / 400)
